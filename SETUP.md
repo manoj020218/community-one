@@ -93,24 +93,102 @@ App runs at `http://localhost:5173`
 
 ---
 
-## 6. VPS Deployment (no Docker)
+## 6. VPS — First-Time Setup
 
-### PM2 for process management
+VPS path: `/root/projects/community`
+GitHub:   `https://github.com/manoj020218/community-one`
+
 ```bash
-npm install -g pm2
+# Clone the repo (first time only)
+cd /root/projects
+git clone https://github.com/manoj020218/community-one.git community
+cd community
+
+# Install PM2 globally (once)
+pnpm add -g pm2
 
 # Backend
-cd backend
+cd /root/projects/community/backend
+cp .env.example .env
+nano .env                  # set JWT secrets, MONGODB_URI, etc.
+pnpm install
+pnpm run seed              # seed roles, modules, reports, super admin
 pnpm run build
 pm2 start dist/server.js --name jenix-api
 
-# Frontend (Nginx serves the static build)
-cd frontend
+# Frontend
+cd /root/projects/community/frontend
+pnpm install
 pnpm run build
-# Copy dist/ to Nginx web root, e.g. /var/www/jenix/
+cp -r dist/* /var/www/jenix/   # or your Nginx web root
+
+# Save PM2 process list and enable auto-start
+pm2 startup                # follow the printed command
+pm2 save
 ```
 
-### Nginx reverse proxy config
+---
+
+## 7. VPS — Updating the Project
+
+Every time you push new code to GitHub, run these commands on the VPS to deploy the update:
+
+```bash
+cd /root/projects/community
+
+# Pull latest code
+git pull origin master
+
+# ── Backend update ──────────────────────────────────────────
+cd /root/projects/community/backend
+pnpm install               # install any new dependencies
+pnpm run build             # recompile TypeScript → dist/
+pm2 restart jenix-api      # apply the new build (zero-downtime)
+pm2 logs jenix-api --lines 20   # verify no startup errors
+
+# ── Frontend update ─────────────────────────────────────────
+cd /root/projects/community/frontend
+pnpm install               # install any new dependencies
+pnpm run build             # rebuild → dist/
+cp -r dist/* /var/www/jenix/    # replace static files
+```
+
+**One-liner deploy script** — paste this as `/root/deploy.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+echo "==> Pulling latest code..."
+cd /root/projects/community
+git pull origin master
+
+echo "==> Building backend..."
+cd backend
+pnpm install --frozen-lockfile
+pnpm run build
+pm2 restart jenix-api
+
+echo "==> Building frontend..."
+cd ../frontend
+pnpm install --frozen-lockfile
+pnpm run build
+cp -r dist/* /var/www/jenix/
+
+echo "==> Done! API status:"
+pm2 status jenix-api
+```
+
+Make it executable and run with:
+```bash
+chmod +x /root/deploy.sh
+bash /root/deploy.sh
+```
+
+---
+
+## 8. Nginx Config (VPS)
+
 ```nginx
 server {
     listen 80;
@@ -122,14 +200,15 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 
-    # Uploaded files
+    # Uploaded files served by backend
     location /uploads/ {
         proxy_pass http://localhost:5000;
     }
 
-    # Frontend SPA
+    # Frontend SPA — must come last
     location / {
         root /var/www/jenix;
         try_files $uri $uri/ /index.html;
@@ -137,15 +216,33 @@ server {
 }
 ```
 
-### PM2 auto-start on reboot
+Apply config:
 ```bash
-pm2 startup
-pm2 save
+sudo nginx -t                     # test syntax
+sudo systemctl reload nginx       # apply without downtime
+```
+
+SSL with Let's Encrypt:
+```bash
+sudo certbot --nginx -d yourdomain.com
 ```
 
 ---
 
-## 7. API Endpoints Overview
+## 9. PM2 Cheatsheet (VPS)
+
+```bash
+pm2 status                        # all processes
+pm2 restart jenix-api             # restart after code update
+pm2 logs jenix-api --lines 50     # live logs
+pm2 monit                         # CPU/memory dashboard
+pm2 reload jenix-api              # graceful reload (zero-downtime)
+pm2 delete jenix-api              # remove process
+```
+
+---
+
+## 10. API Endpoints Overview
 
 | Resource        | Base Route              |
 |-----------------|-------------------------|
@@ -170,7 +267,7 @@ pm2 save
 
 ---
 
-## 8. Production Environment Checklist
+## 11. Production Environment Checklist
 
 - [ ] Set `NODE_ENV=production` in backend `.env`
 - [ ] Change `JWT_SECRET` → 64-character random string
@@ -184,7 +281,7 @@ pm2 save
 
 ---
 
-## 9. Project Structure
+## 12. Project Structure
 
 ```
 jenix-community-one/
