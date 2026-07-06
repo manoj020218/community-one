@@ -1,0 +1,1682 @@
+Jenix Community One 
+
+Codex Task: Build Jenix Society One — Core Platform First
+
+You are a senior full-stack product architect and software engineer.
+
+Build a professional, scalable, 10-year-life SaaS product foundation called:
+
+Jenix Society One
+
+This is a common modular society-management platform for residential societies, apartments, gated communities and townships.
+
+The platform must be designed so that future modules can be added phase by phase as plugin-type modules without rewriting the core.
+
+Future modules will include:
+
+1. Parking + Boom Barrier + UHF Reader
+2. Visitor Management
+3. Maintenance Collection + Receipt
+4. Fund Utilization + Transparent Audit
+5. Facility Booking for Common Hall, Party Hall, Swimming Pool, Club, Movie Hall etc.
+6. Member Access Control for Gym, Spa, Pool
+7. Announcement + Events + Fundraising
+8. Complaint Management
+9. Staff / Maid / Vendor Management
+10. Delivery Management
+11. Emergency / SOS
+12. Polling / Voting
+13. Document Management
+14. Asset / AMC Management
+15. IoT Device Health Monitoring
+
+But in this first development cycle, build only the Core Platform.
+
+The core platform must be strong enough that all future modules can be plugged in easily.
+
+---
+
+Technology Stack
+
+Use:
+
+- MongoDB
+- Node.js
+- TypeScript
+- React
+- React PWA
+- Capacitor-ready structure
+- FCM-ready notification architecture
+- Express or Fastify backend
+- Modern UI with icons
+- Modular architecture
+- Unit tests
+- Integration tests where needed
+
+Use clean TypeScript everywhere.
+
+---
+
+Very Important Engineering Rules
+
+Follow these strictly.
+
+1. No file should be more than 200 lines.
+2. Split large components, services, routes, controllers and schemas into smaller files.
+3. Use modular folder structure.
+4. Every phase must be tested against written unit tests.
+5. After completing one phase, run tests.
+6. If tests fail, fix them before moving to next phase.
+7. Work in a loop:
+   - Plan the phase
+   - Create files
+   - Write tests
+   - Run tests
+   - Fix errors
+   - Run tests again
+   - Mark phase complete only after tests pass
+8. Do not write dummy untested code.
+9. Do not create fake “complete” status unless tests pass.
+10. Keep code production-quality and easy to debug.
+11. Every important backend action must be audit-log ready.
+12. Every future module must be easy to register in the module registry.
+13. Every API must respect "societyId" isolation.
+14. Design as multi-tenant SaaS from day one.
+15. Add watchdog-friendly architecture for long-term product health.
+
+---
+
+Product Vision
+
+Jenix Society One is not only a society app. It is a modular operating system for societies.
+
+Each society will get its own login and isolated data.
+
+Example:
+
+- Green Valley Society
+- Arihant Heights
+- Shanti Residency
+- Royal Enclave
+
+Each society has:
+
+- Towers / Blocks
+- Floors
+- Flats / Apartments
+- Owners
+- Tenants
+- Family Members
+- Vehicles
+- Pets
+- Roles
+- Devices
+- Enabled modules
+- Payments
+- Receipts
+- Notifications
+- Audit logs
+- Reports
+
+The platform should work like a SaaS product where Jenix Super Admin creates a society, enables modules, creates society admin, and society admin completes onboarding.
+
+---
+
+Phase 1 Goal
+
+Build the Core Platform only.
+
+Core Platform must include:
+
+1. Authentication
+2. Society creation
+3. Society layout
+4. Tower / block master
+5. Floor master
+6. Flat / apartment master
+7. Member / resident master
+8. Vehicle master
+9. Pet master
+10. User roles and permissions
+11. Module enable / disable registry
+12. Notification engine structure
+13. Audit log engine
+14. File upload engine structure
+15. Common payment record
+16. Receipt engine structure
+17. Reports engine structure
+18. Device mapping
+19. Core dashboard
+20. Watchdog / health monitoring foundation
+21. PWA-ready frontend
+22. Capacitor-ready mobile structure
+
+Do not build future modules now. Only make the platform ready to accept them.
+
+---
+
+Required Application Flow
+
+Jenix Super Admin Flow
+
+1. Login as Jenix Super Admin.
+2. Create new society.
+3. Add society name, address, city, state, pincode, contact person, mobile, email, logo.
+4. Select society plan.
+5. Enable/disable modules.
+6. Create first Society Admin.
+7. Map initial devices if available.
+8. View all societies from dashboard.
+9. See active/inactive society status.
+10. See device online/offline placeholder status.
+
+Society Admin Flow
+
+1. Login.
+2. Complete society onboarding.
+3. Create towers / blocks.
+4. Create floors.
+5. Create flats.
+6. Add owners, tenants and family members.
+7. Add vehicles.
+8. Add pets.
+9. Assign roles to users.
+10. View dashboard.
+11. View enabled modules.
+12. View reports.
+13. View audit logs.
+14. Map devices.
+
+Resident Flow
+
+1. Login.
+2. Select society/flat if linked to multiple flats.
+3. View own profile.
+4. View own family members.
+5. View own vehicles.
+6. View own pets.
+7. View notifications.
+8. View receipts/payment records if permission allowed.
+
+Guard / Facility Staff Flow
+
+For now only create role and placeholder dashboard.
+
+Future modules will use this role.
+
+---
+
+Society Layout Model
+
+The platform must support this hierarchy:
+
+Society
+? Tower / Block
+? Floor
+? Flat / Apartment
+? Members
+? Vehicles
+? Pets
+
+Example:
+
+Green Valley Society
+? Tower A
+? Floor 1
+? A-101
+? Owner
+? Tenant
+? Family Members
+? Vehicles
+? Pets
+
+Make the structure flexible so it can also support:
+
+- Villas
+- Row houses
+- Shops
+- Offices
+- Mixed-use properties
+- Societies without towers
+- Single-block apartments
+
+---
+
+Database Collections
+
+Create MongoDB models for:
+
+1. "Society"
+2. "Tower"
+3. "Floor"
+4. "Flat"
+5. "User"
+6. "ResidentProfile"
+7. "Vehicle"
+8. "Pet"
+9. "Role"
+10. "Permission"
+11. "ModuleRegistry"
+12. "SocietyModuleConfig"
+13. "Notification"
+14. "AuditLog"
+15. "FileAsset"
+16. "PaymentRecord"
+17. "Receipt"
+18. "ReportDefinition"
+19. "Device"
+20. "HealthLog"
+
+Every society-level record must include:
+
+societyId
+createdBy
+createdAt
+updatedAt
+isActive
+
+Where relevant, also include:
+
+towerId
+floorId
+flatId
+memberId
+moduleCode
+
+---
+
+Core Entity Requirements
+
+Society
+
+Fields:
+
+name
+code
+logoUrl
+address
+city
+state
+pincode
+contactPersonName
+contactMobile
+contactEmail
+planCode
+enabledModules
+status
+billingStatus
+createdBy
+createdAt
+updatedAt
+
+Society code must be unique.
+
+Example:
+
+JSO-GREENVALLEY
+JSO-ARIHANTHEIGHTS
+
+---
+
+Tower / Block
+
+Fields:
+
+societyId
+name
+code
+type
+numberOfFloors
+totalFlats
+hasLift
+status
+
+Type examples:
+
+TOWER
+BLOCK
+VILLA_ROW
+SHOP_BLOCK
+OTHER
+
+---
+
+Floor
+
+Fields:
+
+societyId
+towerId
+floorNumber
+floorName
+totalFlats
+status
+
+---
+
+Flat / Apartment
+
+Fields:
+
+societyId
+towerId
+floorId
+flatNo
+flatType
+areaSqFt
+occupancyStatus
+maintenanceCategory
+parkingSlots
+status
+
+Flat type examples:
+
+1BHK
+2BHK
+3BHK
+4BHK
+PENTHOUSE
+VILLA
+SHOP
+OFFICE
+OTHER
+
+Occupancy status:
+
+OWNER_OCCUPIED
+TENANT_OCCUPIED
+VACANT
+LOCKED
+UNDER_RENOVATION
+
+---
+
+User / Resident
+
+Support:
+
+JENIX_SUPER_ADMIN
+JENIX_SUPPORT
+SOCIETY_ADMIN
+COMMITTEE_MEMBER
+ACCOUNTANT
+SECURITY_GUARD
+FACILITY_MANAGER
+OWNER
+TENANT
+FAMILY_MEMBER
+VENDOR
+STAFF
+
+Resident/member fields:
+
+societyId
+flatId
+name
+mobile
+email
+photoUrl
+relation
+memberType
+loginAllowed
+approvalAuthority
+primaryContact
+emergencyContact
+moveInDate
+moveOutDate
+kycStatus
+status
+
+Important:
+
+One mobile number may be linked to multiple societies or multiple flats.
+
+After login, user should be able to select active society/flat context.
+
+---
+
+Vehicle
+
+Fields:
+
+societyId
+flatId
+memberId
+vehicleNo
+vehicleType
+brand
+model
+color
+parkingSlot
+uhfTagId
+rfidCardId
+stickerNo
+entryAllowed
+isBlacklisted
+status
+
+Vehicle types:
+
+CAR
+BIKE
+SCOOTER
+CYCLE
+COMMERCIAL
+STAFF
+VISITOR
+OTHER
+
+---
+
+Pet
+
+Fields:
+
+societyId
+flatId
+ownerMemberId
+petName
+petType
+breed
+photoUrl
+vaccinationRecordUrl
+vaccinationExpiryDate
+aggressiveFlag
+remarks
+status
+
+Pet types:
+
+DOG
+CAT
+BIRD
+OTHER
+
+---
+
+Authentication Requirements
+
+Implement secure authentication with:
+
+1. Mobile/email + password for MVP.
+2. JWT access token.
+3. Refresh token structure if possible.
+4. Password hashing.
+5. Role-based access.
+6. Society context selection.
+7. Permission middleware.
+
+Prepare architecture so OTP login can be added later.
+
+Do not hardcode only one society.
+
+Do not hardcode admin user except seed script.
+
+Create seed script for:
+
+Jenix Super Admin
+Default core modules
+Default roles
+Default permissions
+
+---
+
+Role and Permission Engine
+
+Do not hardcode access only by role name.
+
+Use permission-based system.
+
+Example permissions:
+
+society.create
+society.read
+society.update
+society.disable
+
+tower.create
+tower.read
+tower.update
+tower.delete
+
+flat.create
+flat.read
+flat.update
+flat.delete
+
+resident.create
+resident.read
+resident.update
+resident.disable
+
+vehicle.create
+vehicle.read
+vehicle.update
+vehicle.disable
+
+pet.create
+pet.read
+pet.update
+pet.disable
+
+module.enable
+module.disable
+module.read
+
+device.create
+device.read
+device.update
+device.disable
+
+payment.create
+payment.read
+receipt.generate
+
+notification.read
+audit.read
+report.read
+file.upload
+
+Create default roles:
+
+JENIX_SUPER_ADMIN
+JENIX_SUPPORT
+SOCIETY_ADMIN
+COMMITTEE_MEMBER
+ACCOUNTANT
+SECURITY_GUARD
+FACILITY_MANAGER
+RESIDENT
+
+Each role should map to permissions.
+
+---
+
+Module Registry
+
+This is very important.
+
+Create a core module registry system.
+
+Each module should have:
+
+code
+name
+description
+version
+status
+icon
+routePrefix
+apiPrefix
+requiredPlan
+defaultEnabled
+permissions
+settingsSchema
+
+Default module records:
+
+CORE
+PARKING
+VISITOR
+MAINTENANCE
+BOOKING
+ACCESS_CONTROL
+ANNOUNCEMENT
+FUND_AUDIT
+COMPLAINT
+STAFF
+DELIVERY
+EMERGENCY
+POLLING
+DOCUMENT
+ASSET_AMC
+IOT_HEALTH
+
+In Phase 1 only CORE should be functional.
+
+Other modules should appear as future modules and can be enabled/disabled, but their full features are not developed yet.
+
+If a module is disabled for a society:
+
+- Hide menu
+- Block API
+- Hide dashboard widget
+- Block permission access
+
+---
+
+Notification Engine
+
+Create notification foundation.
+
+Fields:
+
+societyId
+userId
+title
+message
+type
+moduleCode
+actionUrl
+readAt
+createdAt
+priority
+deliveryStatus
+
+Notification types:
+
+INFO
+WARNING
+URGENT
+APPROVAL
+PAYMENT
+DEVICE
+SYSTEM
+
+Create UI page:
+
+- Notification list
+- Read/unread status
+- Filter by type
+- Mark as read
+
+FCM integration can be placeholder service but structure must be ready.
+
+Create service:
+
+NotificationService.create()
+NotificationService.markRead()
+NotificationService.sendPushPlaceholder()
+
+---
+
+Audit Log Engine
+
+Every important action must create audit log.
+
+Audit fields:
+
+societyId
+actorUserId
+actorRole
+moduleCode
+action
+entityType
+entityId
+oldValue
+newValue
+reason
+ipAddress
+userAgent
+createdAt
+
+Actions examples:
+
+CREATE
+UPDATE
+DELETE
+DISABLE
+ENABLE
+LOGIN
+LOGOUT
+MODULE_ENABLED
+MODULE_DISABLED
+DEVICE_MAPPED
+PAYMENT_CREATED
+RECEIPT_GENERATED
+
+Create middleware/helper so future modules can easily write audit logs.
+
+Create audit log list page with filters:
+
+- Date
+- User
+- Module
+- Action
+- Entity type
+
+---
+
+File Upload Engine
+
+Create file asset model and backend structure.
+
+File fields:
+
+societyId
+uploadedBy
+moduleCode
+entityType
+entityId
+fileName
+originalName
+mimeType
+size
+storageProvider
+url
+accessLevel
+createdAt
+
+Access level:
+
+PRIVATE
+SOCIETY_ADMIN
+RESIDENT
+PUBLIC
+
+For MVP, local storage is okay.
+
+Design so S3-compatible storage can be added later.
+
+Frontend should support uploading:
+
+- Society logo
+- Resident photo
+- Vehicle document placeholder
+- Pet photo
+
+---
+
+Payment Record Foundation
+
+Create common payment record structure.
+
+This should support future modules like maintenance, booking, parking, fundraising, penalty and access control.
+
+Fields:
+
+societyId
+flatId
+memberId
+amount
+currency
+paymentPurpose
+moduleCode
+paymentMode
+paymentStatus
+transactionId
+paymentDate
+receivedBy
+attachmentFileId
+remarks
+createdAt
+
+Payment modes:
+
+CASH
+UPI
+BANK_TRANSFER
+CHEQUE
+ONLINE_GATEWAY
+ADJUSTMENT
+WAIVER
+
+Payment status:
+
+PENDING
+RECEIVED
+FAILED
+CANCELLED
+REFUNDED
+
+Create basic payment list and payment entry UI.
+
+Do not implement payment gateway now.
+
+---
+
+Receipt Engine Foundation
+
+Receipt fields:
+
+societyId
+paymentRecordId
+receiptNo
+flatId
+memberId
+amount
+purpose
+paymentMode
+receiptDate
+generatedBy
+pdfUrl
+verificationCode
+status
+
+Receipt number must be society-wise.
+
+Example:
+
+GVS/2026/000001
+GVS/2026/000002
+
+Create receipt generation service.
+
+PDF generation can be placeholder in Phase 1, but code should be structured so PDF generation can be added later.
+
+Create receipt list page.
+
+---
+
+Reports Engine Foundation
+
+Create report definition system.
+
+Fields:
+
+code
+name
+moduleCode
+description
+filters
+exportFormats
+requiredPermission
+
+Core reports:
+
+SOCIETY_LIST
+TOWER_LIST
+FLAT_LIST
+RESIDENT_LIST
+VEHICLE_LIST
+PET_LIST
+PAYMENT_LIST
+RECEIPT_LIST
+AUDIT_LOG
+DEVICE_LIST
+MODULE_STATUS
+
+Export formats:
+
+PDF
+EXCEL
+CSV
+PRINT
+
+Create UI for report list and basic table view.
+
+Export can be placeholder initially but architecture must be ready.
+
+---
+
+Device Mapping Foundation
+
+Create device registry.
+
+Device types:
+
+BOOM_BARRIER_CONTROLLER
+UHF_READER
+QR_SCANNER
+RFID_READER
+ACCESS_READER
+RELAY_CONTROLLER
+GATE_CAMERA
+GUARD_DEVICE
+PANIC_BUTTON
+IOT_GATEWAY
+OTHER
+
+Device fields:
+
+societyId
+deviceName
+deviceType
+deviceCode
+gateName
+location
+ipAddress
+macAddress
+apiKey
+firmwareVersion
+lastHeartbeatAt
+onlineStatus
+mappedModuleCode
+status
+createdAt
+updatedAt
+
+Create device list and add/edit UI.
+
+Prepare APIs for:
+
+POST /api/devices
+GET /api/devices
+GET /api/devices/:id
+PATCH /api/devices/:id
+POST /api/devices/:id/heartbeat
+
+Heartbeat should update:
+
+lastHeartbeatAt
+onlineStatus
+firmwareVersion
+
+This will support future IoT device health module.
+
+---
+
+Watchdog and Health Monitoring Foundation
+
+This product is intended for 10-year professional life.
+
+Add basic watchdog-friendly backend structure:
+
+1. Health check endpoint:
+
+GET /health
+
+Should return:
+
+apiStatus
+databaseStatus
+timestamp
+version
+uptime
+
+2. Device heartbeat API.
+3. System health log model.
+4. Error logging middleware.
+5. Request logging middleware.
+6. Central error handler.
+7. API response standard.
+8. Basic backend startup validation.
+9. Environment variable validation.
+
+Create "HealthLog" model:
+
+service
+status
+message
+metadata
+createdAt
+
+Add placeholder for future:
+
+- MQTT health
+- FCM health
+- Device offline alerts
+- Scheduled watchdog jobs
+- Backup status
+- Queue health
+
+---
+
+Frontend UI Requirements
+
+Build a modern, attractive, professional UI.
+
+Use:
+
+- Modern dashboard cards
+- Icons
+- Smooth transitions
+- Clean forms
+- Responsive layout
+- Mobile-first design
+- PWA layout
+- Sidebar on desktop
+- Bottom navigation on mobile
+- Top society switcher
+- User profile menu
+- Module cards
+- Empty states
+- Loading skeletons
+- Toast notifications
+- Modal forms where useful
+
+UI should feel like a premium SaaS product, not an old admin panel.
+
+Suggested visual style:
+
+- Clean white/light theme
+- Soft cards
+- Rounded corners
+- Modern icons
+- Subtle animations
+- Professional typography
+- Status badges
+- Interactive dashboard widgets
+
+Use icons from a React icon library.
+
+---
+
+Audio Input / Speech-to-Text Requirement
+
+Important: Maximum input should be prefilled and onboarding should require minimum typing.
+
+Every major text input field should support audio input / speech-to-text.
+
+Add microphone icon inside or beside text fields.
+
+When user taps mic:
+
+1. Start browser speech recognition if supported.
+2. Convert speech to text.
+3. Fill the input field.
+4. Show fallback message if browser does not support speech recognition.
+
+Create reusable component:
+
+VoiceInputField
+
+It should support:
+
+label
+value
+onChange
+placeholder
+required
+type
+suggestions
+
+Use Web Speech API where available.
+
+Use this component in:
+
+- Society name
+- Address
+- Contact person
+- Tower name
+- Flat number
+- Resident name
+- Vehicle number
+- Pet name
+- Remarks
+- Device name
+- Gate name
+- Location
+
+For fields like city, state, pincode, role, status etc., use dropdown/autocomplete/pre-filled values.
+
+---
+
+Easy Onboarding Requirement
+
+Society onboarding should be fast.
+
+Add onboarding wizard:
+
+Step 1: Society Basic Details
+Step 2: Towers / Blocks
+Step 3: Flats Setup
+Step 4: Admin Users
+Step 5: Enabled Modules
+Step 6: Device Mapping
+Step 7: Review and Finish
+
+Maximum fields should be prefilled with defaults.
+
+Example:
+
+- Default country: India
+- Default currency: INR
+- Default enabled module: CORE
+- Default plan: BASIC
+- Suggested tower names: Tower A, Tower B, Tower C
+- Suggested flat numbers based on floor/tower
+- Suggested roles
+- Suggested device types
+- Default status: Active
+
+Add quick generation tools:
+
+1. Generate towers by count.
+2. Generate floors by count.
+3. Generate flats by pattern.
+
+Example:
+
+If tower A has 10 floors and 4 flats per floor, generate:
+
+A-101, A-102, A-103, A-104
+A-201, A-202, A-203, A-204
+...
+A-1001, A-1002, A-1003, A-1004
+
+Allow society admin to edit generated flat list before saving.
+
+This is very important to reduce data entry.
+
+---
+
+Frontend Pages Required in Phase 1
+
+Create these pages:
+
+1. Login
+2. Society selector
+3. Jenix Super Admin dashboard
+4. Society Admin dashboard
+5. Resident dashboard
+6. Society list
+7. Create/edit society
+8. Society onboarding wizard
+9. Tower/block management
+10. Floor management
+11. Flat/apartment management
+12. Resident/member management
+13. Vehicle management
+14. Pet management
+15. Role and permission management
+16. Module registry page
+17. Society module enable/disable page
+18. Notification page
+19. Audit log page
+20. File asset page
+21. Payment record page
+22. Receipt page
+23. Report list page
+24. Device mapping page
+25. Health/status page
+26. Profile page
+27. Settings page
+
+Every page should be responsive.
+
+Every page should use small reusable components.
+
+No React component file should exceed 200 lines.
+
+---
+
+Backend API Structure
+
+Use modular backend structure:
+
+src/
+  app.ts
+  server.ts
+  config/
+  common/
+    errors/
+    middleware/
+    utils/
+    types/
+  modules/
+    auth/
+    society/
+    tower/
+    floor/
+    flat/
+    user/
+    resident/
+    vehicle/
+    pet/
+    role/
+    permission/
+    moduleRegistry/
+    notification/
+    audit/
+    fileAsset/
+    payment/
+    receipt/
+    report/
+    device/
+    health/
+  tests/
+
+Each module should have small files:
+
+model.ts
+schema.ts
+service.ts
+controller.ts
+routes.ts
+test.ts
+types.ts
+
+Keep each file under 200 lines.
+
+---
+
+Frontend Structure
+
+Use:
+
+src/
+  app/
+  components/
+    layout/
+    forms/
+    cards/
+    tables/
+    feedback/
+  hooks/
+  services/
+  modules/
+    auth/
+    dashboard/
+    society/
+    onboarding/
+    tower/
+    floor/
+    flat/
+    resident/
+    vehicle/
+    pet/
+    roles/
+    moduleRegistry/
+    notification/
+    audit/
+    files/
+    payment/
+    receipt/
+    reports/
+    device/
+    health/
+    settings/
+  utils/
+  types/
+
+Keep each file under 200 lines.
+
+---
+
+API Response Standard
+
+All APIs should return standard response format.
+
+Success:
+
+{
+  success: true,
+  data: {},
+  message: "Success"
+}
+
+Error:
+
+{
+  success: false,
+  error: {
+    code: "VALIDATION_ERROR",
+    message: "Human readable error",
+    details: {}
+  }
+}
+
+---
+
+Security Requirements
+
+Implement:
+
+1. Password hashing.
+2. JWT authentication.
+3. Permission middleware.
+4. Society-level data isolation.
+5. Input validation.
+6. Rate-limit placeholder.
+7. Secure headers.
+8. CORS config.
+9. Audit log for sensitive actions.
+10. No raw error leak to frontend.
+11. Environment variable validation.
+12. API key structure for devices.
+
+---
+
+Testing Requirements
+
+Use proper test framework.
+
+Write tests for:
+
+1. Auth login
+2. Permission check
+3. Society creation
+4. Tower creation
+5. Flat creation
+6. Resident creation
+7. Vehicle creation
+8. Pet creation
+9. Module enable/disable
+10. Notification creation
+11. Audit log creation
+12. Payment record creation
+13. Receipt number generation
+14. Device heartbeat
+15. Health endpoint
+16. Society data isolation
+
+Every phase must run tests before continuing.
+
+Do not mark work complete until tests pass.
+
+---
+
+Development Phases
+
+Follow this exact loop.
+
+Phase 1A: Project Setup
+
+Build:
+
+- Backend TypeScript setup
+- Frontend React TypeScript setup
+- MongoDB config
+- Environment config
+- Common API response helper
+- Error handler
+- Test setup
+- Basic health endpoint
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1A complete.
+
+---
+
+Phase 1B: Auth + Roles + Permissions
+
+Build:
+
+- User model
+- Role model
+- Permission model
+- Login API
+- JWT middleware
+- Permission middleware
+- Seed script for super admin, roles and permissions
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1B complete.
+
+---
+
+Phase 1C: Society Master
+
+Build:
+
+- Society model
+- Society CRUD APIs
+- Society list UI
+- Create/edit society UI
+- Society context selection
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1C complete.
+
+---
+
+Phase 1D: Society Layout
+
+Build:
+
+- Tower/block model and APIs
+- Floor model and APIs
+- Flat model and APIs
+- Society onboarding wizard
+- Auto-generate tower/floor/flat feature
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1D complete.
+
+---
+
+Phase 1E: Residents, Vehicles and Pets
+
+Build:
+
+- Resident/member model and APIs
+- Vehicle model and APIs
+- Pet model and APIs
+- UI pages for each
+- Voice input fields
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1E complete.
+
+---
+
+Phase 1F: Module Registry
+
+Build:
+
+- Module registry model
+- Society module config model
+- Enable/disable module API
+- Module card UI
+- Permission blocking for disabled modules
+- Default future modules as registry entries
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1F complete.
+
+---
+
+Phase 1G: Notification + Audit + Files
+
+Build:
+
+- Notification model/service/UI
+- Audit log model/service/UI
+- File asset model/upload structure/UI
+- Audit middleware/helper
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1G complete.
+
+---
+
+Phase 1H: Payment + Receipt + Reports
+
+Build:
+
+- Payment record model/API/UI
+- Receipt model/service/API/UI
+- Receipt number generation
+- Report definition model/UI
+- Basic table reports
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1H complete.
+
+---
+
+Phase 1I: Device Mapping + Watchdog Foundation
+
+Build:
+
+- Device model/API/UI
+- Device heartbeat endpoint
+- Health log model
+- Health status page
+- Backend "/health"
+- Error/request logging
+- Watchdog-ready structure
+
+Write tests.
+
+Run tests.
+
+Only after tests pass, mark Phase 1I complete.
+
+---
+
+Phase 1J: Final UI Polish + PWA
+
+Build:
+
+- PWA manifest
+- Service worker setup
+- Responsive layout
+- Mobile bottom navigation
+- Desktop sidebar
+- Dashboard cards
+- Empty states
+- Loading skeletons
+- Toasts
+- Animations
+- Capacitor-ready structure
+
+Run all tests.
+
+Fix all errors.
+
+Only after all tests pass, say:
+
+“Phase 1 Core Platform Complete.”
+
+---
+
+Final Acceptance Criteria
+
+The project is complete only when:
+
+1. Backend starts without error.
+2. Frontend starts without error.
+3. MongoDB connection works.
+4. Super Admin can login.
+5. Super Admin can create society.
+6. Society Admin can login.
+7. Society onboarding wizard works.
+8. Towers can be created.
+9. Floors can be created.
+10. Flats can be generated and edited.
+11. Residents can be added.
+12. Vehicles can be added.
+13. Pets can be added.
+14. Roles and permissions work.
+15. Modules can be enabled/disabled.
+16. Notifications page works.
+17. Audit logs are created.
+18. File upload structure works.
+19. Payment records can be created.
+20. Receipt number can be generated.
+21. Reports list works.
+22. Devices can be mapped.
+23. Device heartbeat works.
+24. Health endpoint works.
+25. UI is modern and responsive.
+26. Voice input works where browser supports speech recognition.
+27. No file is more than 200 lines.
+28. Unit tests pass.
+29. Society-level data isolation is tested.
+30. Code is modular and ready for future modules.
+
+---
+
+Important Future-Proofing
+
+While building core platform, keep these future modules in mind:
+
+Parking Module Future
+
+Will need:
+
+vehicleId
+uhfTagId
+gateDeviceId
+entryTime
+exitTime
+barrierOpenReason
+blacklistStatus
+
+Visitor Module Future
+
+Will need:
+
+visitorPhoto
+residentApproval
+guardEntry
+gatePass
+vehicleEntry
+approvalNotification
+
+Maintenance Module Future
+
+Will need:
+
+flatId
+billPeriod
+charges
+dueAmount
+receipt
+lateFee
+
+Booking Module Future
+
+Will need:
+
+facilityId
+bookingSlot
+paymentRecord
+approvalStatus
+
+Access Control Future
+
+Will need:
+
+memberId
+facilityId
+accessDeviceId
+validity
+accessLog
+
+IoT Device Health Future
+
+Will need:
+
+deviceId
+heartbeat
+firmwareVersion
+onlineStatus
+faultCode
+otaStatus
+
+Do not build these modules now, but design the core so these can be added without changing the foundation.
+
+---
+
+Final Instruction to Codex
+
+Start now with Phase 1A.
+
+Follow the phase loop strictly.
+
+Do not jump to future modules.
+
+Do not create files longer than 200 lines.
+
+Write tests with each phase.
+
+Run tests after each phase.
+
+Fix all errors before continuing.
+
+After each completed phase, print:
+
+Phase 1A Complete - Tests Passed
+
+Then continue to the next phase.
+
+When all Phase 1 items are complete and tested, print:
+
+Phase 1 Core Platform Complete - All Tests Passed

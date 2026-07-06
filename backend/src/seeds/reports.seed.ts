@@ -1,0 +1,13 @@
+export const REPORTS_SEED = [
+  { code: 'SOCIETY_LIST', name: 'Society List', moduleCode: 'CORE', description: 'All registered societies', filters: ['status'], exportFormats: ['PDF','EXCEL','CSV'], requiredPermission: 'report.read' },
+  { code: 'TOWER_LIST', name: 'Tower / Block List', moduleCode: 'CORE', description: 'All towers and blocks for a society', filters: ['societyId','status'], exportFormats: ['PDF','EXCEL','CSV','PRINT'], requiredPermission: 'report.read' },
+  { code: 'FLAT_LIST', name: 'Flat / Apartment List', moduleCode: 'CORE', description: 'Complete flat directory', filters: ['societyId','towerId','floorId','occupancyStatus','flatType'], exportFormats: ['PDF','EXCEL','CSV','PRINT'], requiredPermission: 'report.read' },
+  { code: 'RESIDENT_LIST', name: 'Resident Directory', moduleCode: 'CORE', description: 'All residents and members', filters: ['societyId','flatId','memberType','status'], exportFormats: ['PDF','EXCEL','CSV','PRINT'], requiredPermission: 'report.read' },
+  { code: 'VEHICLE_LIST', name: 'Vehicle Registry', moduleCode: 'CORE', description: 'All registered vehicles', filters: ['societyId','vehicleType','isBlacklisted'], exportFormats: ['PDF','EXCEL','CSV','PRINT'], requiredPermission: 'report.read' },
+  { code: 'PET_LIST', name: 'Pet Registry', moduleCode: 'CORE', description: 'All registered pets', filters: ['societyId','petType','aggressiveFlag'], exportFormats: ['PDF','EXCEL','CSV'], requiredPermission: 'report.read' },
+  { code: 'PAYMENT_LIST', name: 'Payment Records', moduleCode: 'CORE', description: 'All payment records', filters: ['societyId','paymentStatus','paymentMode','startDate','endDate'], exportFormats: ['PDF','EXCEL','CSV'], requiredPermission: 'report.read' },
+  { code: 'RECEIPT_LIST', name: 'Receipt Register', moduleCode: 'CORE', description: 'All generated receipts', filters: ['societyId','startDate','endDate'], exportFormats: ['PDF','EXCEL','CSV','PRINT'], requiredPermission: 'report.read' },
+  { code: 'AUDIT_LOG', name: 'Audit Log Report', moduleCode: 'CORE', description: 'System audit logs', filters: ['societyId','action','moduleCode','actorUserId','startDate','endDate'], exportFormats: ['PDF','CSV'], requiredPermission: 'audit.read' },
+  { code: 'DEVICE_LIST', name: 'Device Registry', moduleCode: 'CORE', description: 'All mapped devices', filters: ['societyId','deviceType','onlineStatus'], exportFormats: ['PDF','EXCEL','CSV'], requiredPermission: 'report.read' },
+  { code: 'MODULE_STATUS', name: 'Module Status', moduleCode: 'CORE', description: 'Module enable/disable status per society', filters: ['societyId'], exportFormats: ['PDF','EXCEL'], requiredPermission: 'report.read' },
+];
