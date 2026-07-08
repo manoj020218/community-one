@@ -30,6 +30,9 @@ import healthRoutes from './modules/health/health.routes';
 
 const app: express.Application = express();
 
+// Trust Nginx reverse proxy (required for rate-limiter X-Forwarded-For)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));

@@ -12,8 +12,9 @@ export async function connectDatabase(uri?: string): Promise<void> {
   try {
     await mongoose.connect(mongoUri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 60000,
+      heartbeatFrequencyMS: 10000,
     });
 
     isConnected = true;
@@ -22,6 +23,11 @@ export async function connectDatabase(uri?: string): Promise<void> {
     mongoose.connection.on('disconnected', () => {
       isConnected = false;
       logger.warn('MongoDB disconnected');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      isConnected = true;
+      logger.info('MongoDB reconnected');
     });
 
     mongoose.connection.on('error', (err) => {
