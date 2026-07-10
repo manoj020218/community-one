@@ -19,6 +19,9 @@ export interface ISociety {
   status: SocietyStatus;
   billingStatus: BillingStatus;
   onboardingComplete: boolean;
+  selfOnboarded?: boolean;
+  agentCode?: string;
+  trialEndsAt?: Date;
   createdBy: string;
   isActive: boolean;
   createdAt?: Date;

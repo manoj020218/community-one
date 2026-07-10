@@ -32,3 +32,23 @@ export interface SelectSocietyContextDto {
   societyId: string;
   flatId?: string;
 }
+
+export interface OnboardSocietyDto {
+  societyName: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  contactPersonName: string;
+  email: string;
+  mobile: string;
+  agentCode?: string;
+}
+
+export interface OnboardSocietyResult {
+  societyName: string;
+  societyCode: string;
+  email: string;
+  password: string;
+  trialEndsAt: Date;
+}

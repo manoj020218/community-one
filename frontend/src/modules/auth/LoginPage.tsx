@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Building2, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { api, extractData } from '../../services/api';
 import { User } from '../../types';
 import toast from 'react-hot-toast';
 
 export function LoginPage() {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const location = useLocation();
+  const prefill = (location.state as { prefillEmail?: string; prefillPassword?: string } | null) ?? {};
+  const [identifier, setIdentifier] = useState(prefill.prefillEmail ?? '');
+  const [password, setPassword] = useState(prefill.prefillPassword ?? '');
+  const [showPassword, setShowPassword] = useState(!!prefill.prefillPassword);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
@@ -60,7 +62,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Email or Mobile</label>
-              <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="admin@jenix.in or 9999999999" className="input" required autoFocus />
+              <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="Email or mobile number" className="input" required autoFocus />
             </div>
 
             <div>
@@ -78,13 +80,13 @@ export function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 bg-slate-50 rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-primary-600" />
-              <span className="text-xs font-semibold text-slate-700">Demo Credentials</span>
-            </div>
-            <p className="text-xs text-slate-500">Email: admin@jenix.in</p>
-            <p className="text-xs text-slate-500">Password: Admin@123</p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-500">
+              New to Jenix?{' '}
+              <Link to="/onboard" className="text-primary-600 font-semibold hover:underline">
+                Register your society →
+              </Link>
+            </p>
           </div>
         </div>
 

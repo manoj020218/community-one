@@ -33,6 +33,10 @@ const SocietySchema = new Schema(
       default: 'TRIAL',
     },
     onboardingComplete: { type: Boolean, default: false },
+    // Self-onboarding fields
+    selfOnboarded: { type: Boolean, default: false },
+    agentCode: { type: String, trim: true },
+    trialEndsAt: { type: Date },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isActive: { type: Boolean, default: true },
   },
@@ -41,6 +45,7 @@ const SocietySchema = new Schema(
 
 SocietySchema.index({ code: 1 }, { unique: true });
 SocietySchema.index({ status: 1 });
+SocietySchema.index({ city: 1, pincode: 1 });
 
 export const Society: Model<ISocietyDocument> = mongoose.model<ISocietyDocument>(
   'Society',

@@ -33,6 +33,7 @@ import { LandingPage } from './modules/marketing/LandingPage';
 import { AboutPage } from './modules/marketing/AboutPage';
 import { PrivacyPage } from './modules/marketing/PrivacyPage';
 import { TermsPage } from './modules/marketing/TermsPage';
+import { OnboardPage } from './modules/marketing/OnboardPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -67,6 +68,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/onboard" element={<OnboardPage />} />
       </Route>
 
       {/* Protected app routes — auth required, use AppLayout */}

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
 import { AuthenticatedRequest } from '../../common/types';
-import { sendSuccess } from '../../common/utils/response';
+import { sendSuccess, sendCreated } from '../../common/utils/response';
 import { auditService } from '../audit/audit.service';
 
 export class AuthController {
@@ -19,6 +19,15 @@ export class AuthController {
         userAgent: req.headers['user-agent'] || '',
       });
       sendSuccess(res, result, 'Login successful');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async onboardSociety(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.onboardSociety(req.body);
+      sendCreated(res, result, 'Society registered successfully');
     } catch (error) {
       next(error);
     }
