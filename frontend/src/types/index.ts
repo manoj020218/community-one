@@ -69,7 +69,12 @@ export interface Resident {
   _id: string; societyId: string; flatId: any; name: string;
   mobile: string; email?: string; photoUrl?: string;
   memberType: string; loginAllowed: boolean; primaryContact: boolean;
-  kycStatus: string; status: string;
+  kycStatus: string;
+  kycVerifiedBy?: { _id: string; name: string };
+  kycVerifiedAt?: string;
+  kycPhysicalLocation?: string;
+  kycNotes?: string;
+  status: string;
 }
 
 export interface Vehicle {

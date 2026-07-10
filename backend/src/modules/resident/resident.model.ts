@@ -20,6 +20,10 @@ export interface IResidentDocument extends Document {
   moveInDate?: Date;
   moveOutDate?: Date;
   kycStatus: KycStatus;
+  kycVerifiedBy?: string;
+  kycVerifiedAt?: Date;
+  kycPhysicalLocation?: string;
+  kycNotes?: string;
   status: ResidentStatus;
   createdBy: string;
   isActive: boolean;
@@ -44,6 +48,10 @@ const ResidentSchema = new Schema(
     moveInDate: { type: Date },
     moveOutDate: { type: Date },
     kycStatus: { type: String, enum: ['PENDING','SUBMITTED','VERIFIED','REJECTED'], default: 'PENDING' },
+    kycVerifiedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    kycVerifiedAt: { type: Date },
+    kycPhysicalLocation: { type: String },
+    kycNotes: { type: String },
     status: { type: String, enum: ['ACTIVE','INACTIVE','MOVED_OUT'], default: 'ACTIVE' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     isActive: { type: Boolean, default: true },

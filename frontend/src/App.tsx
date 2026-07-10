@@ -15,6 +15,7 @@ import { ResidentPage } from './modules/resident/ResidentPage';
 import { VehiclePage } from './modules/vehicle/VehiclePage';
 import { PetPage } from './modules/pet/PetPage';
 import { RolesPage } from './modules/roles/RolesPage';
+import { UsersPage } from './modules/users/UsersPage';
 import { ModuleRegistryPage } from './modules/moduleRegistry/ModuleRegistryPage';
 import { NotificationPage } from './modules/notification/NotificationPage';
 import { AuditPage } from './modules/audit/AuditPage';
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="vehicles" element={<RequireSociety><VehiclePage /></RequireSociety>} />
         <Route path="pets" element={<RequireSociety><PetPage /></RequireSociety>} />
         <Route path="roles" element={<RolesPage />} />
+        <Route path="users" element={<RequireSociety><UsersPage /></RequireSociety>} />
         <Route path="modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
         <Route path="notifications" element={<NotificationPage />} />
         <Route path="audit" element={<RequireSociety><AuditPage /></RequireSociety>} />

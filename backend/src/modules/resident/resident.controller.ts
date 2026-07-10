@@ -46,6 +46,25 @@ export class ResidentController {
     } catch (error) { next(error); }
   }
 
+  async markKyc(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { physicalLocation, notes } = req.body;
+      const resident = await residentService.markKycVerified(req.params.id, { physicalLocation, notes }, req.user!.userId);
+      await auditService.log({
+        societyId: resident.societyId.toString(),
+        actorUserId: req.user!.userId,
+        actorRole: req.user!.roleCode,
+        moduleCode: 'CORE',
+        action: 'UPDATE',
+        entityType: 'Resident',
+        entityId: resident._id!.toString(),
+        newValue: { kycStatus: 'VERIFIED', kycPhysicalLocation: physicalLocation },
+        ipAddress: req.ip,
+      });
+      sendSuccess(res, resident, 'KYC marked as verified');
+    } catch (error) { next(error); }
+  }
+
   async disable(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       await residentService.disable(req.params.id);

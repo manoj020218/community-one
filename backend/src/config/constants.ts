@@ -79,6 +79,21 @@ export const MODULE_CODES = {
   IOT_HEALTH: 'IOT_HEALTH',
 } as const;
 
+export const ROLE_RANK: Record<string, number> = {
+  JENIX_SUPER_ADMIN: 1,
+  JENIX_SUPPORT: 2,
+  SOCIETY_ADMIN: 10,
+  COMMITTEE_MEMBER: 20,
+  ACCOUNTANT: 21,
+  FACILITY_MANAGER: 22,
+  SECURITY_GUARD: 30,
+  OWNER: 40,
+  TENANT: 41,
+  FAMILY_MEMBER: 50,
+  VENDOR: 51,
+  STAFF: 52,
+};
+
 export const DEFAULT_PAGINATION = { page: 1, limit: 20 };
 export const BCRYPT_ROUNDS = 12;
 export const SOCIETY_CODE_PREFIX = 'JSO';

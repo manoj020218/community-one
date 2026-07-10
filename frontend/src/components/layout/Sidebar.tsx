@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { X, Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, Puzzle, Bell, ClipboardList, FolderOpen, CreditCard, Receipt, BarChart3, Cpu, Activity, User, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { X, Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, CreditCard, Receipt, BarChart3, Cpu, Activity, User, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/vehicles', icon: Car, label: 'Vehicles', roles: [] },
   { to: '/pets', icon: Cat, label: 'Pets', roles: [] },
   { to: '/roles', icon: Shield, label: 'Roles & Permissions', roles: ['JENIX_SUPER_ADMIN', 'SOCIETY_ADMIN'] },
+  { to: '/users', icon: UserCog, label: 'Users', roles: ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT', 'SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'] },
   { to: '/modules', icon: Puzzle, label: 'Modules', roles: [] },
   { to: '/notifications', icon: Bell, label: 'Notifications', roles: [] },
   { to: '/audit', icon: ClipboardList, label: 'Audit Logs', roles: [] },

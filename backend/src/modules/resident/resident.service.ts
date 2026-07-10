@@ -18,6 +18,11 @@ export interface CreateResidentDto {
   moveInDate?: string;
 }
 
+export interface MarkKycDto {
+  physicalLocation: string;
+  notes?: string;
+}
+
 export class ResidentService {
   async create(dto: CreateResidentDto, createdBy: string): Promise<IResidentDocument> {
     return Resident.create({ ...dto, createdBy });
@@ -34,24 +39,51 @@ export class ResidentService {
     }
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
-      Resident.find(query).populate('flatId', 'flatNo').sort({ name: 1 }).skip(skip).limit(limit),
+      Resident.find(query)
+        .populate('flatId', 'flatNo')
+        .populate('kycVerifiedBy', 'name')
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit),
       Resident.countDocuments(query),
     ]);
     return buildPaginatedResult(items, total, page, limit);
   }
 
   async findByFlat(flatId: string): Promise<IResidentDocument[]> {
-    return Resident.find({ flatId, isActive: true }).sort({ primaryContact: -1, name: 1 });
+    return Resident.find({ flatId, isActive: true })
+      .populate('kycVerifiedBy', 'name')
+      .sort({ primaryContact: -1, name: 1 });
   }
 
   async findById(id: string): Promise<IResidentDocument> {
-    const resident = await Resident.findById(id).populate('flatId', 'flatNo');
+    const resident = await Resident.findById(id)
+      .populate('flatId', 'flatNo')
+      .populate('kycVerifiedBy', 'name');
     if (!resident || !resident.isActive) throw new NotFoundError('Resident');
     return resident;
   }
 
   async update(id: string, dto: Partial<CreateResidentDto>): Promise<IResidentDocument> {
     const resident = await Resident.findByIdAndUpdate(id, dto, { new: true });
+    if (!resident) throw new NotFoundError('Resident');
+    return resident;
+  }
+
+  async markKycVerified(id: string, dto: MarkKycDto, verifiedByUserId: string): Promise<IResidentDocument> {
+    const resident = await Resident.findByIdAndUpdate(
+      id,
+      {
+        kycStatus: 'VERIFIED',
+        kycVerifiedBy: verifiedByUserId,
+        kycVerifiedAt: new Date(),
+        kycPhysicalLocation: dto.physicalLocation,
+        kycNotes: dto.notes,
+      },
+      { new: true }
+    )
+      .populate('flatId', 'flatNo')
+      .populate('kycVerifiedBy', 'name');
     if (!resident) throw new NotFoundError('Resident');
     return resident;
   }
