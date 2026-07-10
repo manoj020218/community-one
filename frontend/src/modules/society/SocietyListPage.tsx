@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Building2, MapPin, Phone, Edit2 } from 'lucide-react';
+import { Plus, Search, Building2, MapPin, Phone, Edit2, CheckCircle2, PlayCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import { useSocietyStore } from '../../store/societyStore';
 import { Society } from '../../types';
 
 export function SocietyListPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const { currentSociety, setCurrentSociety } = useSocietyStore();
 
   const { data, isLoading } = useQuery({
     queryKey: ['societies', page, search],
@@ -86,6 +88,19 @@ export function SocietyListPage() {
                         </td>
                         <td className="table-cell">
                           <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => { setCurrentSociety(s); navigate('/towers'); }}
+                              title="Select & manage this society"
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${currentSociety?._id === s._id ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-primary-50 text-primary-700 hover:bg-primary-100'}`}
+                            >
+                              {currentSociety?._id === s._id ? <CheckCircle2 className="w-3.5 h-3.5" /> : <PlayCircle className="w-3.5 h-3.5" />}
+                              {currentSociety?._id === s._id ? 'Active' : 'Select'}
+                            </button>
+                            {s.status === 'ONBOARDING' && (
+                              <button onClick={() => navigate(`/societies/${s._id}/onboarding`)} title="Continue onboarding" className="p-2 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors">
+                                <PlayCircle className="w-4 h-4" />
+                              </button>
+                            )}
                             <button onClick={() => navigate(`/societies/${s._id}/edit`)} className="p-2 rounded-lg hover:bg-primary-50 text-slate-400 hover:text-primary-600 transition-colors">
                               <Edit2 className="w-4 h-4" />
                             </button>

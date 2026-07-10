@@ -26,6 +26,7 @@ import { DevicePage } from './modules/device/DevicePage';
 import { HealthPage } from './modules/health/HealthPage';
 import { ProfilePage } from './modules/profile/ProfilePage';
 import { SettingsPage } from './modules/settings/SettingsPage';
+import { RequireSociety } from './components/common/RequireSociety';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -52,21 +53,21 @@ export default function App() {
         <Route path="societies/new" element={<SocietyFormPage />} />
         <Route path="societies/:id/edit" element={<SocietyFormPage />} />
         <Route path="societies/:id/onboarding" element={<OnboardingWizard />} />
-        <Route path="towers" element={<TowerPage />} />
-        <Route path="floors" element={<FloorPage />} />
-        <Route path="flats" element={<FlatPage />} />
-        <Route path="residents" element={<ResidentPage />} />
-        <Route path="vehicles" element={<VehiclePage />} />
-        <Route path="pets" element={<PetPage />} />
+        <Route path="towers" element={<RequireSociety><TowerPage /></RequireSociety>} />
+        <Route path="floors" element={<RequireSociety><FloorPage /></RequireSociety>} />
+        <Route path="flats" element={<RequireSociety><FlatPage /></RequireSociety>} />
+        <Route path="residents" element={<RequireSociety><ResidentPage /></RequireSociety>} />
+        <Route path="vehicles" element={<RequireSociety><VehiclePage /></RequireSociety>} />
+        <Route path="pets" element={<RequireSociety><PetPage /></RequireSociety>} />
         <Route path="roles" element={<RolesPage />} />
-        <Route path="modules" element={<ModuleRegistryPage />} />
+        <Route path="modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
         <Route path="notifications" element={<NotificationPage />} />
-        <Route path="audit" element={<AuditPage />} />
-        <Route path="files" element={<FilesPage />} />
-        <Route path="payments" element={<PaymentPage />} />
-        <Route path="receipts" element={<ReceiptPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="devices" element={<DevicePage />} />
+        <Route path="audit" element={<RequireSociety><AuditPage /></RequireSociety>} />
+        <Route path="files" element={<RequireSociety><FilesPage /></RequireSociety>} />
+        <Route path="payments" element={<RequireSociety><PaymentPage /></RequireSociety>} />
+        <Route path="receipts" element={<RequireSociety><ReceiptPage /></RequireSociety>} />
+        <Route path="reports" element={<RequireSociety><ReportsPage /></RequireSociety>} />
+        <Route path="devices" element={<RequireSociety><DevicePage /></RequireSociety>} />
         <Route path="health" element={<HealthPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="settings" element={<SettingsPage />} />
