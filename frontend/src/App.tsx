@@ -28,6 +28,11 @@ import { HealthPage } from './modules/health/HealthPage';
 import { ProfilePage } from './modules/profile/ProfilePage';
 import { SettingsPage } from './modules/settings/SettingsPage';
 import { RequireSociety } from './components/common/RequireSociety';
+import { MarketingLayout } from './modules/marketing/MarketingLayout';
+import { LandingPage } from './modules/marketing/LandingPage';
+import { AboutPage } from './modules/marketing/AboutPage';
+import { PrivacyPage } from './modules/marketing/PrivacyPage';
+import { TermsPage } from './modules/marketing/TermsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -43,37 +48,55 @@ function DashboardRoute() {
   return <SocietyAdminDashboard />;
 }
 
+// Root: show landing for guests, redirect to dashboard for authenticated users
+function SmartHome() {
+  const { isAuthenticated } = useAuthStore();
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <LandingPage />;
+}
+
 export default function App() {
   return (
     <Routes>
+      {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-        <Route index element={<DashboardRoute />} />
-        <Route path="dashboard" element={<DashboardRoute />} />
-        <Route path="societies" element={<SocietyListPage />} />
-        <Route path="societies/new" element={<SocietyFormPage />} />
-        <Route path="societies/:id/edit" element={<SocietyFormPage />} />
-        <Route path="societies/:id/onboarding" element={<OnboardingWizard />} />
-        <Route path="towers" element={<RequireSociety><TowerPage /></RequireSociety>} />
-        <Route path="floors" element={<RequireSociety><FloorPage /></RequireSociety>} />
-        <Route path="flats" element={<RequireSociety><FlatPage /></RequireSociety>} />
-        <Route path="residents" element={<RequireSociety><ResidentPage /></RequireSociety>} />
-        <Route path="vehicles" element={<RequireSociety><VehiclePage /></RequireSociety>} />
-        <Route path="pets" element={<RequireSociety><PetPage /></RequireSociety>} />
-        <Route path="roles" element={<RolesPage />} />
-        <Route path="users" element={<RequireSociety><UsersPage /></RequireSociety>} />
-        <Route path="modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
-        <Route path="notifications" element={<NotificationPage />} />
-        <Route path="audit" element={<RequireSociety><AuditPage /></RequireSociety>} />
-        <Route path="files" element={<RequireSociety><FilesPage /></RequireSociety>} />
-        <Route path="payments" element={<RequireSociety><PaymentPage /></RequireSociety>} />
-        <Route path="receipts" element={<RequireSociety><ReceiptPage /></RequireSociety>} />
-        <Route path="reports" element={<RequireSociety><ReportsPage /></RequireSociety>} />
-        <Route path="devices" element={<RequireSociety><DevicePage /></RequireSociety>} />
-        <Route path="health" element={<HealthPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="settings" element={<SettingsPage />} />
+
+      {/* Public marketing routes — no auth required */}
+      <Route element={<MarketingLayout />}>
+        <Route path="/" element={<SmartHome />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
       </Route>
+
+      {/* Protected app routes — auth required, use AppLayout */}
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route path="/dashboard" element={<DashboardRoute />} />
+        <Route path="/societies" element={<SocietyListPage />} />
+        <Route path="/societies/new" element={<SocietyFormPage />} />
+        <Route path="/societies/:id/edit" element={<SocietyFormPage />} />
+        <Route path="/societies/:id/onboarding" element={<OnboardingWizard />} />
+        <Route path="/towers" element={<RequireSociety><TowerPage /></RequireSociety>} />
+        <Route path="/floors" element={<RequireSociety><FloorPage /></RequireSociety>} />
+        <Route path="/flats" element={<RequireSociety><FlatPage /></RequireSociety>} />
+        <Route path="/residents" element={<RequireSociety><ResidentPage /></RequireSociety>} />
+        <Route path="/vehicles" element={<RequireSociety><VehiclePage /></RequireSociety>} />
+        <Route path="/pets" element={<RequireSociety><PetPage /></RequireSociety>} />
+        <Route path="/roles" element={<RolesPage />} />
+        <Route path="/users" element={<RequireSociety><UsersPage /></RequireSociety>} />
+        <Route path="/modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
+        <Route path="/notifications" element={<NotificationPage />} />
+        <Route path="/audit" element={<RequireSociety><AuditPage /></RequireSociety>} />
+        <Route path="/files" element={<RequireSociety><FilesPage /></RequireSociety>} />
+        <Route path="/payments" element={<RequireSociety><PaymentPage /></RequireSociety>} />
+        <Route path="/receipts" element={<RequireSociety><ReceiptPage /></RequireSociety>} />
+        <Route path="/reports" element={<RequireSociety><ReportsPage /></RequireSociety>} />
+        <Route path="/devices" element={<RequireSociety><DevicePage /></RequireSociety>} />
+        <Route path="/health" element={<HealthPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
