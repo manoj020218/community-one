@@ -27,6 +27,7 @@ import receiptRoutes from './modules/receipt/receipt.routes';
 import reportRoutes from './modules/report/report.routes';
 import deviceRoutes from './modules/device/device.routes';
 import healthRoutes from './modules/health/health.routes';
+import bridgeRoutes from './modules/bridge/bridge.routes';
 
 const app: express.Application = express();
 
@@ -68,6 +69,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/bridge', bridgeRoutes);
 
 // Error handlers
 app.use(notFoundHandler);

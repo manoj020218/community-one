@@ -6,6 +6,7 @@ import { authRateLimiter } from '../../common/middleware/rateLimiter';
 const router: Router = Router();
 
 router.post('/login', authRateLimiter, authController.login.bind(authController));
+router.post('/google', authRateLimiter, authController.googleLogin.bind(authController));
 router.post('/onboard-society', authRateLimiter, authController.onboardSociety.bind(authController));
 router.post('/refresh', authController.refresh.bind(authController));
 router.post('/logout', authenticate, authController.logout.bind(authController));

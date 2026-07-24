@@ -2,10 +2,15 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { MobileNav } from './MobileNav';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { registerPushNotifications } from '../../lib/firebase';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    void registerPushNotifications();
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">

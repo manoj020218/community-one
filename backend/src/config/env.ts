@@ -21,6 +21,11 @@ const envSchema = z.object({
   SUPER_ADMIN_EMAIL: z.string().email().default('admin@jenix.in'),
   SUPER_ADMIN_MOBILE: z.string().default('9999999999'),
   SUPER_ADMIN_PASSWORD: z.string().default('Admin@123'),
+  // Billing platform bridge (server-to-server; mirrors the FireGuard <-> billing link)
+  BRIDGE_SECRET: z.string().optional(),
+  APP_LOGIN_URL: z.string().optional(),
+  BILLING_API_BASE: z.string().optional(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -48,4 +53,8 @@ export const env = parsed.success ? parsed.data : {
   SUPER_ADMIN_EMAIL: 'admin@jenix.in',
   SUPER_ADMIN_MOBILE: '9999999999',
   SUPER_ADMIN_PASSWORD: 'Admin@123',
+  BRIDGE_SECRET: process.env.BRIDGE_SECRET,
+  APP_LOGIN_URL: process.env.APP_LOGIN_URL,
+  BILLING_API_BASE: process.env.BILLING_API_BASE,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
 };

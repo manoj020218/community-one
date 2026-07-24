@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { api, extractData } from '../../services/api';
 import { User } from '../../types';
+import { GoogleSignInButton } from '../../components/GoogleSignInButton';
 import toast from 'react-hot-toast';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 export function LoginPage() {
   const location = useLocation();
@@ -33,6 +36,25 @@ export function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleCredential = useCallback(
+    async (idToken: string) => {
+      setIsLoading(true);
+      try {
+        const data = await extractData<{ user: User; accessToken: string; refreshToken: string }>(
+          api.post('/auth/google', { idToken })
+        );
+        setAuth(data.user, data.accessToken, data.refreshToken);
+        toast.success(`Welcome back, ${data.user.name}!`);
+        navigate('/dashboard');
+      } catch {
+        // Error toast handled by api interceptor
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [navigate, setAuth]
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-purple-900 flex items-center justify-center p-4">
@@ -79,6 +101,17 @@ export function LoginPage() {
               {isLoading ? <><Loader2 className="w-5 h-5 animate-spin" /> Signing in...</> : 'Sign In'}
             </button>
           </form>
+
+          {GOOGLE_CLIENT_ID && (
+            <div className="mt-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-xs text-slate-400">or</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+              <GoogleSignInButton clientId={GOOGLE_CLIENT_ID} onCredential={handleGoogleCredential} />
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-500">

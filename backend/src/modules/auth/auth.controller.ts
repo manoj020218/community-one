@@ -24,6 +24,25 @@ export class AuthController {
     }
   }
 
+  async googleLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.googleLogin(req.body);
+      await auditService.log({
+        actorUserId: result.user._id,
+        actorRole: result.user.roleCode,
+        moduleCode: 'CORE',
+        action: 'LOGIN',
+        entityType: 'User',
+        entityId: result.user._id,
+        ipAddress: req.ip || '',
+        userAgent: req.headers['user-agent'] || '',
+      });
+      sendSuccess(res, result, 'Login successful');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async onboardSociety(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.onboardSociety(req.body);
