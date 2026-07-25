@@ -18,6 +18,9 @@ frontend/.env.local
 # Uploads directory (user-generated files)
 backend/uploads/
 
+# WhatsApp session credentials (per-society Baileys auth state — sensitive, never commit)
+backend/whatsapp-sessions/
+
 # Logs
 logs/
 *.log

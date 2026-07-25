@@ -120,4 +120,46 @@ describe('Visitor Security and Expiry', () => {
       .send({ flatId: fixture.flat._id, gateId: fixture.gate._id, visitorName: 'Mobile Cap Visitor Two', visitorMobile: '9000066666', visitorPhotoFileId: fixture.photo._id });
     expect(second.status).toBe(400);
   });
+
+  it('should skip expiry for a society that has opted out via autoExpiryEnabled', async () => {
+    const fixture = await createVisitorFixture();
+    await request(app)
+      .patch('/api/visitor/settings')
+      .set('Authorization', `Bearer ${fixture.adminToken}`)
+      .send({ societyId: fixture.society._id, autoExpiryEnabled: false });
+
+    const createRes = await request(app)
+      .post('/api/visitor/requests')
+      .set('Authorization', `Bearer ${fixture.guardToken}`)
+      .send({ flatId: fixture.flat._id, gateId: fixture.gate._id, visitorName: 'Opted Out Visitor', visitorMobile: '9000077777', visitorPhotoFileId: fixture.photo._id });
+    await VisitorRequest.findByIdAndUpdate(createRes.body.data._id, { expiresAt: new Date(Date.now() - 60000) });
+
+    const processed = await visitorExpiryService.expirePendingBatch(10);
+    const requestDoc = await VisitorRequest.findById(createRes.body.data._id);
+    expect(processed).toBe(0);
+    expect(requestDoc?.status).toBe('PENDING_APPROVAL');
+  });
+
+  it('should let the resident (not the guard) confirm exit when exitConfirmationMode is RESIDENT', async () => {
+    const fixture = await createVisitorFixture();
+    await request(app)
+      .patch('/api/visitor/settings')
+      .set('Authorization', `Bearer ${fixture.adminToken}`)
+      .send({ societyId: fixture.society._id, exitConfirmationMode: 'RESIDENT' });
+
+    const createRes = await request(app)
+      .post('/api/visitor/requests')
+      .set('Authorization', `Bearer ${fixture.guardToken}`)
+      .send({ flatId: fixture.flat._id, gateId: fixture.gate._id, visitorName: 'Resident Exit Visitor', visitorMobile: '9000088888', visitorPhotoFileId: fixture.photo._id });
+    const requestId = createRes.body.data._id;
+    await request(app).post(`/api/visitor/requests/${requestId}/approve`).set('Authorization', `Bearer ${fixture.residentToken}`).send({});
+    await request(app).post(`/api/visitor/requests/${requestId}/confirm-entry`).set('Authorization', `Bearer ${fixture.guardToken}`).send({});
+
+    const guardExitRes = await request(app).post(`/api/visitor/requests/${requestId}/confirm-exit`).set('Authorization', `Bearer ${fixture.guardToken}`).send({});
+    expect(guardExitRes.status).toBe(403);
+
+    const residentExitRes = await request(app).post(`/api/visitor/requests/${requestId}/confirm-exit`).set('Authorization', `Bearer ${fixture.residentToken}`).send({});
+    expect(residentExitRes.status).toBe(200);
+    expect(residentExitRes.body.data.status).toBe('EXIT_CONFIRMED');
+  });
 });

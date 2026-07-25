@@ -110,9 +110,14 @@ export class VisitorActionService {
 
   async confirmExit(context: VisitorActorContext, requestId: string): Promise<IVisitorRequestDocument> {
     const settings = await visitorSettingsService.getSettings(context.societyId);
-    if (!settings.exitConfirmationEnabled) throw new ValidationError('Exit confirmation is disabled for this society');
+    if (settings.exitConfirmationMode === 'AUTO') throw new ValidationError('Exit confirmation is disabled for this society');
     const request = await this.loadRequest(requestId);
-    const overrideUsed = visitorAccessService.assertGateAccess(context, this.toId(request.gateId));
+
+    // Who may confirm exit is society-configurable: the guard at the gate, or the resident of the flat.
+    const overrideUsed = settings.exitConfirmationMode === 'RESIDENT'
+      ? visitorAccessService.assertFlatAccess(context, this.toId(request.flatId))
+      : visitorAccessService.assertGateAccess(context, this.toId(request.gateId));
+
     return this.transitionRequest(context, requestId, VISITOR_STATUSES.EXIT_CONFIRMED, { exitConfirmedByUserId: context.user.userId, exitAt: new Date(), closedAt: new Date() }, 'VISITOR_EXIT_CONFIRMED', overrideUsed);
   }
 

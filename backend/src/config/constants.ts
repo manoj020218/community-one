@@ -76,6 +76,7 @@ export const PERMISSIONS = {
   VISITOR_REPORT_VIEW: 'visitor.report.view',
   VISITOR_SETTINGS_MANAGE: 'visitor.settings.manage',
   VISITOR_AUDIT_VIEW: 'visitor.audit.view',
+  COMMUNICATION_SETTINGS_MANAGE: 'communication.settings.manage',
 } as const;
 
 export const MODULE_CODES = {

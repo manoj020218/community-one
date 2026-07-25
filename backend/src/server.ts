@@ -3,12 +3,14 @@ import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import { logger } from './common/utils/logger';
 import { visitorExpiryWorker } from './modules/visitor/visitor.expiry.worker';
+import { whatsAppService } from './modules/communication/whatsapp.service';
 
 async function startServer(): Promise<void> {
   try {
     await connectDatabase();
     logger.info('Database connected');
     if (env.VISITOR_EXPIRY_WORKER_ENABLED) visitorExpiryWorker.start();
+    whatsAppService.reconnectAll().catch((err) => logger.warn('WhatsApp reconnectAll failed', { err }));
 
     const server = app.listen(env.PORT, () => {
       logger.info(`Jenix Society One API running on port ${env.PORT} [${env.NODE_ENV}]`);

@@ -58,7 +58,8 @@ export interface VisitorSettings {
   allowGuardCancellation: boolean;
   requireRejectionReason: boolean;
   entryConfirmationRequired: boolean;
-  exitConfirmationEnabled: boolean;
+  exitConfirmationMode: 'AUTO' | 'GUARD' | 'RESIDENT';
+  autoExpiryEnabled: boolean;
   visitorDataRetentionDays: number;
   allowedGateIds: string[];
   realtimePollingFallbackIntervalMs: number;
@@ -66,6 +67,7 @@ export interface VisitorSettings {
   guardStatusDisplaySeconds: number;
   duplicateWindowSeconds: number;
   maxPendingRequestsPerFlat: number;
+  maxRequestsPerMobilePerHour: number;
 }
 
 export interface VisitorGateActivity {

@@ -70,7 +70,7 @@ export function GuardVisitorView(props: { societyId: string; transport: string; 
     queryKey: ['visitor-requests-inside', props.societyId, props.transport],
     queryFn: () => extractData<PaginatedResult<VisitorRequest>>(api.get(withSocietyQuery('/visitor/requests?status=ENTRY_CONFIRMED&limit=10', props.societyId))),
     refetchInterval: props.transport === 'polling' ? props.pollingMs : false,
-    enabled: !!settings?.exitConfirmationEnabled,
+    enabled: settings?.exitConfirmationMode === 'GUARD',
   });
 
   const invalidateVisitorQueries = () => {
@@ -177,7 +177,7 @@ export function GuardVisitorView(props: { societyId: string; transport: string; 
               {!approvedRequests?.items?.length && <p className="text-sm text-slate-500">No approved visitors waiting to enter.</p>}
             </div>
           </div>
-          {settings?.exitConfirmationEnabled && (
+          {settings?.exitConfirmationMode === 'GUARD' && (
             <div className="card p-5">
               <p className="text-sm font-semibold text-slate-800">Currently Inside</p>
               <div className="mt-4 space-y-3">

@@ -29,6 +29,6 @@ router.post('/requests/:requestId/approve', requirePermission(PERMISSIONS.VISITO
 router.post('/requests/:requestId/reject', requirePermission(PERMISSIONS.VISITOR_REQUEST_RESPOND_OWN_FLAT), visitorRequestController.reject.bind(visitorRequestController));
 router.post('/requests/:requestId/cancel', requirePermission(PERMISSIONS.VISITOR_REQUEST_CANCEL), visitorRequestController.cancel.bind(visitorRequestController));
 router.post('/requests/:requestId/confirm-entry', requirePermission(PERMISSIONS.VISITOR_ENTRY_CONFIRM), visitorRequestController.confirmEntry.bind(visitorRequestController));
-router.post('/requests/:requestId/confirm-exit', requirePermission(PERMISSIONS.VISITOR_EXIT_CONFIRM), visitorRequestController.confirmExit.bind(visitorRequestController));
+router.post('/requests/:requestId/confirm-exit', requireAnyPermission(PERMISSIONS.VISITOR_EXIT_CONFIRM, PERMISSIONS.VISITOR_REQUEST_RESPOND_OWN_FLAT), visitorRequestController.confirmExit.bind(visitorRequestController));
 
 export default router;

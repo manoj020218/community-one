@@ -1,6 +1,7 @@
 import { auditService } from '../audit/audit.service';
 import { visitorNotificationService } from './visitor.notification.service';
 import { visitorRealtimeService } from './visitor.realtime.service';
+import { visitorSettingsService } from './visitor.settings.service';
 import { VISITOR_STATUSES } from './visitor.constants';
 import { VisitorRequest } from './visitor.model';
 
@@ -11,8 +12,21 @@ export class VisitorExpiryService {
       expiresAt: { $lte: new Date() },
     }).sort({ expiresAt: 1 }).limit(limit).select('_id societyId gateId flatId createdByUserId');
 
+    // Cache per-society settings within this batch — societies can opt out of auto-expiry individually.
+    const autoExpiryBySociety = new Map<string, boolean>();
+    async function isAutoExpiryEnabled(societyId: string): Promise<boolean> {
+      if (!autoExpiryBySociety.has(societyId)) {
+        const settings = await visitorSettingsService.getSettings(societyId);
+        autoExpiryBySociety.set(societyId, settings.autoExpiryEnabled);
+      }
+      return autoExpiryBySociety.get(societyId)!;
+    }
+
     let processed = 0;
     for (const candidate of candidates) {
+      const societyId = candidate.societyId.toString();
+      if (!(await isAutoExpiryEnabled(societyId))) continue;
+
       const updated = await VisitorRequest.findOneAndUpdate(
         { _id: candidate._id, status: VISITOR_STATUSES.PENDING_APPROVAL },
         { $set: { status: VISITOR_STATUSES.EXPIRED, statusChangedAt: new Date(), closedAt: new Date() }, $inc: { version: 1 } },

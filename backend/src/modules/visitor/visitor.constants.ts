@@ -46,7 +46,10 @@ export const visitorSettingsSchema = z.object({
   allowGuardCancellation: z.boolean().default(true),
   requireRejectionReason: z.boolean().default(false),
   entryConfirmationRequired: z.boolean().default(true),
-  exitConfirmationEnabled: z.boolean().default(true),
+  /** Who closes out an approved visit: AUTO = no manual exit step, GUARD = guard confirms, RESIDENT = household confirms. */
+  exitConfirmationMode: z.enum(['AUTO', 'GUARD', 'RESIDENT']).default('GUARD'),
+  /** Per-society opt-out of the platform-wide expiry worker (which itself is gated by VISITOR_EXPIRY_WORKER_ENABLED). */
+  autoExpiryEnabled: z.boolean().default(true),
   visitorDataRetentionDays: z.number().int().min(1).max(3650).default(90),
   allowedGateIds: z.array(z.string()).default([]),
   realtimePollingFallbackIntervalMs: z.number().int().min(5000).max(60000).default(15000),

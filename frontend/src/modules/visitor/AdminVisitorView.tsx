@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatCard } from '../../components/common/StatCard';
@@ -9,11 +9,11 @@ import { ClipboardList, Clock, Search, Settings2, ShieldCheck, TimerReset, UserC
 import { formatDateTime } from '../../utils/cn';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../utils/permissions';
-import { VisitorRequest, VisitorSettings, VisitorSummary } from './types';
+import { VisitorRequest, VisitorSummary } from './types';
 import { withSocietyQuery } from './visitorApi';
+import { VisitorSettingsPanel } from './VisitorSettingsPanel';
 
 export function AdminVisitorView(props: { societyId: string; transport: string; pollingMs: number }) {
-  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -26,14 +26,6 @@ export function AdminVisitorView(props: { societyId: string; transport: string; 
     queryKey: ['visitor-admin-requests', props.societyId, statusFilter, search, props.transport],
     queryFn: () => extractData<PaginatedResult<VisitorRequest>>(api.get(withSocietyQuery(`/visitor/requests?limit=20${statusFilter ? `&status=${statusFilter}` : ''}${search ? `&search=${encodeURIComponent(search)}` : ''}`, props.societyId))),
     refetchInterval: props.transport === 'polling' ? props.pollingMs : false,
-  });
-  const { data: settings } = useQuery({
-    queryKey: ['visitor-settings-admin', props.societyId],
-    queryFn: () => extractData<VisitorSettings>(api.get(withSocietyQuery('/visitor/settings', props.societyId))),
-  });
-  const saveMutation = useMutation({
-    mutationFn: (payload: Partial<VisitorSettings>) => api.patch('/visitor/settings', { ...payload, societyId: props.societyId }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['visitor-settings-admin'] }),
   });
   const statusCount = (key: string): number => {
     const value = summary?.[key];
@@ -90,7 +82,7 @@ export function AdminVisitorView(props: { societyId: string; transport: string; 
           </div>
           <div className="card p-5">
             <p className="text-sm font-semibold text-slate-800">Visitor Settings</p>
-            {settings ? <div className="mt-4 space-y-4"><label className="flex items-center justify-between text-sm text-slate-600"><span>Require photo</span><input type="checkbox" checked={settings.requireVisitorPhoto} onChange={(event) => saveMutation.mutate({ requireVisitorPhoto: event.target.checked })} /></label><label className="flex items-center justify-between text-sm text-slate-600"><span>Require purpose</span><input type="checkbox" checked={settings.requirePurpose} onChange={(event) => saveMutation.mutate({ requirePurpose: event.target.checked })} /></label><label className="flex items-center justify-between text-sm text-slate-600"><span>Guard cancellation</span><input type="checkbox" checked={settings.allowGuardCancellation} onChange={(event) => saveMutation.mutate({ allowGuardCancellation: event.target.checked })} /></label><label className="flex items-center justify-between text-sm text-slate-600"><span>Exit confirmation</span><input type="checkbox" checked={settings.exitConfirmationEnabled} onChange={(event) => saveMutation.mutate({ exitConfirmationEnabled: event.target.checked })} /></label><label className="block text-sm text-slate-600"><span className="mb-2 block">Approval expiry (minutes)</span><input type="number" defaultValue={settings.defaultApprovalExpiryMinutes} className="input" onBlur={(event) => saveMutation.mutate({ defaultApprovalExpiryMinutes: Number(event.target.value) })} /></label></div> : null}
+            <div className="mt-4"><VisitorSettingsPanel societyId={props.societyId} /></div>
           </div>
         </div>
       </div>
