@@ -27,6 +27,7 @@ import { DevicePage } from './modules/device/DevicePage';
 import { HealthPage } from './modules/health/HealthPage';
 import { ProfilePage } from './modules/profile/ProfilePage';
 import { SettingsPage } from './modules/settings/SettingsPage';
+import { VisitorPage } from './modules/visitor/VisitorPage';
 import { RequireSociety } from './components/common/RequireSociety';
 import { MarketingLayout } from './modules/marketing/MarketingLayout';
 import { LandingPage } from './modules/marketing/LandingPage';
@@ -34,6 +35,7 @@ import { AboutPage } from './modules/marketing/AboutPage';
 import { PrivacyPage } from './modules/marketing/PrivacyPage';
 import { TermsPage } from './modules/marketing/TermsPage';
 import { OnboardPage } from './modules/marketing/OnboardPage';
+import { hasPermission } from './utils/permissions';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -44,6 +46,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function DashboardRoute() {
   const { user } = useAuthStore();
   if (!user) return <Navigate to="/login" replace />;
+  if (hasPermission(user, 'visitor.request.create')) return <VisitorPage />;
   if (user.roleCode === 'JENIX_SUPER_ADMIN' || user.roleCode === 'JENIX_SUPPORT') return <SuperAdminDashboard />;
   if (['OWNER', 'TENANT', 'FAMILY_MEMBER'].includes(user.roleCode)) return <ResidentDashboard />;
   return <SocietyAdminDashboard />;
@@ -88,6 +91,7 @@ export default function App() {
         <Route path="/users" element={<RequireSociety><UsersPage /></RequireSociety>} />
         <Route path="/modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
         <Route path="/notifications" element={<NotificationPage />} />
+        <Route path="/visitor" element={<RequireSociety><VisitorPage /></RequireSociety>} />
         <Route path="/audit" element={<RequireSociety><AuditPage /></RequireSociety>} />
         <Route path="/files" element={<RequireSociety><FilesPage /></RequireSociety>} />
         <Route path="/payments" element={<RequireSociety><PaymentPage /></RequireSociety>} />

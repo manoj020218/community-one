@@ -1,12 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { X, Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, CreditCard, Receipt, BarChart3, Cpu, Activity, User, Settings, LogOut, ChevronRight } from 'lucide-react';
+import { X, Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, CreditCard, Receipt, BarChart3, Cpu, Activity, User, LogOut, ChevronRight, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../utils/cn';
+import { hasAnyPermission } from '../../utils/permissions';
 import toast from 'react-hot-toast';
 
-const navItems = [
+type NavItem = {
+  to: string;
+  icon: any;
+  label: string;
+  roles: string[];
+  permissions?: string[];
+};
+
+const navItems: NavItem[] = [
   { to: '/dashboard', icon: Home, label: 'Dashboard', roles: [] },
   { to: '/societies', icon: Building2, label: 'Societies', roles: ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'] },
+  { to: '/visitor', icon: UserCheck, label: 'Visitor Desk', roles: [], permissions: ['visitor.request.create', 'visitor.request.respond_own_flat', 'visitor.report.view', 'visitor.request.view_society'] },
   { to: '/towers', icon: Layers3, label: 'Towers & Blocks', roles: [] },
   { to: '/floors', icon: LayoutGrid, label: 'Floors', roles: [] },
   { to: '/flats', icon: LayoutGrid, label: 'Flats', roles: [] },
@@ -39,6 +49,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
   };
 
   const visibleItems = navItems.filter((item) => {
+    if (item.permissions?.length && !hasAnyPermission(user, item.permissions)) return false;
     if (item.roles.length === 0) return true;
     return item.roles.includes(user?.roleCode || '');
   });

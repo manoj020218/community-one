@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ClipboardList, Filter } from 'lucide-react';
 import { api, extractData } from '../../services/api';
@@ -17,8 +18,9 @@ export function AuditPage() {
   const { user } = useAuthStore();
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId;
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [filterModule, setFilterModule] = useState('');
+  const [filterModule, setFilterModule] = useState(searchParams.get('moduleCode') || '');
   const [filterAction, setFilterAction] = useState('');
 
   const { data, isLoading } = useQuery({

@@ -7,6 +7,7 @@ export interface IDeviceDocument extends Document {
   deviceName: string;
   deviceType: DeviceType;
   deviceCode: string;
+  gateId?: string;
   gateName?: string;
   location?: string;
   ipAddress?: string;
@@ -29,6 +30,7 @@ const DeviceSchema = new Schema(
     deviceName: { type: String, required: true, trim: true },
     deviceType: { type: String, enum: ['BOOM_BARRIER_CONTROLLER','UHF_READER','QR_SCANNER','RFID_READER','ACCESS_READER','RELAY_CONTROLLER','GATE_CAMERA','GUARD_DEVICE','PANIC_BUTTON','IOT_GATEWAY','OTHER'], required: true },
     deviceCode: { type: String, required: true, trim: true },
+    gateId: { type: Schema.Types.ObjectId, ref: 'Gate' },
     gateName: { type: String },
     location: { type: String },
     ipAddress: { type: String },
@@ -46,5 +48,6 @@ const DeviceSchema = new Schema(
 );
 
 DeviceSchema.index({ societyId: 1, deviceCode: 1 }, { unique: true });
+DeviceSchema.index({ societyId: 1, gateId: 1 });
 
 export const Device: Model<IDeviceDocument> = mongoose.model<IDeviceDocument>('Device', DeviceSchema);

@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 let mongoServer: MongoMemoryServer;
 
 module.exports = async () => {
-  mongoServer = await MongoMemoryServer.create();
+  mongoServer = await MongoMemoryServer.create({ instance: { launchTimeout: 30000 } });
   const uri = mongoServer.getUri();
   process.env.MONGODB_URI = uri;
   process.env.NODE_ENV = 'test';

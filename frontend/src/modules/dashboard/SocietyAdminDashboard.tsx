@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle } from 'lucide-react';
+import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { StatCard } from '../../components/common/StatCard';
@@ -103,6 +103,7 @@ export function SocietyAdminDashboard() {
           { icon: Users, label: 'Residents', to: '/residents', color: 'text-emerald-600 bg-emerald-50' },
           { icon: Car, label: 'Vehicles', to: '/vehicles', color: 'text-amber-600 bg-amber-50' },
           { icon: Cat, label: 'Pets', to: '/pets', color: 'text-pink-600 bg-pink-50' },
+          { icon: UserCheck, label: 'Visitors', to: '/visitor', color: 'text-cyan-600 bg-cyan-50' },
           { icon: CreditCard, label: 'Payments', to: '/payments', color: 'text-blue-600 bg-blue-50' },
           { icon: Bell, label: 'Notifications', to: '/notifications', color: 'text-purple-600 bg-purple-50' },
           { icon: Building2, label: 'Devices', to: '/devices', color: 'text-slate-600 bg-slate-50' },

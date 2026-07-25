@@ -46,6 +46,23 @@ export function requirePermission(...permissions: string[]) {
   };
 }
 
+export function requireAnyPermission(...permissions: string[]) {
+  return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      return next(new AuthenticationError());
+    }
+
+    const userPermissions = req.user.permissions || [];
+    const hasAny = permissions.some((p) => userPermissions.includes(p));
+
+    if (!hasAny) {
+      return next(new AuthorizationError(`Required one of: ${permissions.join(', ')}`));
+    }
+
+    next();
+  };
+}
+
 export function requireRole(...roles: string[]) {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
     if (!req.user) {

@@ -19,6 +19,8 @@ import residentRoutes from './modules/resident/resident.routes';
 import vehicleRoutes from './modules/vehicle/vehicle.routes';
 import petRoutes from './modules/pet/pet.routes';
 import moduleRegistryRoutes from './modules/moduleRegistry/moduleRegistry.routes';
+import gateRoutes from './modules/gate/gate.routes';
+import guardAssignmentRoutes from './modules/guardAssignment/guardAssignment.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 import auditRoutes from './modules/audit/audit.routes';
 import fileAssetRoutes from './modules/fileAsset/fileAsset.routes';
@@ -27,6 +29,7 @@ import receiptRoutes from './modules/receipt/receipt.routes';
 import reportRoutes from './modules/report/report.routes';
 import deviceRoutes from './modules/device/device.routes';
 import healthRoutes from './modules/health/health.routes';
+import visitorRoutes from './modules/visitor/visitor.routes';
 import bridgeRoutes from './modules/bridge/bridge.routes';
 
 const app: express.Application = express();
@@ -62,6 +65,8 @@ app.use('/api/residents', residentRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/modules', moduleRegistryRoutes);
+app.use('/api/gates', gateRoutes);
+app.use('/api/guard-assignments', guardAssignmentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/files', fileAssetRoutes);
@@ -69,6 +74,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/visitor', visitorRoutes);
 app.use('/api/bridge', bridgeRoutes);
 
 // Error handlers

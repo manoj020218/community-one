@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Bell, CreditCard, Car, Cat, User } from 'lucide-react';
+import { Bell, CreditCard, Car, Cat, User, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
+import { hasPermission } from '../../utils/permissions';
 
 export function ResidentDashboard() {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export function ResidentDashboard() {
           { icon: Car, label: 'My Vehicles', to: '/vehicles', color: 'bg-amber-50 text-amber-600' },
           { icon: Cat, label: 'My Pets', to: '/pets', color: 'bg-pink-50 text-pink-600' },
           { icon: User, label: 'My Profile', to: '/profile', color: 'bg-indigo-50 text-indigo-600' },
+          ...(hasPermission(user, 'visitor.request.respond_own_flat') ? [{ icon: UserCheck, label: 'Visitor Requests', to: '/visitor', color: 'bg-emerald-50 text-emerald-600' }] : []),
         ].map((item) => (
           <button key={item.to} onClick={() => navigate(item.to)}
             className="card p-5 flex flex-col items-center gap-3 relative hover:shadow-card-hover transition-all">

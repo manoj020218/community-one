@@ -45,6 +45,8 @@ export async function createTestUser(overrides: Partial<any> = {}): Promise<{ us
     mobile: user.mobile,
     roleCode: user.roleCode,
     permissions: user.permissions,
+    societyId: user.societyId?.toString(),
+    flatId: user.flatId?.toString(),
   });
 
   return { user, token };
@@ -69,6 +71,43 @@ export async function createSuperAdmin(): Promise<{ user: any; token: string }> 
     mobile: user.mobile,
     roleCode: user.roleCode,
     permissions: user.permissions,
+  });
+
+  return { user, token };
+}
+
+export async function createUserWithRole(input: {
+  roleCode: string;
+  societyId?: string;
+  flatId?: string;
+  name?: string;
+  email?: string;
+  mobile?: string;
+  permissions?: string[];
+}): Promise<{ user: any; token: string }> {
+  const passwordHash = await hashPassword('Test@1234');
+  const permissions = input.permissions || ROLE_PERMISSIONS[input.roleCode] || [];
+  const stamp = Date.now().toString().slice(-6);
+  const user = await User.create({
+    name: input.name || `${input.roleCode} User`,
+    email: input.email || `${input.roleCode.toLowerCase()}-${stamp}@test.com`,
+    mobile: input.mobile || `9${stamp.padStart(9, '1')}`,
+    passwordHash,
+    roleCode: input.roleCode,
+    permissions,
+    societyId: input.societyId,
+    flatId: input.flatId,
+    isActive: true,
+  });
+
+  const token = signAccessToken({
+    userId: user._id.toString(),
+    email: user.email,
+    mobile: user.mobile,
+    roleCode: user.roleCode,
+    permissions: user.permissions,
+    societyId: user.societyId?.toString(),
+    flatId: user.flatId?.toString(),
   });
 
   return { user, token };

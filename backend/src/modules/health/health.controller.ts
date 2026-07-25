@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { getDatabaseStatus } from '../../config/database';
 import { env } from '../../config/env';
+import { pushProviderService } from '../notification/pushProvider.service';
+import { visitorExpiryWorker } from '../visitor/visitor.expiry.worker';
+import { visitorRealtimeService } from '../visitor/visitor.realtime.service';
 import { HealthLog } from './health.model';
 
 export class HealthController {
@@ -8,6 +11,9 @@ export class HealthController {
     const dbStatus = getDatabaseStatus();
     const uptime = process.uptime();
     const status = dbStatus.status === 'connected' ? 'ok' : 'degraded';
+    const pushHealth = pushProviderService.getProvider().getHealth();
+    const workerStatus = visitorExpiryWorker.getStatus();
+    const realtimeStatus = visitorRealtimeService.getDiagnostics();
 
     res.status(status === 'ok' ? 200 : 503).json({
       success: true,
@@ -18,10 +24,11 @@ export class HealthController {
         version: env.APP_VERSION,
         uptime: Math.floor(uptime),
         environment: env.NODE_ENV,
-        // Placeholders for future health checks:
         mqttStatus: 'not_configured',
-        fcmStatus: 'not_configured',
-        queueStatus: 'not_configured',
+        fcmStatus: pushHealth.status,
+        queueStatus: workerStatus.enabled ? (workerStatus.running ? 'running' : 'stopped') : 'disabled',
+        visitorRealtimeConnections: realtimeStatus.activeConnections,
+        visitorExpiryWorker: workerStatus,
       },
       message: status === 'ok' ? 'System healthy' : 'System degraded',
     });

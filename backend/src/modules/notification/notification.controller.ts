@@ -1,9 +1,29 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import { AuthenticatedRequest } from '../../common/types';
+import { parsePagination, sendPaginated, sendSuccess } from '../../common/utils/response';
+import { notificationDeviceTokenService } from './notificationDeviceToken.service';
 import { notificationService } from './notification.service';
-import { sendSuccess, sendPaginated, parsePagination } from '../../common/utils/response';
 
 export class NotificationController {
+  async registerDeviceToken(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const token = await notificationDeviceTokenService.register({
+        userId: req.user!.userId,
+        societyId: req.user!.societyId,
+        token: req.body.token,
+        platform: req.body.platform,
+      });
+      sendSuccess(res, token, 'Notification device token registered');
+    } catch (error) { next(error); }
+  }
+
+  async unregisterDeviceToken(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await notificationDeviceTokenService.unregister(req.user!.userId, req.body.token);
+      sendSuccess(res, null, 'Notification device token unregistered');
+    } catch (error) { next(error); }
+  }
+
   async getMyNotifications(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
@@ -14,8 +34,7 @@ export class NotificationController {
 
   async getUnreadCount(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const count = await notificationService.getUnreadCount(req.user!.userId);
-      sendSuccess(res, { count }, 'Unread count retrieved');
+      sendSuccess(res, { count: await notificationService.getUnreadCount(req.user!.userId) }, 'Unread count retrieved');
     } catch (error) { next(error); }
   }
 

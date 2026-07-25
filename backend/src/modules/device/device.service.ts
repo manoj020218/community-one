@@ -7,6 +7,7 @@ export interface CreateDeviceDto {
   deviceName: string;
   deviceType: string;
   deviceCode: string;
+  gateId?: string;
   gateName?: string;
   location?: string;
   ipAddress?: string;
@@ -28,11 +29,11 @@ export class DeviceService {
   }
 
   async findBySociety(societyId: string): Promise<IDeviceDocument[]> {
-    return Device.find({ societyId, isActive: true }).sort({ deviceName: 1 });
+    return Device.find({ societyId, isActive: true }).populate('gateId', 'name code').sort({ deviceName: 1 });
   }
 
   async findById(id: string): Promise<IDeviceDocument> {
-    const device = await Device.findById(id);
+    const device = await Device.findById(id).populate('gateId', 'name code');
     if (!device || !device.isActive) throw new NotFoundError('Device');
     return device;
   }

@@ -57,6 +57,11 @@ Health check: `http://localhost:5000/health`
 pnpm test
 ```
 
+Visitor-specific notes:
+- Enable the `VISITOR` module for a society from the Module Registry before using the Visitor Desk.
+- Configure FCM only when live push delivery is required; database notifications still work when FCM is disabled.
+- Visitor expiry processing is controlled by `VISITOR_EXPIRY_WORKER_*` environment variables.
+
 ---
 
 ## 3. Frontend Setup
@@ -67,6 +72,7 @@ pnpm install
 pnpm run dev        # development server
 pnpm run build      # production build → dist/
 pnpm run preview    # preview production build locally
+pnpm test           # frontend Vitest suite (after test deps are installed)
 ```
 
 App runs at `http://localhost:5173`
@@ -261,9 +267,33 @@ pm2 delete jenix-api              # remove process
 | Audit Logs      | /api/audit              |
 | File Upload     | POST /api/files/upload  |
 | Reports         | /api/reports            |
+| Visitor Desk    | /api/visitor            |
+| Gates           | /api/gates              |
+| Guard Assignment| /api/guard-assignments  |
 | Module Registry | /api/modules            |
 | Roles           | /api/roles              |
 | Health          | GET /health             |
+
+### Visitor / FCM Environment Variables
+
+Add these keys to `backend/.env` for live Visitor notifications and expiry automation:
+
+```bash
+FCM_ENABLED=false
+FCM_PROJECT_ID=
+FCM_CLIENT_EMAIL=
+FCM_PRIVATE_KEY=
+FCM_SERVICE_ACCOUNT_PATH=
+VISITOR_EXPIRY_WORKER_ENABLED=false
+VISITOR_EXPIRY_WORKER_INTERVAL_MS=15000
+VISITOR_EXPIRY_BATCH_SIZE=50
+VISITOR_SSE_HEARTBEAT_MS=20000
+```
+
+Guidance:
+- Use `FCM_PRIVATE_KEY` with escaped `\n` line breaks, or set `FCM_SERVICE_ACCOUNT_PATH` to a local service-account JSON file.
+- Keep `FCM_ENABLED=false` in local environments when Firebase Admin credentials are not configured.
+- When FCM is disabled, Visitor request creation still works and resident devices can catch up through the app plus DB notifications.
 
 ---
 
