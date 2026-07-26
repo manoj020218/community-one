@@ -7,7 +7,7 @@ import {
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
-import { useSocietyModule } from '../moduleRegistry/useSocietyModules';
+import { useMcrModule } from './useMcrModule';
 import {
   hasMcrAccess, hasMcrAdminAccess, hasMcrConfigureAccess, hasMcrDemandAccess,
   hasMcrGatewayAccess, hasMcrPaymentAccess, hasMcrReceiptAccess, hasMcrReportsAccess, hasMcrResidentAccess,
@@ -28,7 +28,7 @@ type TabKey = 'dashboard' | 'mine' | 'chargeHeads' | 'billingPlans' | 'demands' 
 export function McrPage() {
   const { user } = useAuthStore();
   const permissions = user?.permissions || [];
-  const { module, isEnabled, isLoading } = useSocietyModule('MCR');
+  const { module, isEnabled, isLoading } = useMcrModule();
 
   const tabs: Array<{ key: TabKey; label: string; icon: typeof Banknote }> = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
