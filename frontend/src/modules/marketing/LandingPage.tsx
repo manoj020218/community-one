@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Building2, Users, Car, CreditCard, ShieldCheck, ClipboardList, Puzzle,
-  Wrench, CalendarDays, Megaphone, BarChart3, MessageSquare, UserCheck, Package,
+  CalendarDays, Megaphone, BarChart3, MessageSquare, UserCheck, Package,
   AlertTriangle, Vote, FileText, Cpu, Activity, CheckCircle2, Star, Zap, Globe,
   Lock, Headphones, LayoutGrid, PawPrint, ChevronRight, BadgeCheck,
+  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, Timer, UserCog,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
@@ -17,8 +18,9 @@ const MODULES = [
   { icon: CreditCard,   name: 'Payments',          desc: 'Maintenance dues, receipts, payment history per flat',    tag: 'Live',         color: 'bg-teal-100 text-teal-600'     },
   { icon: ShieldCheck,  name: 'Access Control',    desc: 'IoT gate management, RFID & QR-based entry passes',      tag: 'Live',         color: 'bg-red-100 text-red-600'       },
   { icon: ClipboardList,name: 'Audit Trail',       desc: 'Every action logged — who, what, when, from where',      tag: 'Live',         color: 'bg-purple-100 text-purple-600' },
-  { icon: UserCheck,    name: 'Visitor Management',desc: 'Pre-approve guests, OTP gate entry, visit logs',         tag: 'Coming Soon',  color: 'bg-cyan-100 text-cyan-600'     },
-  { icon: Wrench,       name: 'Maintenance',       desc: 'Raise, assign and track repair requests end-to-end',     tag: 'Coming Soon',  color: 'bg-orange-100 text-orange-600' },
+  { icon: UserCheck,    name: 'Visitor Management',desc: 'Guard-verified entry — photo, name & contact sent to the flat for instant approval', tag: 'Live', color: 'bg-cyan-100 text-cyan-600'     },
+  { icon: Banknote,     name: 'Maintenance & Receipts (MCR)', desc: 'Charge heads, billing plans, digital demands, verified payments & instant receipts', tag: 'Coming Soon', color: 'bg-orange-100 text-orange-600' },
+  { icon: UserCog,      name: 'Staff, Attendance & Access (SAMA)', desc: 'Manage guards, gardeners, drivers & household help — attendance, timings and access in one place', tag: 'Coming Soon', color: 'bg-fuchsia-100 text-fuchsia-700' },
   { icon: CalendarDays, name: 'Amenity Booking',   desc: 'Clubhouse, gym, pool — online booking with time slots',  tag: 'Coming Soon',  color: 'bg-violet-100 text-violet-600' },
   { icon: Megaphone,    name: 'Announcements',     desc: 'Broadcast notices, events and emergency alerts to all',  tag: 'Coming Soon',  color: 'bg-rose-100 text-rose-600'     },
   { icon: MessageSquare,name: 'Complaints',        desc: 'Log complaints, track resolution, rate outcomes',        tag: 'Coming Soon',  color: 'bg-pink-100 text-pink-600'     },
@@ -45,7 +47,7 @@ function HeroSection() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-medium text-white/90 mb-8 backdrop-blur-sm">
             <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>6 Months Free Trial — No Credit Card Required</span>
+            <span>Built for Modern Indian Gated Societies</span>
           </div>
 
           {/* Headline */}
@@ -68,7 +70,7 @@ function HeroSection() {
               to="/login"
               className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-primary-500 to-purple-600 text-white font-semibold text-base hover:opacity-90 transition-opacity shadow-lg shadow-indigo-500/30"
             >
-              Start Free Trial <ArrowRight className="w-4 h-4" />
+              Get Started Free <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#features"
@@ -81,7 +83,7 @@ function HeroSection() {
 
           {/* Trust row */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-white/60">
-            {['6 months free, no card needed', 'Full setup assistance', 'IoT & mobile ready', '100% paperless society'].map((item) => (
+            {['Free onboarding, no card needed', 'Full setup assistance', 'IoT & mobile ready', '100% paperless society'].map((item) => (
               <div key={item} className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 <span>{item}</span>
@@ -144,7 +146,7 @@ function StatsStrip() {
     { value: '20+', label: 'Modules Available', icon: Puzzle },
     { value: '100%', label: 'Paperless Society', icon: FileText },
     { value: 'IoT', label: 'Hardware Ready', icon: Cpu },
-    { value: '6 Mo', label: 'Free to Start', icon: BadgeCheck },
+    { value: 'Free', label: 'To Get Started', icon: BadgeCheck },
   ];
   return (
     <section className="bg-slate-50 py-12 border-b border-slate-100">
@@ -283,6 +285,95 @@ function FeaturesSection() {
   );
 }
 
+// ─── Signature Workflows ───────────────────────────────────────────────────────
+function WorkflowsSection() {
+  const visitorSteps = [
+    { icon: ScanLine, title: 'Guard Checks Visitor', desc: 'Security guard registers every visitor at the gate before entry.' },
+    { icon: Camera, title: 'Photo & Details Captured', desc: 'Guard captures the visitor\'s photo, name and contact number in seconds.' },
+    { icon: PhoneCall, title: 'Instant Alert to the Flat', desc: 'The household is notified immediately, right on their phone.' },
+    { icon: CheckCircle2, title: 'Resident Approves Entry', desc: 'One tap to approve or deny — the visitor is let in only with permission.' },
+  ];
+
+  const mcrSteps = [
+    { icon: ClipboardCheck, title: 'Charges Configured Once', desc: 'Maintenance, sinking fund, parking & other charges set up society-wide.' },
+    { icon: Banknote, title: 'Demand Raised Automatically', desc: 'Monthly or quarterly dues are generated and sent to every flat.' },
+    { icon: Timer, title: 'Payment Recorded & Verified', desc: 'Cash, cheque, UPI or bank transfer — checked by a second person for accuracy.' },
+    { icon: FileText, title: 'Digital Receipt Issued', desc: 'An instant, shareable receipt with full payment history for every flat.' },
+  ];
+
+  return (
+    <section className="py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <p className="text-primary-600 font-semibold text-sm uppercase tracking-widest mb-3">See It In Action</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900">Real Workflows, Built for Real Societies</h2>
+          <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Not just a records system — Jenix runs the day-to-day processes your gate, office and residents already follow.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Visitor Management flow */}
+          <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900">Visitor Management</h3>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Live</span>
+            </div>
+            <div className="space-y-5">
+              {visitorSteps.map(({ icon: Icon, title, desc }, i) => (
+                <div key={title} className="flex gap-4">
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center"><Icon className="w-5 h-5" /></div>
+                    {i < visitorSteps.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
+                  </div>
+                  <div className="pb-1">
+                    <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+                    <p className="text-sm text-slate-500 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* MCR flow */}
+          <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900">Maintenance & Receipts (MCR)</h3>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Coming Soon</span>
+            </div>
+            <div className="space-y-5">
+              {mcrSteps.map(({ icon: Icon, title, desc }, i) => (
+                <div key={title} className="flex gap-4">
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center"><Icon className="w-5 h-5" /></div>
+                    {i < mcrSteps.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
+                  </div>
+                  <div className="pb-1">
+                    <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+                    <p className="text-sm text-slate-500 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SAMA callout */}
+        <div className="mt-8 bg-gradient-to-r from-fuchsia-50 to-purple-50 rounded-2xl p-6 border border-fuchsia-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-fuchsia-100 text-fuchsia-700 flex items-center justify-center flex-shrink-0">
+            <UserCog className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">Coming Soon: SAMA — Staff, Attendance & Access</h4>
+            <p className="text-sm text-slate-600 mt-1">
+              One place to manage every guard, gardener, driver and household helper — attendance, approved entry timings, and gate access,
+              whether they're on society payroll or hired directly by a household.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Modules showcase ─────────────────────────────────────────────────────────
 function ModulesSection() {
   return (
@@ -323,9 +414,9 @@ function ModulesSection() {
 
         <div className="mt-10 text-center">
           <p className="text-slate-400 text-sm">
-            <span className="text-emerald-400 font-semibold">● 10 modules live</span>
+            <span className="text-emerald-400 font-semibold">● 12 modules live</span>
             <span className="mx-3 text-slate-600">·</span>
-            <span className="text-white/50">10 coming in next releases</span>
+            <span className="text-white/50">9 coming in next releases</span>
           </p>
         </div>
       </div>
@@ -513,14 +604,14 @@ function CTASection() {
       <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center text-white">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/15 border border-white/25 text-sm font-medium mb-8">
           <Star className="w-4 h-4 text-amber-300 fill-amber-300" />
-          Limited Time — 6 Months Completely Free
+          Free to Get Started — No Credit Card Required
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-black mb-6 leading-tight">
           Ready to Transform<br />Your Society?
         </h2>
         <p className="text-white/75 text-lg mb-10 max-w-xl mx-auto">
-          Join societies that have gone fully digital. No credit card, no lock-in. Just a smarter way to manage your community.
+          Join societies that have gone fully digital. Onboard for free today — pay a small amount later, only as your society actually uses the platform.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -528,7 +619,7 @@ function CTASection() {
             to="/login"
             className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white text-primary-700 font-bold text-base hover:bg-slate-50 transition-colors shadow-xl"
           >
-            Request Your Free Trial <ArrowRight className="w-5 h-5" />
+            Get Started Free <ArrowRight className="w-5 h-5" />
           </Link>
           <a
             href="mailto:support@iotsoft.in"
@@ -539,7 +630,7 @@ function CTASection() {
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-sm text-white/60">
-          {['6 months free trial', 'No credit card', 'Cancel any time', 'Full setup support'].map((t) => (
+          {['Free onboarding', 'No credit card', 'Cancel any time', 'Full setup support'].map((t) => (
             <span key={t} className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />{t}</span>
           ))}
         </div>
@@ -556,6 +647,7 @@ export function LandingPage() {
       <StatsStrip />
       <ProblemSection />
       <FeaturesSection />
+      <WorkflowsSection />
       <ModulesSection />
       <HowItWorksSection />
       <ForEveryoneSection />
