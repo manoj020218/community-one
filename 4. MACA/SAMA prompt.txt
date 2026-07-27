@@ -1,0 +1,2443 @@
+# CODEX IMPLEMENTATION PROMPT
+
+## SAMA Module — Staff, Attendance, Management and Access
+
+You are working inside an existing professional multi-society Society Management Platform.
+
+Your task is to design, implement, test and document a new independently deployable plugin module named:
+
+# SAMA — Staff, Attendance, Management and Access Module
+
+The module must be implemented in a separate folder and integrated with the existing platform while disturbing the existing codebase as little as possible.
+
+Suggested module folder:
+
+```text
+SAMA/
+```
+
+The module must follow the existing platform’s:
+
+* Authentication
+* Society-level tenant isolation
+* Role and permission system
+* Module enable/disable mechanism
+* Device mapping
+* Audit logging
+* Notification framework
+* File storage
+* UI theme
+* Routing conventions
+* API conventions
+* Test framework
+
+Do not rewrite existing working systems unnecessarily.
+
+The SAMA module must be suitable for a professional product with an expected operational life of at least ten years.
+
+---
+
+# 1. Product purpose
+
+The module will manage all types of workers, service personnel and society staff who require:
+
+* Identity records
+* Society entry permission
+* Attendance
+* Access control
+* Work allocation
+* Flat association
+* Payroll where applicable
+* Household payment records where applicable
+* Service-request assignment
+* Compliance-document tracking
+* Incident records
+* Visitor-like temporary access
+* Reports and audit trails
+
+The module must distinguish clearly between three primary staff groups.
+
+## Type 1 — Society Payroll Staff
+
+Workers directly employed and paid by the society.
+
+Examples:
+
+* Security guards
+* Gardeners
+* Sweepers
+* Housekeeping workers
+* Electricians
+* Plumbers
+* Supervisors
+* Facility managers
+* Lift operators
+* Pool attendants
+* Club staff
+* Office staff
+* Accountants
+* Drivers
+* Pump operators
+* Maintenance technicians
+
+These workers may require:
+
+* Monthly payroll
+* Attendance
+* Shifts
+* Leave
+* Overtime
+* Salary components
+* Deductions
+* Advances
+* Payslips
+* Statutory data where applicable
+* Access permissions
+* Uniform or equipment issue records
+* Society-wide work assignment
+
+## Type 2 — Household Payroll Staff
+
+Workers paid directly by one or more residents or flat owners, but registered and controlled for society access and safety.
+
+Examples:
+
+* Maid
+* Cook
+* Domestic cleaner
+* Utensil cleaner
+* Babysitter
+* Elder-care assistant
+* Driver
+* Personal security assistant
+* Dog walker
+* Domestic helper
+* Home nurse where enabled
+* Personal gardener
+* Car cleaner
+* Laundry collector
+* Ironing person
+
+These workers are not society employees.
+
+The society must not automatically treat their household payment as society payroll.
+
+However, the society must maintain:
+
+* Staff identity
+* Flat associations
+* Approved working flats
+* Entry permissions
+* Allowed timings
+* Attendance
+* Resident approval
+* Police verification status
+* ID proof
+* Photograph
+* Emergency details
+* Access-device credentials
+* Suspension or blocking status
+
+The module should optionally help residents and society admins record agreed service rates.
+
+Examples:
+
+* Fixed monthly amount
+* Amount based on carpet area
+* Cleaning and mopping rate
+* Utensil-cleaning rate
+* Per-member utensil rate
+* Cooking rate
+* Laundry collection rate
+* Car-cleaning rate
+* Additional work rate
+* Per-visit rate
+* Per-hour rate
+* Society-recommended rate
+* Resident-agreed rate
+
+The society may define suggested or standard rate cards, but the final household payment remains between the resident and worker unless society policy explicitly says otherwise.
+
+## Type 3 — Visiting Service Pool
+
+Independent workers, contractors and service providers who are not regular society staff and may visit on demand.
+
+Examples:
+
+* Water-tank cleaner
+* Sewer cleaner
+* Swimming-pool cleaner
+* Chimney mechanic
+* CCTV mechanic
+* Door-lock mechanic
+* Carpenter
+* Carpet repair technician
+* Sofa repair technician
+* Laundry person
+* Ironing person
+* Electrician
+* Plumber
+* Pest-control worker
+* AC technician
+* Appliance repair technician
+* RO technician
+* Internet technician
+* Lift technician
+* Painter
+* Mason
+* Welder
+* Fabricator
+* Gardener
+* Deep-cleaning staff
+* Glass cleaner
+* Solar technician
+* Intercom technician
+* Fire-system technician
+
+These workers may:
+
+* Belong to a service pool
+* Be assigned to a society job
+* Be invited by a resident
+* Be invited by society administration
+* Have time-limited access
+* Have recurring approved access
+* Be rated after work
+* Have documents and certifications
+* Have work orders
+* Have quotations and invoices
+* Have emergency or priority classifications
+
+---
+
+# 2. Mandatory coding rules
+
+## 2.1 File-size restriction
+
+No source-code file may exceed 200 lines.
+
+This applies to:
+
+* Backend files
+* Frontend files
+* Models
+* Services
+* Controllers
+* Routes
+* Validators
+* Components
+* Hooks
+* Utilities
+* Tests
+* Device adapters
+* Payroll logic
+* Attendance logic
+
+When a file approaches 180 lines, split it by responsibility.
+
+Do not compress code artificially to satisfy the rule.
+
+## 2.2 Minimal disturbance to core platform
+
+Before implementation:
+
+1. Inspect the current repository.
+2. Identify the plugin/module pattern.
+3. Identify the existing module registry.
+4. Identify the permission system.
+5. Identify the society tenancy mechanism.
+6. Identify device mapping.
+7. Identify resident and flat models.
+8. Identify visitor-management integration points.
+9. Identify notification infrastructure.
+10. Identify current audit logging.
+11. Identify whether payroll, attendance or access-control abstractions already exist.
+
+Keep SAMA-specific business logic inside the SAMA folder.
+
+Core changes should be limited to:
+
+* Module registration
+* Route registration
+* Permission registration
+* Navigation registration
+* Shared-device event registration
+* Shared notification registration
+* Shared audit registration
+* Dependency injection registration
+* Society settings registration
+
+Do not move unrelated existing code into SAMA.
+
+## 2.3 Icon integrity
+
+Use the platform’s existing icon library.
+
+Do not:
+
+* Replace icons with ASCII characters
+* Replace icons with Unicode symbols
+* Replace icons with emojis
+* Replace icons with text like `+`, `x`, `<`, `>`, arrows or symbols
+* Modify icons in unrelated modules
+* Convert icons into HTML entities
+
+Add a final review and test to ensure no icon has been replaced by ASCII text.
+
+## 2.4 Technical quality
+
+Use:
+
+* TypeScript strict mode
+* Explicit DTOs
+* Runtime validation
+* Tenant-aware repositories
+* Structured logging
+* Central error handling
+* UTC timestamp storage
+* Society timezone display
+* Database indexes
+* Idempotent attendance ingestion
+* Idempotent payroll processing
+* Immutable payroll-posting records
+* Audit logs
+* Access-event deduplication
+* Secure file handling
+* Configurable policies rather than hardcoded society assumptions
+
+Use `en-IN` formatting for currency and dates where appropriate.
+
+Store money in paise:
+
+```ts
+amountPaise: number
+```
+
+Do not use floating-point money calculations.
+
+---
+
+# 3. EdgeFolio code reuse
+
+A similar attendance, access-control and payroll implementation may already exist in the EdgeFolio project.
+
+Before implementing attendance, access or payroll from scratch:
+
+1. Ask whether the EdgeFolio codebase is available in the current repository, workspace, connected GitHub source or a local reference folder.
+2. Search for reusable:
+
+   * Attendance event ingestion
+   * Access-device mapping
+   * Shift rules
+   * Payroll calculations
+   * Salary structures
+   * Leave management
+   * Overtime logic
+   * Payslip generation
+   * Device synchronization
+   * Employee identity mapping
+3. Reuse proven code only where:
+
+   * Licensing permits
+   * Architecture is compatible
+   * Security is acceptable
+   * Tenant isolation can be guaranteed
+   * Code quality meets current standards
+4. Refactor reused code into clean SAMA-specific adapters.
+5. Do not blindly copy old code.
+6. Add regression tests around all reused logic.
+7. Document each reused component in:
+
+```text
+SAMA/EDGEFOLIO_REUSE.md
+```
+
+The EdgeFolio implementation may save development time, especially for:
+
+* Attendance
+* Access-control machines
+* Employee-device mapping
+* Shift handling
+* Payroll
+* Payslip generation
+
+However, the Society Management Platform’s current architecture remains the source of truth.
+
+---
+
+# 4. Module enablement
+
+SAMA must work as an optional society plugin.
+
+Required behavior:
+
+* Platform super admin can enable or disable SAMA society-wise.
+* The module appears only when enabled for that society.
+* Backend API access must be blocked if disabled.
+* Direct URL access must not bypass module entitlement.
+* Background jobs must skip societies where SAMA is disabled.
+* Historical data must not be deleted when disabled.
+* Re-enabling must restore access.
+* Device events may still be safely retained according to platform policy even when temporarily disabled.
+* Shared member-access features must not automatically expose staff-management data.
+
+Create a module manifest containing:
+
+```text
+moduleCode: SAMA
+displayName: Staff Management
+version
+requiredCoreVersion
+permissions
+routes
+navigation
+settingsSchema
+backgroundJobs
+domainEvents
+deviceCapabilities
+optionalDependencies
+```
+
+---
+
+# 5. Domain separation
+
+The module must not treat all people as one generic employee type.
+
+Create clear domain concepts for:
+
+```text
+SOCIETY_EMPLOYEE
+HOUSEHOLD_STAFF
+SERVICE_POOL_WORKER
+CONTRACTOR_EMPLOYEE
+TEMPORARY_WORKER
+```
+
+A person may have more than one role over time, but active engagements must remain explicit.
+
+Example:
+
+* A plumber may be on society payroll.
+* Another plumber may be a service-pool worker.
+* A third plumber may be attached regularly to certain flats.
+
+Do not determine payroll behavior only from occupation name.
+
+Use engagement type and employer type.
+
+---
+
+# 6. Core data models
+
+Design models according to the existing database architecture.
+
+Every record must include `societyId`.
+
+## 6.1 StaffProfile
+
+Represents the person’s master identity.
+
+Possible fields:
+
+```text
+societyId
+staffCode
+firstName
+middleName
+lastName
+displayName
+mobile
+alternateMobile
+email
+gender
+dateOfBirth
+photoFileId
+primaryCategory
+skills
+languages
+permanentAddress
+currentAddress
+emergencyContacts
+bloodGroup
+identityDocuments
+policeVerification
+backgroundVerification
+medicalNotesRestricted
+accessStatus
+riskFlags
+blacklistStatus
+blacklistReason
+createdBy
+updatedBy
+createdAt
+updatedAt
+```
+
+Do not expose restricted personal data to ordinary residents.
+
+## 6.2 StaffEngagement
+
+Represents the staff member’s relationship with the society, household or contractor.
+
+Fields may include:
+
+```text
+societyId
+staffId
+engagementType
+employerType
+employerSocietyId
+employerFlatId
+employerResidentId
+contractorId
+jobTitle
+department
+categoryId
+startDate
+endDate
+status
+paymentResponsibility
+attendancePolicyId
+accessPolicyId
+payrollPolicyId
+workLocations
+allowedFlatIds
+allowedTowerIds
+reportingManagerId
+createdBy
+updatedBy
+timestamps
+```
+
+Engagement types:
+
+```text
+SOCIETY_PAYROLL
+HOUSEHOLD_DIRECT
+SERVICE_POOL
+CONTRACTOR
+TEMPORARY
+VOLUNTEER
+```
+
+Status:
+
+```text
+DRAFT
+PENDING_APPROVAL
+ACTIVE
+SUSPENDED
+EXPIRED
+TERMINATED
+BLACKLISTED
+```
+
+## 6.3 StaffCategory
+
+Examples:
+
+```text
+GUARD
+GARDENER
+SWEEPER
+HOUSEKEEPING
+ELECTRICIAN
+PLUMBER
+MAID
+COOK
+DRIVER
+CAR_CLEANER
+BABYSITTER
+ELDER_CARE
+DOG_WALKER
+LAUNDRY
+IRONING
+CARPENTER
+CCTV_TECHNICIAN
+LOCK_TECHNICIAN
+TANK_CLEANER
+SEWER_CLEANER
+POOL_CLEANER
+CHIMNEY_TECHNICIAN
+PEST_CONTROL
+AC_TECHNICIAN
+OTHER
+```
+
+Do not hardcode categories only in frontend code.
+
+Allow platform defaults and society-custom categories.
+
+## 6.4 HouseholdStaffAssociation
+
+Connects household staff to one or multiple flats.
+
+Fields:
+
+```text
+societyId
+staffId
+flatId
+residentId
+relationshipType
+services
+approvedByResident
+approvedAt
+societyApproved
+societyApprovedAt
+startDate
+endDate
+allowedDays
+allowedTimeWindows
+entryGateIds
+monthlyRatePaise
+ratePlanId
+paymentRecordEnabled
+status
+notes
+timestamps
+```
+
+A maid may work in multiple flats.
+
+Each flat must approve its own association.
+
+Removing one association must not block access to other valid flats unless society policy requires it.
+
+## 6.5 ServiceProviderProfile
+
+For independent workers or firms.
+
+Fields may include:
+
+```text
+societyId
+providerType
+businessName
+contactPerson
+mobile
+email
+serviceCategories
+serviceArea
+taxDetails
+bankDetailsRestricted
+rating
+totalJobs
+activeStatus
+verifiedStatus
+documents
+createdBy
+updatedBy
+timestamps
+```
+
+## 6.6 WorkOrder
+
+For society or resident service requests.
+
+Fields:
+
+```text
+societyId
+workOrderNumber
+requesterType
+requesterUserId
+flatId
+serviceCategory
+title
+description
+priority
+assignedStaffId
+assignedProviderId
+scheduledStart
+scheduledEnd
+actualStart
+actualEnd
+status
+accessPassId
+quotationPaise
+approvedAmountPaise
+finalAmountPaise
+paymentResponsibility
+attachments
+completionProof
+rating
+feedback
+createdBy
+updatedBy
+timestamps
+```
+
+Statuses:
+
+```text
+REQUESTED
+ASSIGNED
+ACCEPTED
+SCHEDULED
+IN_PROGRESS
+ON_HOLD
+COMPLETED
+CANCELLED
+REJECTED
+```
+
+## 6.7 AttendanceEvent
+
+Raw attendance or access event.
+
+Fields:
+
+```text
+societyId
+deviceId
+deviceEventId
+staffId
+credentialId
+eventType
+eventTime
+receivedAt
+direction
+gateId
+locationId
+authenticationMethod
+rawPayloadHash
+processingStatus
+duplicateOfEventId
+source
+createdAt
+```
+
+Event types:
+
+```text
+ENTRY
+EXIT
+CHECK_IN
+CHECK_OUT
+BREAK_START
+BREAK_END
+ACCESS_DENIED
+UNKNOWN
+```
+
+Authentication methods:
+
+```text
+RFID
+UHF
+FACE
+FINGERPRINT
+QR
+PIN
+BLE
+MOBILE
+MANUAL
+```
+
+## 6.8 AttendanceDay
+
+Processed daily attendance summary.
+
+Fields:
+
+```text
+societyId
+staffId
+engagementId
+attendanceDate
+shiftId
+firstIn
+lastOut
+workedMinutes
+breakMinutes
+lateMinutes
+earlyExitMinutes
+overtimeMinutes
+status
+exceptions
+manualAdjustments
+approvedBy
+approvalStatus
+timestamps
+```
+
+Status:
+
+```text
+PRESENT
+ABSENT
+HALF_DAY
+LEAVE
+WEEK_OFF
+HOLIDAY
+ON_DUTY
+MISSING_PUNCH
+```
+
+## 6.9 Shift
+
+Fields:
+
+```text
+societyId
+name
+code
+startTime
+endTime
+crossesMidnight
+graceInMinutes
+graceOutMinutes
+minimumHalfDayMinutes
+minimumFullDayMinutes
+overtimePolicyId
+weeklyOffRules
+isActive
+timestamps
+```
+
+## 6.10 LeaveRecord
+
+For society payroll staff.
+
+Fields:
+
+```text
+societyId
+staffId
+engagementId
+leaveType
+startDate
+endDate
+duration
+reason
+status
+approvedBy
+approvedAt
+attachments
+timestamps
+```
+
+## 6.11 SalaryStructure
+
+Fields:
+
+```text
+societyId
+staffId
+engagementId
+effectiveFrom
+effectiveTo
+salaryType
+baseSalaryPaise
+earnings
+deductions
+overtimePolicy
+attendanceLinkage
+paymentFrequency
+isActive
+version
+approvedBy
+timestamps
+```
+
+Salary types:
+
+```text
+MONTHLY
+DAILY
+HOURLY
+PER_SHIFT
+PER_VISIT
+CONTRACT
+```
+
+## 6.12 PayrollRun
+
+Fields:
+
+```text
+societyId
+payrollNumber
+periodStart
+periodEnd
+status
+staffCount
+grossPaise
+deductionPaise
+netPayPaise
+generatedBy
+reviewedBy
+approvedBy
+postedAt
+version
+timestamps
+```
+
+Statuses:
+
+```text
+DRAFT
+CALCULATED
+UNDER_REVIEW
+APPROVED
+POSTED
+PAID
+CANCELLED
+```
+
+## 6.13 PayrollEntry
+
+Fields:
+
+```text
+societyId
+payrollRunId
+staffId
+engagementId
+attendanceSummary
+earningLines
+deductionLines
+grossPaise
+deductionPaise
+netPayPaise
+paymentStatus
+paymentReference
+payslipFileId
+postedAt
+timestamps
+```
+
+## 6.14 HouseholdRateCard
+
+Used for domestic-help recommended or agreed rates.
+
+Fields:
+
+```text
+societyId
+name
+categoryId
+serviceItems
+calculationMethod
+effectiveFrom
+effectiveTo
+isSocietyRecommended
+isMandatory
+createdBy
+approvedBy
+timestamps
+```
+
+Calculation methods may include:
+
+```text
+FIXED_MONTHLY
+PER_FLAT
+PER_CARPET_AREA
+PER_MEMBER
+PER_VISIT
+PER_HOUR
+PER_SERVICE_UNIT
+CUSTOM
+```
+
+## 6.15 HouseholdPaymentRecord
+
+Optional record maintained for resident convenience.
+
+Fields:
+
+```text
+societyId
+flatId
+staffId
+associationId
+billingPeriod
+serviceLines
+amountPaise
+paidAmountPaise
+paymentDate
+paymentMethod
+reference
+status
+recordedBy
+confirmedByStaff
+timestamps
+```
+
+This is not society payroll unless explicitly configured.
+
+The UI and reports must clearly state:
+
+```text
+Paid directly by household
+```
+
+Do not combine household payment totals with society payroll totals.
+
+## 6.16 AccessCredential
+
+Fields:
+
+```text
+societyId
+staffId
+credentialType
+credentialIdentifierHash
+deviceProvider
+deviceReference
+validFrom
+validUntil
+status
+accessPolicyId
+issuedBy
+revokedBy
+timestamps
+```
+
+Never expose raw biometric templates through ordinary APIs.
+
+## 6.17 AccessPolicy
+
+Fields:
+
+```text
+societyId
+name
+allowedGateIds
+allowedZoneIds
+allowedDays
+allowedTimeWindows
+holidayAccess
+antiPassbackEnabled
+escortRequired
+flatRestricted
+temporaryAccess
+isActive
+timestamps
+```
+
+---
+
+# 7. Staff onboarding
+
+Create guided onboarding based on staff type.
+
+## Society payroll onboarding
+
+Required steps:
+
+1. Personal details
+2. Photo
+3. Mobile
+4. Address
+5. Emergency contact
+6. Identity documents
+7. Police verification
+8. Employment category
+9. Department
+10. Joining date
+11. Shift
+12. Salary structure
+13. Bank details through restricted secure access
+14. Access policy
+15. Attendance credential
+16. Approval
+17. Activation
+
+## Household staff onboarding
+
+Required steps:
+
+1. Staff identity
+2. Photo
+3. Mobile
+4. Address
+5. Identity proof
+6. Police verification
+7. Domestic-help category
+8. Resident or flat association
+9. Allowed working time
+10. Resident approval
+11. Society security approval
+12. Access credential
+13. Activation
+
+Support a QR-based resident approval flow where safe.
+
+## Visiting service-pool onboarding
+
+Required steps:
+
+1. Individual or company details
+2. Services offered
+3. Contact details
+4. Identity proof
+5. Certifications
+6. Verification status
+7. Rate indication
+8. Service area
+9. Emergency availability
+10. Access policy
+11. Validity period
+
+Provide fast temporary onboarding for one-time technicians.
+
+---
+
+# 8. Attendance and access-control devices
+
+Attendance may be recorded by an attendance-cum-access-control machine.
+
+The same physical device infrastructure may also later be used by the Member Access Control module.
+
+Design the integration as shared device infrastructure with separate domain authorization.
+
+Do not hardcode the device only for SAMA.
+
+Create or reuse a generic capability model such as:
+
+```text
+ATTENDANCE_EVENT_SOURCE
+ACCESS_DECISION_SOURCE
+ACCESS_CREDENTIAL_SYNC
+DOOR_CONTROLLER
+BIOMETRIC_TERMINAL
+RFID_READER
+UHF_READER
+FACE_TERMINAL
+```
+
+Suggested architecture:
+
+```text
+Physical access device
+? Device gateway or API adapter
+? Core device-event ingestion
+? Event normalization
+? Identity resolver
+? SAMA attendance processor
+? SAMA access processor
+? Future member-access processor
+```
+
+Device integration requirements:
+
+* Device registration
+* Society mapping
+* Gate mapping
+* Zone mapping
+* Device health
+* Last-seen status
+* Time synchronization
+* Offline event buffering
+* Event replay
+* Credential sync
+* Duplicate event detection
+* Event acknowledgement
+* Firmware or adapter version
+* Device audit logs
+
+Do not allow an event from one society’s device to update another society.
+
+---
+
+# 9. Shared use with Member Access Control module
+
+The same machine may be used for:
+
+* Staff attendance
+* Staff entry
+* Member gym access
+* Member pool access
+* Member club access
+* Member gate access
+* Contractor entry
+
+Therefore, separate:
+
+* Person identity
+* Credential
+* Access policy
+* Attendance interpretation
+* Membership entitlement
+* Device adapter
+
+The access decision should resolve context:
+
+```text
+credential
+? person type
+? society
+? active engagement or membership
+? access policy
+? zone
+? time
+? current status
+? allow or deny
+```
+
+Do not let staff payroll logic enter the future Member Access Control module.
+
+Create reusable contracts in the platform’s approved shared location only when truly generic.
+
+Examples:
+
+```text
+AccessSubject
+AccessCredential
+AccessDecisionRequest
+AccessDecisionResult
+NormalizedAccessEvent
+DeviceCredentialSyncCommand
+```
+
+Keep SAMA-specific details inside SAMA.
+
+---
+
+# 10. Attendance processing
+
+Attendance ingestion must be idempotent.
+
+Use a unique key based on:
+
+```text
+societyId + deviceId + deviceEventId
+```
+
+Where device event ID is unavailable, derive a careful deduplication signature from:
+
+```text
+deviceId + credential + eventTime + eventType
+```
+
+Do not discard legitimate repeated events only because they are close in time.
+
+Support:
+
+* Entry and exit
+* Check-in and check-out
+* Multiple shifts
+* Night shifts crossing midnight
+* Missing punch
+* Manual correction
+* Late arrival
+* Early exit
+* Half day
+* Overtime
+* Weekly off
+* Holiday
+* On-duty assignment
+* Leave
+* Grace period
+* Device offline replay
+* Manual attendance
+* Attendance approval
+
+Manual attendance correction must require:
+
+* Reason
+* Before value
+* After value
+* Actor
+* Approval where configured
+* Audit log
+
+---
+
+# 11. Society payroll
+
+Implement professional payroll for Type 1 staff.
+
+Payroll should be independent of household staff payment records.
+
+Required features:
+
+* Monthly payroll
+* Daily wage
+* Hourly wage
+* Per-shift wage
+* Contract amount
+* Attendance-linked salary
+* Fixed salary
+* Earnings
+* Deductions
+* Overtime
+* Leave without pay
+* Advances
+* Loan deductions
+* Bonus
+* Incentive
+* Reimbursement
+* Penalty where legally permitted
+* Arrears
+* Manual adjustment
+* Payslip
+* Payment status
+* Bank-transfer reference
+* Cash-payment reference
+
+Example earning components:
+
+```text
+BASIC
+HRA
+CONVEYANCE
+SPECIAL_ALLOWANCE
+OVERTIME
+BONUS
+INCENTIVE
+ARREARS
+REIMBURSEMENT
+OTHER_EARNING
+```
+
+Example deductions:
+
+```text
+ABSENCE
+LATE_DEDUCTION
+ADVANCE_RECOVERY
+LOAN_RECOVERY
+UNIFORM
+NOTICE_PERIOD
+OTHER_DEDUCTION
+```
+
+Do not automatically implement statutory tax or employment compliance based on assumptions.
+
+Create configurable components and documentation.
+
+Where statutory features are later added, keep them behind jurisdiction-aware policy modules.
+
+Payroll workflow:
+
+```text
+Attendance finalized
+? payroll draft generated
+? exceptions reviewed
+? salary calculated
+? reviewer checks
+? authorized user approves
+? payroll posted
+? payslips generated
+? payment status updated
+```
+
+A posted payroll must be immutable.
+
+Corrections must use:
+
+* Supplementary payroll
+* Reversal
+* Adjustment payroll
+
+Do not edit posted payroll silently.
+
+---
+
+# 12. Household rate and payment support
+
+Domestic-help workers may be paid directly by residents.
+
+The module should support optional society rate cards.
+
+Examples:
+
+* Cleaning and mopping: fixed monthly rate
+* Utensil cleaning: per household
+* Utensil cleaning: per family member
+* Cooking: fixed monthly rate
+* Car cleaning: per vehicle
+* Laundry pickup: per visit
+* Ironing: per garment or monthly
+* Elder care: per hour
+* Babysitting: per hour
+* Driver: monthly
+* Dog walking: per visit
+* Deep cleaning: per job
+
+Society admin may define:
+
+* Suggested rate
+* Minimum recommended rate
+* Area-based rate
+* Member-count rate
+* Service bundle
+* Effective date
+* Notes
+* Society negotiation date
+
+Resident and staff may agree to a different amount unless the society has a legally valid mandatory policy.
+
+UI must distinguish:
+
+* Society recommended amount
+* Resident agreed amount
+* Amount paid
+* Outstanding amount
+* Dispute status
+
+Household payment recording should be optional.
+
+The society should not automatically become liable for unpaid household amounts.
+
+Display clear disclaimer language in relevant screens.
+
+---
+
+# 13. Service pool and work orders
+
+Create a service-pool workflow for occasional workers.
+
+Resident or admin should be able to:
+
+1. Select service category.
+2. View approved workers or providers.
+3. Request service.
+4. Add preferred date and time.
+5. Add photos or details.
+6. Receive quotation if enabled.
+7. Approve assignment.
+8. Generate temporary access.
+9. Track arrival.
+10. Track work status.
+11. Mark completion.
+12. Rate service.
+13. Report issue.
+
+Support society-admin work orders such as:
+
+* Tank cleaning
+* Sewer cleaning
+* Pool maintenance
+* CCTV repair
+* Electrical work
+* Plumbing
+* Fire-system service
+* Lift service
+* Pest control
+* Landscaping
+* Deep cleaning
+
+Work order access should expire automatically after:
+
+* Work completion
+* Scheduled end time
+* Manual cancellation
+* Credential expiry
+
+---
+
+# 14. Access-control rules
+
+Access decisions must consider:
+
+* Active society
+* Staff status
+* Engagement status
+* Police-verification policy
+* Document expiry
+* Allowed gates
+* Allowed zones
+* Allowed flats
+* Allowed days
+* Allowed times
+* Blacklist status
+* Suspension
+* Temporary pass validity
+* Work-order validity
+* Resident approval
+* Society approval
+* Anti-passback where supported
+* Emergency override
+
+Examples:
+
+### Maid
+
+* Allowed only between configured hours
+* Allowed only for associated flats
+* Entry may be allowed through selected staff gate
+* Access disabled if all flat associations end
+
+### Security guard
+
+* Allowed according to shift
+* May access security office
+* May not access restricted plant rooms without permission
+
+### CCTV mechanic
+
+* Temporary access
+* Linked to work order
+* Allowed only during service window
+* Restricted to security office or approved zones
+
+### Tank-cleaning team
+
+* Work-order access
+* Multiple team members
+* Valid on scheduled date
+* Access to tank or service area only
+
+Every denied access event should record a safe reason code.
+
+---
+
+# 15. Permissions
+
+Integrate with the existing permission engine.
+
+Suggested permissions:
+
+```text
+SAMA_VIEW_SELF
+SAMA_VIEW_STAFF
+SAMA_VIEW_RESTRICTED_PROFILE
+SAMA_CREATE_STAFF
+SAMA_EDIT_STAFF
+SAMA_APPROVE_STAFF
+SAMA_SUSPEND_STAFF
+SAMA_BLACKLIST_STAFF
+SAMA_MANAGE_CATEGORIES
+SAMA_MANAGE_HOUSEHOLD_ASSOCIATIONS
+SAMA_APPROVE_HOUSEHOLD_STAFF
+SAMA_VIEW_ATTENDANCE
+SAMA_EDIT_ATTENDANCE
+SAMA_APPROVE_ATTENDANCE
+SAMA_MANAGE_SHIFTS
+SAMA_MANAGE_LEAVE
+SAMA_VIEW_PAYROLL
+SAMA_CALCULATE_PAYROLL
+SAMA_APPROVE_PAYROLL
+SAMA_POST_PAYROLL
+SAMA_RECORD_PAYROLL_PAYMENT
+SAMA_VIEW_HOUSEHOLD_PAYMENTS
+SAMA_RECORD_HOUSEHOLD_PAYMENT
+SAMA_MANAGE_RATE_CARDS
+SAMA_MANAGE_SERVICE_POOL
+SAMA_CREATE_WORK_ORDER
+SAMA_ASSIGN_WORK_ORDER
+SAMA_COMPLETE_WORK_ORDER
+SAMA_MANAGE_ACCESS
+SAMA_MANAGE_CREDENTIALS
+SAMA_VIEW_DEVICE_EVENTS
+SAMA_MANAGE_DEVICE_MAPPING
+SAMA_VIEW_REPORTS
+SAMA_EXPORT_REPORTS
+SAMA_VIEW_AUDIT
+SAMA_MANAGE_SETTINGS
+```
+
+Do not rely solely on role names.
+
+---
+
+# 16. UI requirements
+
+The UI must maintain the same theme as the main platform.
+
+Reuse existing:
+
+* Layout
+* Navigation
+* Typography
+* Buttons
+* Forms
+* Cards
+* Tables
+* Dialogs
+* Icons
+* Empty states
+* Toasts
+* Skeletons
+* Responsive behavior
+* Dark and light mode support where available
+
+Do not create a second design system.
+
+## Required admin screens
+
+* Staff dashboard
+* All staff
+* Society payroll staff
+* Household staff
+* Visiting service pool
+* Pending approvals
+* Expiring documents
+* Attendance dashboard
+* Daily attendance
+* Attendance exceptions
+* Shifts
+* Leave
+* Payroll runs
+* Salary structures
+* Payslips
+* Household rate cards
+* Household associations
+* Service providers
+* Work orders
+* Access policies
+* Access credentials
+* Device mapping
+* Access events
+* Reports
+* Settings
+* Audit history
+
+## Required resident screens
+
+* My household staff
+* Add or request staff association
+* Approve staff
+* Staff schedule
+* Attendance or visit history where policy allows
+* Household rate agreement
+* Household payment record
+* Service pool
+* Request technician
+* Work-order status
+* Rate service
+* Report issue
+
+## Required guard screens
+
+* Search staff
+* View photo and category
+* Check active access
+* View allowed flats
+* Temporary service pass
+* Denied-access reason
+* Manual entry with authorization
+* Emergency override according to permission
+* Mark exit
+* Report incident
+
+## Required staff self-service screens where enabled
+
+* Profile
+* Attendance
+* Shift
+* Leave request
+* Payslip
+* Assigned work orders
+* Access status
+* Document expiry
+* Notifications
+
+---
+
+# 17. Dashboard metrics
+
+Show relevant metrics based on permission:
+
+* Total active staff
+* Society payroll staff
+* Household staff
+* Service-pool workers
+* Present today
+* Absent today
+* Late arrivals
+* Missing punches
+* Workers currently inside
+* Pending approvals
+* Documents expiring
+* Suspended workers
+* Payroll due
+* Payroll pending approval
+* Open work orders
+* Overdue work orders
+* Access denied today
+* Offline attendance devices
+* Household staff by category
+* Staff by tower or gate
+* Overtime this month
+
+Do not expose salary totals to unauthorized users.
+
+---
+
+# 18. Reports
+
+Required reports:
+
+* Staff master report
+* Staff-category report
+* Active and inactive staff
+* Household staff by flat
+* Household staff by category
+* Multi-flat maid report
+* Attendance register
+* Late arrival report
+* Absence report
+* Overtime report
+* Missing-punch report
+* Shift report
+* Leave report
+* Payroll register
+* Salary-component report
+* Payroll-payment report
+* Household-rate report
+* Household-payment record
+* Service-provider report
+* Work-order report
+* Provider rating report
+* Access-event report
+* Access-denied report
+* Workers currently inside
+* Document-expiry report
+* Police-verification report
+* Blacklist report
+* Device-health report
+* Audit report
+
+Export:
+
+* CSV
+* Spreadsheet-compatible format
+* PDF where appropriate
+* Printable HTML
+
+Use server-side filtering and pagination.
+
+---
+
+# 19. Notifications
+
+Support notifications through the platform’s existing infrastructure.
+
+Possible events:
+
+```text
+SAMA_STAFF_APPROVAL_REQUESTED
+SAMA_STAFF_APPROVED
+SAMA_STAFF_REJECTED
+SAMA_STAFF_SUSPENDED
+SAMA_DOCUMENT_EXPIRING
+SAMA_POLICE_VERIFICATION_EXPIRING
+SAMA_ATTENDANCE_EXCEPTION
+SAMA_SHIFT_CHANGED
+SAMA_LEAVE_REQUESTED
+SAMA_LEAVE_APPROVED
+SAMA_LEAVE_REJECTED
+SAMA_PAYROLL_READY
+SAMA_PAYSLIP_AVAILABLE
+SAMA_HOUSEHOLD_ASSOCIATION_REQUESTED
+SAMA_HOUSEHOLD_ASSOCIATION_APPROVED
+SAMA_HOUSEHOLD_RATE_CHANGED
+SAMA_WORK_ORDER_CREATED
+SAMA_WORK_ORDER_ASSIGNED
+SAMA_WORKER_ARRIVED
+SAMA_WORK_ORDER_COMPLETED
+SAMA_TEMPORARY_ACCESS_CREATED
+SAMA_ACCESS_DENIED
+SAMA_DEVICE_OFFLINE
+```
+
+Channels may include:
+
+* In-app
+* FCM push
+* Email
+* WhatsApp
+* SMS through society IoT gateway
+
+Use provider-neutral adapters already created by the platform where available.
+
+---
+
+# 20. Security and privacy
+
+Staff records may contain sensitive personal data.
+
+Implement:
+
+* Field-level permission checks
+* Restricted document access
+* Masked identity numbers
+* Secure file URLs
+* Audit logs for restricted profile access
+* Data-retention policy
+* Document-expiry handling
+* Consent and approval records
+* No biometric template exposure
+* No full bank details in general APIs
+* No salary data in resident screens
+* No household-payment data visible to unrelated flats
+* No cross-society access
+* No unrestricted bulk export
+* Rate limiting
+* Input validation
+* MIME validation
+* Upload limits
+* Malware-scanning hook where supported
+
+Residents may only see staff information required for their own associations or service request.
+
+---
+
+# 21. Audit logging
+
+Audit all important actions:
+
+* Staff profile created
+* Identity changed
+* Document uploaded
+* Police verification updated
+* Engagement created
+* Engagement approved
+* Staff associated with flat
+* Resident approval
+* Staff suspended
+* Staff blacklisted
+* Access policy changed
+* Credential issued
+* Credential revoked
+* Attendance corrected
+* Shift changed
+* Leave approved
+* Salary changed
+* Payroll calculated
+* Payroll approved
+* Payroll posted
+* Payslip generated
+* Household rate changed
+* Household payment recorded
+* Work order created
+* Worker assigned
+* Work completed
+* Access denied
+* Manual gate override
+* Device mapping changed
+* Report exported
+
+Never store unmasked secrets or biometric data in audit logs.
+
+---
+
+# 22. Reliability and concurrency
+
+Protect against:
+
+* Duplicate staff creation
+* Duplicate device events
+* Duplicate attendance punches
+* Double payroll posting
+* Duplicate payslips
+* Double salary payment
+* Duplicate work-order assignment
+* Expired access remaining active
+* Concurrent resident approvals
+* Credential assigned to multiple persons
+* Cross-society credential collision
+* Device replay events
+
+Use:
+
+* Unique indexes
+* Transactions where supported
+* Optimistic concurrency
+* Version fields
+* Idempotency keys
+* Atomic counters
+* Background-job locks
+
+Official staff codes, payroll numbers and work-order numbers must be generated atomically.
+
+Do not generate official numbers using collection count.
+
+---
+
+# 23. API structure
+
+Follow existing API conventions.
+
+Suggested route groups:
+
+```text
+/api/sama/settings
+/api/sama/staff
+/api/sama/engagements
+/api/sama/categories
+/api/sama/household-associations
+/api/sama/service-providers
+/api/sama/work-orders
+/api/sama/attendance-events
+/api/sama/attendance-days
+/api/sama/shifts
+/api/sama/leaves
+/api/sama/salary-structures
+/api/sama/payroll-runs
+/api/sama/payroll-entries
+/api/sama/rate-cards
+/api/sama/household-payments
+/api/sama/access-policies
+/api/sama/credentials
+/api/sama/device-mappings
+/api/sama/reports
+/api/sama/audit
+```
+
+Use:
+
+* DTO validation
+* Pagination
+* Stable error codes
+* Tenant-aware repositories
+* Permission middleware
+* Module-entitlement middleware
+* Idempotency keys for critical actions
+* Request IDs
+
+Suggested error codes:
+
+```text
+SAMA_MODULE_NOT_ENABLED
+SAMA_PERMISSION_DENIED
+SAMA_STAFF_NOT_FOUND
+SAMA_STAFF_DUPLICATE
+SAMA_ENGAGEMENT_NOT_ACTIVE
+SAMA_ASSOCIATION_NOT_APPROVED
+SAMA_ACCESS_DENIED
+SAMA_CREDENTIAL_ALREADY_ASSIGNED
+SAMA_ATTENDANCE_DUPLICATE
+SAMA_ATTENDANCE_ALREADY_FINALIZED
+SAMA_PAYROLL_ALREADY_POSTED
+SAMA_PAYROLL_NOT_APPROVED
+SAMA_DOCUMENT_EXPIRED
+SAMA_WORK_ORDER_EXPIRED
+SAMA_DEVICE_NOT_MAPPED
+SAMA_CROSS_SOCIETY_ACCESS
+```
+
+---
+
+# 24. Suggested folder structure
+
+Adapt to the existing platform, but keep the module isolated.
+
+```text
+SAMA/
+  README.md
+  ARCHITECTURE.md
+  IMPLEMENTATION_PLAN.md
+  IMPLEMENTATION_PROGRESS.md
+  EDGEFOLIO_REUSE.md
+  module.manifest.ts
+
+  backend/
+    domain/
+      staff/
+      engagements/
+      attendance/
+      payroll/
+      household/
+      service-pool/
+      access/
+      work-orders/
+
+    application/
+      commands/
+      queries/
+      services/
+      events/
+
+    infrastructure/
+      repositories/
+      devices/
+      payroll/
+      files/
+      notifications/
+
+    api/
+      controllers/
+      routes/
+      validators/
+
+    jobs/
+      attendance/
+      payroll/
+      expiry/
+      access/
+      reconciliation/
+
+    tests/
+      unit/
+      integration/
+      security/
+
+  frontend/
+    pages/
+    components/
+    hooks/
+    services/
+    routes/
+    permissions/
+    tests/
+
+  shared/
+    contracts/
+    constants/
+    types/
+    validation/
+```
+
+---
+
+# 25. Testing requirements
+
+Testing is mandatory.
+
+Do not mark complete until all tests pass.
+
+## Unit tests
+
+Test:
+
+* Staff-type classification
+* Engagement validation
+* Household association rules
+* Access time-window rules
+* Multi-flat maid association
+* Document-expiry rules
+* Attendance event deduplication
+* Shift crossing midnight
+* Missing-punch detection
+* Overtime
+* Leave handling
+* Payroll calculation
+* Attendance-linked deduction
+* Salary component calculation
+* Household area-based rate
+* Per-member rate
+* Per-visit rate
+* Work-order access expiry
+* Credential resolution
+* Access allow and deny decisions
+* Payroll idempotency
+* Amount formatting
+
+## Integration tests
+
+Test:
+
+* Enable module
+* Create society employee
+* Create household maid
+* Associate maid with two flats
+* Remove one flat association
+* Preserve second valid association
+* Register service-pool plumber
+* Create work order
+* Generate temporary access
+* Ingest device event
+* Generate attendance
+* Correct attendance
+* Generate payroll
+* Approve payroll
+* Post payroll
+* Generate payslip
+* Record household payment
+* Disable module
+* Block cross-society access
+* Reject expired credential
+* Process offline device replay
+
+## End-to-end flows
+
+### Flow A — Society guard payroll
+
+```text
+Admin creates guard
+? assigns shift
+? issues credential
+? attendance device records punches
+? monthly attendance finalizes
+? payroll calculates
+? payroll approved
+? payslip generated
+```
+
+### Flow B — Maid working in multiple flats
+
+```text
+Maid registered
+? Flat A approves
+? Flat B approves
+? allowed timing configured
+? device grants entry
+? Flat A association ends
+? Flat B access remains valid
+```
+
+### Flow C — Household rate card
+
+```text
+Society defines recommended cleaning rate
+? resident associates maid
+? agreed amount recorded
+? monthly household payment recorded
+? amount remains separate from society payroll
+```
+
+### Flow D — Visiting plumber
+
+```text
+Resident creates plumber request
+? approved plumber assigned
+? temporary access generated
+? arrival recorded
+? job completed
+? access expires
+? resident rates service
+```
+
+### Flow E — Device used for staff and members
+
+```text
+Shared access device receives credential
+? identity resolver finds person type
+? staff event goes to SAMA
+? member event goes to Member Access module contract
+? no payroll data leaks into member module
+```
+
+### Flow F — Duplicate device event
+
+```text
+Device retries same event
+? event stored once
+? attendance processed once
+```
+
+### Flow G — Module disabled
+
+```text
+SAMA disabled
+? navigation hidden
+? API blocked
+? attendance jobs skipped safely
+? historical records retained
+```
+
+### Flow H — Cross-society isolation
+
+```text
+Society A user requests Society B staff record
+? denied
+? security audit created
+```
+
+## Regression tests
+
+Run all existing platform tests.
+
+Do not:
+
+* Remove assertions
+* Disable tests
+* Weaken permission checks
+* Introduce unnecessary `any`
+* Ignore TypeScript errors
+
+Add icon-integrity checks.
+
+---
+
+# 26. Reconciliation and watchdogs
+
+Add safe monitoring and repair tools.
+
+Monitor:
+
+* Attendance devices offline
+* Unprocessed device events
+* Missing identity mapping
+* Duplicate credentials
+* Missing punches
+* Payroll pending approval
+* Payroll entry without payslip
+* Staff inside after allowed time
+* Expired document with active access
+* Expired work order with active pass
+* Suspended staff with active credential
+* Household association without resident approval
+* Cross-society mapping conflict
+
+Create dry-run reconciliation commands:
+
+* Rebuild attendance summaries
+* Find unprocessed access events
+* Detect duplicate credentials
+* Disable expired temporary access
+* Detect payroll calculation mismatch
+* Regenerate missing payslips
+* Find staff without active engagement
+* Find associations with invalid flats
+
+Repair tools must default to dry-run mode.
+
+---
+
+# 27. Documentation
+
+Create:
+
+```text
+SAMA/README.md
+SAMA/ARCHITECTURE.md
+SAMA/API.md
+SAMA/PERMISSIONS.md
+SAMA/ATTENDANCE.md
+SAMA/ACCESS_CONTROL.md
+SAMA/PAYROLL.md
+SAMA/HOUSEHOLD_STAFF.md
+SAMA/SERVICE_POOL.md
+SAMA/DEVICE_INTEGRATION.md
+SAMA/MEMBER_ACCESS_INTEGRATION.md
+SAMA/EDGEFOLIO_REUSE.md
+SAMA/TESTING.md
+SAMA/OPERATIONS.md
+SAMA/CHANGELOG.md
+```
+
+Documentation must explain:
+
+* Staff types
+* Engagement model
+* Society payroll
+* Household direct payment
+* Service pool
+* Attendance processing
+* Access decision flow
+* Shared device architecture
+* Member Access module boundary
+* EdgeFolio reuse
+* Data privacy
+* Device replay
+* Payroll correction
+* Deployment
+* Rollback
+* Reconciliation
+* Troubleshooting
+
+---
+
+# 28. Implementation phases
+
+## Phase 0 — Repository and EdgeFolio inspection
+
+* Inspect current repository.
+* Identify module extension points.
+* Identify device infrastructure.
+* Identify available EdgeFolio code.
+* Run current tests.
+* Record baseline.
+* Create implementation plan.
+* List minimal core changes.
+
+## Phase 1 — Module skeleton
+
+* Create SAMA folder.
+* Add manifest.
+* Register module.
+* Add permissions.
+* Add module-entitlement guard.
+* Add navigation placeholder.
+* Add module-disabled tests.
+
+## Phase 2 — Staff and engagement master
+
+* Staff profile
+* Categories
+* Engagements
+* Documents
+* Verification
+* Household associations
+* Service providers
+* Approval workflows
+
+## Phase 3 — Shared access and device integration
+
+* Device capability contracts
+* Credential model
+* Access policies
+* Event normalization
+* Identity resolution
+* Device mapping
+* Offline replay
+* Member Access integration boundary
+
+## Phase 4 — Attendance
+
+* Raw event ingestion
+* Daily summaries
+* Shifts
+* Missing punch
+* Manual corrections
+* Leave
+* Overtime
+* Attendance reports
+
+## Phase 5 — Society payroll
+
+* Salary structures
+* Payroll calculation
+* Review
+* Approval
+* Posting
+* Payslips
+* Payment status
+* Reversals and supplementary payroll
+
+## Phase 6 — Household staff rates and payment records
+
+* Rate cards
+* Area-based rates
+* Per-member rates
+* Service bundles
+* Resident agreements
+* Household payment records
+* Separate reporting
+
+## Phase 7 — Service pool
+
+* Provider registry
+* Work orders
+* Assignment
+* Temporary access
+* Completion
+* Rating
+* Reports
+
+## Phase 8 — Notifications and dashboards
+
+* Notifications
+* Admin dashboards
+* Resident screens
+* Guard screens
+* Staff self-service
+* Device alerts
+
+## Phase 9 — Hardening
+
+* Security tests
+* Tenant-isolation tests
+* Concurrency tests
+* Performance tests
+* Accessibility
+* Responsive UI
+* Icon integrity
+* Full regression suite
+* Documentation review
+
+---
+
+# 29. Completion criteria
+
+Do not declare completion until:
+
+* SAMA is in a separate folder.
+* Core-platform disturbance is minimal.
+* Module enable/disable works society-wise.
+* Society tenant isolation is tested.
+* All three staff types work.
+* Society payroll remains separate from household payments.
+* Household staff can be linked with multiple flats.
+* Visiting staff can receive temporary access.
+* Attendance devices can send normalized events.
+* Duplicate events are prevented.
+* Attendance works for night shifts and missing punches.
+* Society payroll works.
+* Posted payroll is immutable.
+* Payslips are generated.
+* Household rate cards work.
+* Area-based and per-member rates work.
+* Service work orders work.
+* Access policies work.
+* Shared device design supports future Member Access Control.
+* No biometric data leaks through APIs.
+* EdgeFolio reuse is documented.
+* All files are below 200 lines.
+* Existing icons remain intact.
+* No icon is replaced with ASCII or emoji.
+* All new tests pass.
+* All existing regression tests pass.
+* No unresolved lint or TypeScript errors remain.
+* Documentation is complete.
+
+---
+
+# 30. Final Codex operating instruction
+
+Work autonomously phase by phase.
+
+After every phase:
+
+1. Run tests.
+2. Run lint.
+3. Run TypeScript checks.
+4. Review file lengths.
+5. Review tenant isolation.
+6. Review restricted data exposure.
+7. Review idempotency.
+8. Review device-event deduplication.
+9. Review payroll correctness.
+10. Review icons.
+11. Update:
+
+```text
+SAMA/IMPLEMENTATION_PROGRESS.md
+```
+
+When a bug is found:
+
+* Fix the root cause.
+* Add a regression test.
+* Do not suppress the error.
+* Do not weaken a test.
+* Do not bypass typing.
+* Do not silently discard device events.
+* Do not silently alter posted payroll.
+
+Before final completion, provide a report containing:
+
+* Architecture implemented
+* EdgeFolio components reused
+* Minimal core files changed
+* Models and indexes
+* Permissions
+* APIs
+* UI routes
+* Attendance flow
+* Access-control flow
+* Payroll flow
+* Household payment flow
+* Service-pool flow
+* Shared device strategy
+* Member Access integration boundary
+* Test results
+* Regression results
+* Security controls
+* Known limitations
+* Deployment steps
+* Rollback steps
+
+Prioritize:
+
+```text
+Tenant isolation
+Worker safety
+Financial correctness
+Access security
+Auditability
+Minimal manual work
+Device reliability
+Maintainability
+Minimal core disturbance
+Long-term extensibility
+```
