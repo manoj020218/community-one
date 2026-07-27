@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ShieldCheck, KeyRound, Cpu } from 'lucide-react';
+import { Plus, ShieldCheck, KeyRound, Cpu, AlertOctagon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -8,10 +8,10 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
-import { cn } from '../../utils/cn';
+import { cn, formatDateTime } from '../../utils/cn';
 import {
-  AccessCredential, AccessPolicy, PaginatedResult, SAMA_ACCESS_MODES, SAMA_ACCESS_POLICY_SUBJECT_TYPES,
-  SAMA_CREDENTIAL_TYPES, SamaDeviceBinding, SamaExternalDevice, ServiceProviderProfile, StaffProfile,
+  AccessCredential, AccessPolicy, EXCEPTION_STATUS_BADGE, PaginatedResult, SAMA_ACCESS_MODES, SAMA_ACCESS_POLICY_SUBJECT_TYPES,
+  SAMA_CREDENTIAL_TYPES, SamaAccessEvent, SamaDeviceBinding, SamaExternalDevice, ServiceProviderProfile, StaffProfile,
 } from './sama.types';
 
 const BLANK_POLICY = { name: '', subjectType: 'STAFF_PROFILE' as string, subjectId: '', accessMode: 'ALWAYS' as string };
@@ -29,6 +29,9 @@ export function SamaAccessTab() {
   const [credentialForm, setCredentialForm] = useState(BLANK_CREDENTIAL);
   const [bindDeviceId, setBindDeviceId] = useState<string | null>(null);
   const [jenixDeviceId, setJenixDeviceId] = useState('');
+  const [exceptionFilter, setExceptionFilter] = useState('UNMATCHED_DEVICE');
+  const [resolveEventId, setResolveEventId] = useState<string | null>(null);
+  const [resolveForm, setResolveForm] = useState({ action: 'RESOLVE' as string, bindingId: '', resolutionNotes: '' });
 
   const { data: policies } = useQuery({
     queryKey: ['sama-policies', societyId],
@@ -73,6 +76,12 @@ export function SamaAccessTab() {
     enabled: !!societyId && !!bindDeviceId,
   });
 
+  const { data: accessEvents } = useQuery({
+    queryKey: ['sama-access-events', societyId, exceptionFilter],
+    queryFn: () => extractData<PaginatedResult<SamaAccessEvent>>(api.get('/sama/access-events', { params: { societyId, limit: 100, ...(exceptionFilter ? { exceptionStatus: exceptionFilter } : {}) } })),
+    enabled: !!societyId,
+  });
+
   const subjectOptions = (subjectType: string) =>
     subjectType === 'STAFF_PROFILE' ? staff?.items?.map((s) => ({ id: s._id, label: s.displayName })) || []
     : subjectType === 'SERVICE_PROVIDER' ? providers?.items?.map((p) => ({ id: p._id, label: p.displayName })) || []
@@ -99,6 +108,23 @@ export function SamaAccessTab() {
       return api.post('/sama/device-bindings', { societyId, externalDeviceType: device?.externalDeviceType, externalDeviceId: bindDeviceId, externalDeviceName: device?.externalDeviceName, jenixDeviceId });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sama-device-bindings', 'sama-external-devices'] }); setBindDeviceId(null); setJenixDeviceId(''); toast.success('Device bound!'); },
+  });
+
+  const resolveEventMutation = useMutation({
+    mutationFn: () => {
+      if (!resolveEventId) throw new Error('No event selected');
+      return api.patch(`/sama/access-events/${resolveEventId}/resolve`, {
+        societyId, action: resolveForm.action,
+        bindingId: resolveForm.action === 'RESOLVE' ? resolveForm.bindingId : undefined,
+        resolutionNotes: resolveForm.resolutionNotes || undefined,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sama-access-events'] });
+      setResolveEventId(null);
+      setResolveForm({ action: 'RESOLVE', bindingId: '', resolutionNotes: '' });
+      toast.success('Access event updated');
+    },
   });
 
   return (
@@ -183,6 +209,44 @@ export function SamaAccessTab() {
         )}
       </div>
 
+      <div className="card overflow-hidden">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="section-title flex items-center gap-2"><AlertOctagon className="w-4 h-4 text-slate-400" /> Access Events</h3>
+          <select value={exceptionFilter} onChange={(e) => setExceptionFilter(e.target.value)} className="input w-auto">
+            <option value="">All</option>
+            <option value="UNMATCHED_DEVICE">Unmatched Device</option>
+            <option value="UNKNOWN_EVENT">Unknown Event</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="IGNORED">Ignored</option>
+            <option value="MATCHED">Matched</option>
+          </select>
+        </div>
+        {!accessEvents?.items?.length ? (
+          <EmptyState icon={AlertOctagon} title="No access events" description="Access events synced from EdgeFolio devices will appear here, including any that need review." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th className="table-header text-left">Device</th><th className="table-header text-left">Event Type</th><th className="table-header text-left">Occurred</th><th className="table-header text-left">Status</th><th className="table-header text-left">Action</th></tr></thead>
+              <tbody>
+                {accessEvents.items.map((ev) => (
+                  <tr key={ev._id} className="table-row">
+                    <td className="table-cell text-xs text-slate-600">{ev.externalDeviceId} ({ev.externalDeviceType})</td>
+                    <td className="table-cell text-xs text-slate-500">{ev.eventType.replace(/_/g, ' ')}</td>
+                    <td className="table-cell text-xs text-slate-500">{formatDateTime(ev.occurredAt)}</td>
+                    <td className="table-cell"><span className={cn('badge', EXCEPTION_STATUS_BADGE[ev.exceptionStatus])}>{ev.exceptionStatus.replace(/_/g, ' ')}</span></td>
+                    <td className="table-cell">
+                      {(ev.exceptionStatus === 'UNMATCHED_DEVICE' || ev.exceptionStatus === 'UNKNOWN_EVENT') && (
+                        <button onClick={() => setResolveEventId(ev._id)} className="text-primary-600 hover:text-primary-700 text-xs font-medium">Review</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <Modal isOpen={showPolicyModal} onClose={() => setShowPolicyModal(false)} title="Add Access Policy">
         <div className="space-y-4">
           <div><label className="label">Name <span className="text-red-500">*</span></label>
@@ -255,6 +319,31 @@ export function SamaAccessTab() {
               {bindMutation.isPending ? 'Binding...' : 'Bind'}
             </button>
             <button onClick={() => setBindDeviceId(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!resolveEventId} onClose={() => setResolveEventId(null)} title="Review Access Event">
+        <div className="space-y-4">
+          <div><label className="label">Action</label>
+            <select value={resolveForm.action} onChange={(e) => setResolveForm((f) => ({ ...f, action: e.target.value }))} className="input">
+              <option value="RESOLVE">Resolve (bind to a device)</option>
+              <option value="IGNORE">Ignore</option>
+            </select></div>
+          {resolveForm.action === 'RESOLVE' && (
+            <div><label className="label">Device Binding <span className="text-red-500">*</span></label>
+              <select value={resolveForm.bindingId} onChange={(e) => setResolveForm((f) => ({ ...f, bindingId: e.target.value }))} className="input">
+                <option value="">Select binding...</option>
+                {bindings?.items?.map((b) => <option key={b._id} value={b._id}>{b.externalDeviceName || b.externalDeviceId}</option>)}
+              </select></div>
+          )}
+          <div><label className="label">Notes</label>
+            <textarea value={resolveForm.resolutionNotes} onChange={(e) => setResolveForm((f) => ({ ...f, resolutionNotes: e.target.value }))} className="input resize-none" rows={2} /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => resolveEventMutation.mutate()} disabled={resolveEventMutation.isPending || (resolveForm.action === 'RESOLVE' && !resolveForm.bindingId)} className="btn-primary flex-1">
+              {resolveEventMutation.isPending ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={() => setResolveEventId(null)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Briefcase } from 'lucide-react';
+import { Plus, Users, Briefcase, CheckCircle2, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -10,7 +10,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn } from '../../utils/cn';
 import {
-  PaginatedResult, SAMA_ACCESS_STATUSES, SAMA_EMPLOYER_TYPES, SAMA_ENGAGEMENT_TYPES, SAMA_PAYMENT_RESPONSIBILITIES,
+  LIFECYCLE_STATUS_BADGE, PaginatedResult, SAMA_ACCESS_STATUSES, SAMA_EMPLOYER_TYPES, SAMA_ENGAGEMENT_TYPES, SAMA_PAYMENT_RESPONSIBILITIES,
   SAMA_STAFF_TYPES, SAMA_VERIFICATION_STATUSES, StaffProfile,
 } from './sama.types';
 
@@ -32,6 +32,8 @@ export function SamaStaffTab() {
   const [staffForm, setStaffForm] = useState(BLANK_STAFF);
   const [engagementStaffId, setEngagementStaffId] = useState<string | null>(null);
   const [engagementForm, setEngagementForm] = useState(BLANK_ENGAGEMENT);
+  const [reasonPrompt, setReasonPrompt] = useState<{ staffId: string; action: 'suspend' | 'terminate' } | null>(null);
+  const [reason, setReason] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['sama-staff', societyId],
@@ -65,6 +67,26 @@ export function SamaStaffTab() {
     mutationFn: (vars: { staffId: string; field: 'accessStatus' | 'verificationStatus'; value: string }) =>
       api.patch(`/sama/staff-profiles/${vars.staffId}`, { societyId, [vars.field]: vars.value }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sama-staff'] }); toast.success('Staff updated'); },
+  });
+
+  const invalidateStaff = () => queryClient.invalidateQueries({ queryKey: ['sama-staff'] });
+
+  const approveMutation = useMutation({
+    mutationFn: (staffId: string) => api.post(`/sama/staff-profiles/${staffId}/approve`, { societyId }),
+    onSuccess: () => { invalidateStaff(); toast.success('Staff approved'); },
+  });
+
+  const reinstateMutation = useMutation({
+    mutationFn: (staffId: string) => api.post(`/sama/staff-profiles/${staffId}/reinstate`, { societyId }),
+    onSuccess: () => { invalidateStaff(); toast.success('Staff reinstated'); },
+  });
+
+  const reasonMutation = useMutation({
+    mutationFn: () => {
+      if (!reasonPrompt) throw new Error('No staff selected');
+      return api.post(`/sama/staff-profiles/${reasonPrompt.staffId}/${reasonPrompt.action}`, { societyId, reason });
+    },
+    onSuccess: () => { invalidateStaff(); setReasonPrompt(null); setReason(''); toast.success('Staff updated'); },
   });
 
   const createEngagementMutation = useMutation({
@@ -112,6 +134,7 @@ export function SamaStaffTab() {
               <th className="table-header text-left">Mobile</th>
               <th className="table-header text-left">Access</th>
               <th className="table-header text-left">Verification</th>
+              <th className="table-header text-left">Lifecycle</th>
               <th className="table-header text-left">Actions</th>
             </tr></thead>
             <tbody>
@@ -131,10 +154,33 @@ export function SamaStaffTab() {
                       {SAMA_VERIFICATION_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
+                  <td className="table-cell"><span className={cn('badge', LIFECYCLE_STATUS_BADGE[staff.lifecycleStatus])}>{staff.lifecycleStatus}</span></td>
                   <td className="table-cell">
-                    <button onClick={() => setEngagementStaffId(staff._id)} className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs font-medium">
-                      <Briefcase className="w-3.5 h-3.5" /> Add Engagement
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => setEngagementStaffId(staff._id)} className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs font-medium">
+                        <Briefcase className="w-3.5 h-3.5" /> Engage
+                      </button>
+                      {staff.verificationStatus === 'PENDING' && (
+                        <button onClick={() => approveMutation.mutate(staff._id)} className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 text-xs font-medium" title="Approve">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                        </button>
+                      )}
+                      {staff.lifecycleStatus === 'ACTIVE' && (
+                        <button onClick={() => setReasonPrompt({ staffId: staff._id, action: 'suspend' })} className="text-amber-600 hover:text-amber-700" title="Suspend">
+                          <PauseCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {staff.lifecycleStatus === 'SUSPENDED' && (
+                        <button onClick={() => reinstateMutation.mutate(staff._id)} className="text-emerald-600 hover:text-emerald-700" title="Reinstate">
+                          <PlayCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {staff.lifecycleStatus !== 'TERMINATED' && (
+                        <button onClick={() => setReasonPrompt({ staffId: staff._id, action: 'terminate' })} className="text-red-600 hover:text-red-700" title="Terminate">
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -221,6 +267,19 @@ export function SamaStaffTab() {
               {createEngagementMutation.isPending ? 'Creating...' : 'Create Engagement'}
             </button>
             <button onClick={() => setEngagementStaffId(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!reasonPrompt} onClose={() => { setReasonPrompt(null); setReason(''); }} title={reasonPrompt?.action === 'suspend' ? 'Suspend Staff' : 'Terminate Staff'}>
+        <div className="space-y-4">
+          <div><label className="label">Reason <span className="text-red-500">*</span></label>
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} className="input resize-none" rows={3} placeholder="Required" /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => reasonMutation.mutate()} disabled={reasonMutation.isPending || !reason.trim()} className="btn-danger flex-1">
+              {reasonMutation.isPending ? 'Submitting...' : 'Confirm'}
+            </button>
+            <button onClick={() => { setReasonPrompt(null); setReason(''); }} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

@@ -19,6 +19,8 @@ export const SAMA_CREDENTIAL_STATUSES = ['ACTIVE', 'REVOKED', 'EXPIRED'] as cons
 export const SAMA_HOUSEHOLD_PAYMENT_STATUSES = ['DUE', 'PARTIAL', 'PAID', 'WAIVED'] as const;
 export const SAMA_EXTERNAL_DEVICE_TYPES = ['M68', 'U5'] as const;
 export const SAMA_SYNC_TYPES = ['EMPLOYEES', 'ATTENDANCE', 'LEAVES', 'SHIFTS', 'PAYROLL', 'ACCESS_EVENTS'] as const;
+export const SAMA_LIFECYCLE_STATUSES = ['ACTIVE', 'SUSPENDED', 'TERMINATED'] as const;
+export const SAMA_EXCEPTION_STATUSES = ['MATCHED', 'UNMATCHED_DEVICE', 'UNKNOWN_EVENT', 'RESOLVED', 'IGNORED'] as const;
 
 export type SamaStaffType = typeof SAMA_STAFF_TYPES[number];
 export type SamaAccessStatus = typeof SAMA_ACCESS_STATUSES[number];
@@ -37,6 +39,8 @@ export type SamaAccessPolicyStatus = typeof SAMA_ACCESS_POLICY_STATUSES[number];
 export type SamaCredentialType = typeof SAMA_CREDENTIAL_TYPES[number];
 export type SamaCredentialStatus = typeof SAMA_CREDENTIAL_STATUSES[number];
 export type SamaHouseholdPaymentStatus = typeof SAMA_HOUSEHOLD_PAYMENT_STATUSES[number];
+export type SamaLifecycleStatus = typeof SAMA_LIFECYCLE_STATUSES[number];
+export type SamaExceptionStatus = typeof SAMA_EXCEPTION_STATUSES[number];
 
 export interface StaffProfile {
   _id: string;
@@ -50,6 +54,9 @@ export interface StaffProfile {
   primaryCategory?: string;
   accessStatus: SamaAccessStatus;
   verificationStatus: SamaVerificationStatus;
+  lifecycleStatus: SamaLifecycleStatus;
+  suspensionReason?: string;
+  terminationReason?: string;
 }
 
 export interface StaffEngagement {
@@ -123,10 +130,32 @@ export interface WorkOrder {
   slaDueAt?: string;
   slaBreached?: boolean;
   assignedAt?: string;
+  rescheduledAt?: string;
+  rescheduleReason?: string;
+  escalationLevel?: number;
+  escalatedAt?: string;
+  escalationReason?: string;
   completedAt?: string;
   completionNotes?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   residentRating?: number;
   residentFeedback?: string;
+}
+
+export interface SamaAccessEvent {
+  _id: string;
+  externalEventId: string;
+  externalDeviceType: 'M68' | 'U5';
+  externalDeviceId: string;
+  externalKind: string;
+  eventType: 'UNREGISTERED_SIGHTING' | 'CREDENTIAL_SCAN' | 'CREDENTIAL_ENROLLMENT' | 'DEVICE_OPERATION' | 'UNKNOWN';
+  deviceBindingId?: string;
+  exceptionStatus: SamaExceptionStatus;
+  exceptionReason?: string;
+  resolvedAt?: string;
+  resolutionNotes?: string;
+  occurredAt: string;
 }
 
 export interface AccessPolicy {
@@ -228,6 +257,27 @@ export interface SamaSourceConfig {
   lastAccessEventSyncAt?: string;
   lastScheduledSyncAt?: string;
   lastSyncError?: string;
+  syncRetryLimit?: number;
+  staleAfterMinutes?: number;
+  consecutiveSyncFailures?: number;
+  lastSyncFailureAt?: string;
+  lastSuccessfulSyncAt?: string;
+}
+
+export interface SamaSyncHealth {
+  configured: boolean;
+  provider: string;
+  overallStatus: 'NOT_CONFIGURED' | 'OK' | 'ATTENTION';
+  syncScheduleEnabled?: boolean;
+  syncIntervalMinutes?: number;
+  syncRetryLimit?: number;
+  staleAfterMinutes?: number;
+  consecutiveSyncFailures?: number;
+  lastSyncError?: string;
+  lastSyncFailureAt?: string | null;
+  lastSuccessfulSyncAt?: string | null;
+  staleSyncTypes?: string[];
+  syncChecks?: Array<{ syncType: string; lastSyncedAt: string | null; ageMinutes: number | null; isStale: boolean }>;
 }
 
 export interface SamaSyncRun {
@@ -249,11 +299,16 @@ export interface SamaDashboard {
   categoryCount: number;
   activeAssociationCount: number;
   providerCount: number;
+  suspendedStaffCount: number;
+  terminatedStaffCount: number;
   workOrders: Record<string, number>;
   slaBreachedCount: number;
   householdDuePaise: number;
   householdPaidPaise: number;
   householdOutstandingPaise: number;
+  unresolvedAccessExceptionCount: number;
+  syncOverallStatus: string;
+  staleSyncTypes: string[];
 }
 
 export interface SamaStaffReport {
@@ -276,6 +331,19 @@ export interface SamaHouseholdPaymentReport {
   totalDuePaise: number;
   totalPaidPaise: number;
   outstandingPaise: number;
+}
+
+export interface SamaWorkOrderReport {
+  items: WorkOrder[];
+  totalCount: number;
+  escalatedCount: number;
+  cancelledCount: number;
+  slaBreachedCount: number;
+}
+
+export interface SamaAccessExceptionReport {
+  items: SamaAccessEvent[];
+  summary: Record<string, number>;
 }
 
 export interface SamaContext {
@@ -333,4 +401,18 @@ export const HOUSEHOLD_PAYMENT_STATUS_BADGE: Record<SamaHouseholdPaymentStatus, 
   PARTIAL: 'badge-yellow',
   PAID: 'badge-green',
   WAIVED: 'badge-gray',
+};
+
+export const EXCEPTION_STATUS_BADGE: Record<SamaExceptionStatus, string> = {
+  MATCHED: 'badge-green',
+  UNMATCHED_DEVICE: 'badge-red',
+  UNKNOWN_EVENT: 'badge-red',
+  RESOLVED: 'badge-blue',
+  IGNORED: 'badge-gray',
+};
+
+export const LIFECYCLE_STATUS_BADGE: Record<SamaLifecycleStatus, string> = {
+  ACTIVE: 'badge-green',
+  SUSPENDED: 'badge-yellow',
+  TERMINATED: 'badge-red',
 };

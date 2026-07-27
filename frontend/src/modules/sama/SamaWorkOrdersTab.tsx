@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ClipboardList, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Plus, ClipboardList, UserCheck, CheckCircle2, Ban, CalendarClock, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -29,6 +29,12 @@ export function SamaWorkOrdersTab() {
   const [assignForm, setAssignForm] = useState({ assigneeType: 'STAFF_PROFILE' as string, assigneeId: '' });
   const [completeOrderId, setCompleteOrderId] = useState<string | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
+  const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [rescheduleOrderId, setRescheduleOrderId] = useState<string | null>(null);
+  const [rescheduleForm, setRescheduleForm] = useState({ scheduledStartAt: '', rescheduleReason: '' });
+  const [escalateOrderId, setEscalateOrderId] = useState<string | null>(null);
+  const [escalationReason, setEscalationReason] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['sama-work-orders', societyId, statusFilter],
@@ -69,6 +75,23 @@ export function SamaWorkOrdersTab() {
     onSuccess: () => { invalidate(); setCompleteOrderId(null); setCompletionNotes(''); toast.success('Work order completed!'); },
   });
 
+  const cancelMutation = useMutation({
+    mutationFn: () => api.patch(`/sama/work-orders/${cancelOrderId}/cancel`, { societyId, cancellationReason }),
+    onSuccess: () => { invalidate(); setCancelOrderId(null); setCancellationReason(''); toast.success('Work order cancelled'); },
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: () => api.patch(`/sama/work-orders/${rescheduleOrderId}/reschedule`, {
+      societyId, scheduledStartAt: rescheduleForm.scheduledStartAt || undefined, rescheduleReason: rescheduleForm.rescheduleReason,
+    }),
+    onSuccess: () => { invalidate(); setRescheduleOrderId(null); setRescheduleForm({ scheduledStartAt: '', rescheduleReason: '' }); toast.success('Work order rescheduled'); },
+  });
+
+  const escalateMutation = useMutation({
+    mutationFn: () => api.patch(`/sama/work-orders/${escalateOrderId}/escalate`, { societyId, escalationReason }),
+    onSuccess: () => { invalidate(); setEscalateOrderId(null); setEscalationReason(''); toast.success('Work order escalated'); },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -99,12 +122,15 @@ export function SamaWorkOrdersTab() {
               {data.items.map((wo) => (
                 <tr key={wo._id} className="table-row">
                   <td className="table-cell font-mono text-xs">{wo.workOrderCode}</td>
-                  <td className="table-cell font-medium text-slate-800">{wo.title}</td>
+                  <td className="table-cell font-medium text-slate-800">
+                    {wo.title}
+                    {!!wo.escalationLevel && <span className="ml-2 badge badge-red text-xs">Escalated ×{wo.escalationLevel}</span>}
+                  </td>
                   <td className="table-cell text-xs text-slate-500">{wo.priority}</td>
                   <td className="table-cell text-xs">{wo.slaBreached ? <span className="text-red-600 font-medium">Breached</span> : wo.slaDueAt ? formatDate(wo.slaDueAt) : '—'}</td>
                   <td className="table-cell"><span className={cn('badge', WORK_ORDER_STATUS_BADGE[wo.status])}>{wo.status.replace(/_/g, ' ')}</span></td>
                   <td className="table-cell">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       {wo.status === 'OPEN' && (
                         <button onClick={() => setAssignOrderId(wo._id)} className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs font-medium">
                           <UserCheck className="w-3.5 h-3.5" /> Assign
@@ -114,6 +140,19 @@ export function SamaWorkOrdersTab() {
                         <button onClick={() => setCompleteOrderId(wo._id)} className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 text-xs font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Complete
                         </button>
+                      )}
+                      {(wo.status === 'OPEN' || wo.status === 'ASSIGNED' || wo.status === 'IN_PROGRESS') && (
+                        <>
+                          <button onClick={() => setRescheduleOrderId(wo._id)} className="text-slate-500 hover:text-slate-700" title="Reschedule">
+                            <CalendarClock className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => setEscalateOrderId(wo._id)} className="text-amber-600 hover:text-amber-700" title="Escalate">
+                            <TrendingUp className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => setCancelOrderId(wo._id)} className="text-red-600 hover:text-red-700" title="Cancel">
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -177,6 +216,47 @@ export function SamaWorkOrdersTab() {
               {completeMutation.isPending ? 'Completing...' : 'Mark Completed'}
             </button>
             <button onClick={() => setCompleteOrderId(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!cancelOrderId} onClose={() => setCancelOrderId(null)} title="Cancel Work Order">
+        <div className="space-y-4">
+          <div><label className="label">Cancellation Reason <span className="text-red-500">*</span></label>
+            <textarea value={cancellationReason} onChange={(e) => setCancellationReason(e.target.value)} className="input resize-none" rows={3} /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending || !cancellationReason.trim()} className="btn-danger flex-1">
+              {cancelMutation.isPending ? 'Cancelling...' : 'Confirm Cancel'}
+            </button>
+            <button onClick={() => setCancelOrderId(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!rescheduleOrderId} onClose={() => setRescheduleOrderId(null)} title="Reschedule Work Order">
+        <div className="space-y-4">
+          <div><label className="label">New Scheduled Start</label>
+            <input type="datetime-local" value={rescheduleForm.scheduledStartAt} onChange={(e) => setRescheduleForm((f) => ({ ...f, scheduledStartAt: e.target.value }))} className="input" /></div>
+          <div><label className="label">Reason <span className="text-red-500">*</span></label>
+            <textarea value={rescheduleForm.rescheduleReason} onChange={(e) => setRescheduleForm((f) => ({ ...f, rescheduleReason: e.target.value }))} className="input resize-none" rows={3} /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => rescheduleMutation.mutate()} disabled={rescheduleMutation.isPending || !rescheduleForm.rescheduleReason.trim()} className="btn-primary flex-1">
+              {rescheduleMutation.isPending ? 'Saving...' : 'Reschedule'}
+            </button>
+            <button onClick={() => setRescheduleOrderId(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!escalateOrderId} onClose={() => setEscalateOrderId(null)} title="Escalate Work Order">
+        <div className="space-y-4">
+          <div><label className="label">Escalation Reason <span className="text-red-500">*</span></label>
+            <textarea value={escalationReason} onChange={(e) => setEscalationReason(e.target.value)} className="input resize-none" rows={3} placeholder="Notifies society admin & facility manager" /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => escalateMutation.mutate()} disabled={escalateMutation.isPending || !escalationReason.trim()} className="btn-primary flex-1">
+              {escalateMutation.isPending ? 'Escalating...' : 'Escalate'}
+            </button>
+            <button onClick={() => setEscalateOrderId(null)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

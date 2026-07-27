@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cable, Save, RefreshCw } from 'lucide-react';
+import { Cable, Save, RefreshCw, Activity, RotateCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -8,9 +8,14 @@ import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn, formatDateTime } from '../../utils/cn';
-import { PaginatedResult, SAMA_SYNC_TYPES, SamaSourceConfig, SamaSyncRun } from './sama.types';
+import { PaginatedResult, SAMA_SYNC_TYPES, SamaSourceConfig, SamaSyncHealth, SamaSyncRun } from './sama.types';
 
-const BLANK_FORM = { baseUrl: '', apiPrefix: '', accessToken: '', isActive: true, syncScheduleEnabled: false, syncIntervalMinutes: 60, scheduledSyncTypes: [] as string[] };
+const BLANK_FORM = {
+  baseUrl: '', apiPrefix: '', accessToken: '', isActive: true, syncScheduleEnabled: false, syncIntervalMinutes: 60,
+  scheduledSyncTypes: [] as string[], syncRetryLimit: 3, staleAfterMinutes: 180,
+};
+
+const HEALTH_BADGE: Record<string, string> = { OK: 'badge-green', ATTENTION: 'badge-red', NOT_CONFIGURED: 'badge-gray' };
 
 const SYNC_ENDPOINTS: Array<{ key: string; label: string; path: string }> = [
   { key: 'EMPLOYEES', label: 'Employees', path: '/sama/sync/employees' },
@@ -41,12 +46,19 @@ export function SamaBridgeTab() {
     enabled: !!societyId,
   });
 
+  const { data: syncHealth } = useQuery({
+    queryKey: ['sama-sync-health', societyId],
+    queryFn: () => extractData<SamaSyncHealth>(api.get('/sama/sync-health', { params: { societyId } })),
+    enabled: !!societyId,
+  });
+
   useEffect(() => {
     if (source?.configured) {
       setForm((f) => ({
         ...f, baseUrl: source.baseUrl || '', apiPrefix: source.apiPrefix || '',
         isActive: !!source.isActive, syncScheduleEnabled: !!source.syncScheduleEnabled,
         syncIntervalMinutes: source.syncIntervalMinutes || 60, scheduledSyncTypes: source.scheduledSyncTypes || [],
+        syncRetryLimit: source.syncRetryLimit || 3, staleAfterMinutes: source.staleAfterMinutes || 180,
       }));
     }
   }, [source]);
@@ -57,6 +69,7 @@ export function SamaBridgeTab() {
       accessToken: form.accessToken || undefined, clearAccessToken: clearToken || undefined,
       isActive: form.isActive, syncScheduleEnabled: form.syncScheduleEnabled,
       syncIntervalMinutes: form.syncIntervalMinutes, scheduledSyncTypes: form.scheduledSyncTypes.length ? form.scheduledSyncTypes : undefined,
+      syncRetryLimit: form.syncRetryLimit, staleAfterMinutes: form.staleAfterMinutes,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sama-source'] });
@@ -78,6 +91,15 @@ export function SamaBridgeTab() {
   const runDueMutation = useMutation({
     mutationFn: () => api.post('/sama/sync/run-due', { societyId }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['sama-sync-runs'] }); toast.success('Due syncs executed'); },
+  });
+
+  const retryRunMutation = useMutation({
+    mutationFn: (runId: string) => api.post(`/sama/sync-runs/${runId}/retry`, { societyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sama-sync-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['sama-sync-health'] });
+      toast.success('Sync run retried');
+    },
   });
 
   const toggleSyncType = (t: string) => setForm((f) => ({ ...f, scheduledSyncTypes: f.scheduledSyncTypes.includes(t) ? f.scheduledSyncTypes.filter((x) => x !== t) : [...f.scheduledSyncTypes, t] }));
@@ -108,6 +130,12 @@ export function SamaBridgeTab() {
             <span className="text-sm font-medium text-slate-700">Scheduled sync enabled</span>
             <input type="checkbox" checked={form.syncScheduleEnabled} onChange={(e) => setForm((f) => ({ ...f, syncScheduleEnabled: e.target.checked }))} className="w-5 h-5 text-indigo-600 rounded" />
           </label>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="label">Sync Retry Limit</label>
+              <input type="number" min={1} max={5} value={form.syncRetryLimit} onChange={(e) => setForm((f) => ({ ...f, syncRetryLimit: Number(e.target.value) }))} className="input" /></div>
+            <div><label className="label">Stale After (minutes)</label>
+              <input type="number" min={15} max={10080} value={form.staleAfterMinutes} onChange={(e) => setForm((f) => ({ ...f, staleAfterMinutes: Number(e.target.value) }))} className="input" /></div>
+          </div>
           {form.syncScheduleEnabled && (
             <>
               <div><label className="label">Sync Interval (minutes)</label>
@@ -132,6 +160,25 @@ export function SamaBridgeTab() {
         </div>
       </div>
 
+      {syncHealth && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="section-title flex items-center gap-2"><Activity className="w-4 h-4 text-slate-400" /> Sync Health</h3>
+            <span className={cn('badge', HEALTH_BADGE[syncHealth.overallStatus])}>{syncHealth.overallStatus.replace(/_/g, ' ')}</span>
+          </div>
+          {!!syncHealth.staleSyncTypes?.length && (
+            <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100 mb-3">
+              Stale: {syncHealth.staleSyncTypes.join(', ')}
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div><p className="text-slate-500">Consecutive Failures</p><p className="font-semibold text-slate-800">{syncHealth.consecutiveSyncFailures ?? 0}</p></div>
+            <div><p className="text-slate-500">Last Success</p><p className="font-semibold text-slate-800 text-xs">{syncHealth.lastSuccessfulSyncAt ? formatDateTime(syncHealth.lastSuccessfulSyncAt) : '—'}</p></div>
+            <div><p className="text-slate-500">Last Failure</p><p className="font-semibold text-slate-800 text-xs">{syncHealth.lastSyncFailureAt ? formatDateTime(syncHealth.lastSyncFailureAt) : '—'}</p></div>
+          </div>
+        </div>
+      )}
+
       <div className="card p-6">
         <h3 className="section-title mb-4">Manual Sync</h3>
         <div className="flex flex-wrap gap-2">
@@ -153,7 +200,7 @@ export function SamaBridgeTab() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead><tr><th className="table-header text-left">Type</th><th className="table-header text-left">Mode</th><th className="table-header text-left">Result</th><th className="table-header text-left">Status</th><th className="table-header text-left">Started</th></tr></thead>
+              <thead><tr><th className="table-header text-left">Type</th><th className="table-header text-left">Mode</th><th className="table-header text-left">Result</th><th className="table-header text-left">Status</th><th className="table-header text-left">Started</th><th className="table-header text-left">Action</th></tr></thead>
               <tbody>
                 {syncRuns.items.map((run) => (
                   <tr key={run._id} className="table-row">
@@ -162,6 +209,13 @@ export function SamaBridgeTab() {
                     <td className="table-cell text-xs text-slate-500">{run.createdCount || 0} created / {run.updatedCount || 0} updated</td>
                     <td className="table-cell"><span className={cn('badge', run.status === 'SUCCESS' ? 'badge-green' : run.status === 'FAILED' ? 'badge-red' : 'badge-yellow')}>{run.status}</span></td>
                     <td className="table-cell text-xs text-slate-500">{formatDateTime(run.startedAt)}</td>
+                    <td className="table-cell">
+                      {run.status === 'FAILED' && (
+                        <button onClick={() => retryRunMutation.mutate(run._id)} disabled={retryRunMutation.isPending} className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs font-medium">
+                          <RotateCw className="w-3.5 h-3.5" /> Retry
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
