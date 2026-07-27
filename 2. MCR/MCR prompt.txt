@@ -1,0 +1,2465 @@
+# CODEX IMPLEMENTATION PROMPT
+
+## MCR Module — Maintenance Collection and Receipt Management
+
+You are working inside an existing professional Society Management Platform built as a multi-society, multi-tenant, modular application.
+
+Your task is to design, implement, test and document a new independently deployable plugin module named:
+
+# MCR — Maintenance Collection and Receipt Module
+
+The MCR module must be implemented in a separate folder and integrated into the existing platform with the minimum possible disturbance to the existing codebase.
+
+The module must follow the existing platform architecture, design system, authentication, authorization, audit logging, notifications, file storage, tenant isolation and coding conventions.
+
+Do not rewrite working platform functionality merely to accommodate the new module.
+
+---
+
+# 1. Product vision
+
+The MCR module will allow a society to:
+
+* Define maintenance charges.
+* Generate maintenance demands.
+* Send collection requests.
+* Send reminders.
+* Record manually received payments.
+* Verify payments.
+* Generate receipts.
+* Download and share receipts.
+* Maintain flat-wise and society-wise ledgers.
+* Track dues, advances, credits, waivers and penalties.
+* Prepare collection reports.
+* Support optional payment-gateway integration in the future.
+
+For the initial release, all payment confirmation will be manual.
+
+The rest of the process should be automated as much as possible.
+
+The software is intended for societies commonly operated by unpaid committee members. Therefore:
+
+* Data entry must be minimal.
+* Repetitive work must be automated.
+* Bulk actions must be available.
+* Default values should be prefilled.
+* Common actions should take the fewest possible steps.
+* Every financial action must remain traceable.
+* Mistakes must be reversible through controlled adjustment workflows rather than destructive editing.
+
+The module must be suitable for a professional product with an expected operating life of at least ten years.
+
+---
+
+# 2. Mandatory development rules
+
+Follow these rules throughout implementation.
+
+## 2.1 File-size rule
+
+No source-code file should exceed 200 lines.
+
+This applies to:
+
+* Backend files
+* Frontend files
+* React components
+* Services
+* Controllers
+* Repositories
+* Validation schemas
+* Utilities
+* Tests
+* Configuration files containing executable logic
+
+When a file approaches 180 lines, split it by responsibility before continuing.
+
+Do not artificially compress code onto fewer lines to satisfy this rule.
+
+Code must remain readable and easy to debug.
+
+## 2.2 Existing-code safety
+
+Before making changes:
+
+1. Inspect the repository structure.
+2. Identify existing patterns for modules, permissions, routing, models, services, controllers, UI pages, notifications, files, audit logs and tests.
+3. Identify existing society-level module enable/disable logic.
+4. Identify the existing authentication token and tenant context.
+5. Identify existing reusable UI components.
+6. Identify the existing icon library.
+7. Identify existing payment or receipt-related abstractions.
+8. Identify whether the repository already has queues, schedulers, workers, email, SMS or WhatsApp adapters.
+
+Do not create parallel infrastructure when suitable shared infrastructure already exists.
+
+Do not rename existing APIs, models, routes, roles or permissions unless absolutely required.
+
+Do not modify unrelated modules.
+
+Every existing regression test must continue to pass.
+
+## 2.3 Icon safety rule
+
+Codex has previously replaced icons with ASCII characters or textual symbols. This must not happen.
+
+Strictly follow these rules:
+
+* Use the icon library already used by the platform.
+* Preserve existing icon components and imports.
+* Do not replace icons with ASCII characters.
+* Do not replace icons with Unicode symbols or emojis.
+* Do not use characters such as `>`, `<`, `+`, `x`, `*`, arrows or text labels as visual substitutes for proper icons.
+* Do not alter existing icons in unrelated screens.
+* Do not convert icon components into HTML entities.
+* Do not add arbitrary emoji icons.
+* Verify the final UI visually and through code review for accidental ASCII icon replacement.
+
+## 2.4 Quality rules
+
+Use:
+
+* TypeScript strict mode.
+* Explicit interfaces and DTOs.
+* Runtime validation for external inputs.
+* Centralized error handling.
+* Structured logging.
+* Database indexes.
+* Idempotent financial operations.
+* Tenant-aware repository methods.
+* UTC storage for timestamps.
+* Society timezone for display and scheduled actions.
+* Indian currency formatting through `en-IN`.
+* Decimal-safe money handling.
+
+Never use JavaScript floating-point arithmetic directly for money.
+
+Store monetary values in the smallest currency unit, such as paise:
+
+```ts
+amountPaise: number
+```
+
+For example:
+
+* ?1,250.50 must be stored as `125050`.
+* UI and reports should format it as `?1,250.50`.
+
+Never store financial amounts as free-form strings.
+
+---
+
+# 3. Module folder and isolation
+
+Create the module in a separate root-level or platform-approved module folder named:
+
+```text
+MCR
+```
+
+Use the repository’s established naming convention where necessary, but the module must remain clearly identifiable as MCR.
+
+Suggested structure:
+
+```text
+MCR/
+  README.md
+  module.manifest.ts
+  backend/
+    domain/
+    application/
+    infrastructure/
+    api/
+    permissions/
+    jobs/
+    notifications/
+    payment-gateways/
+    reports/
+    tests/
+  frontend/
+    pages/
+    components/
+    hooks/
+    services/
+    routes/
+    permissions/
+    tests/
+  shared/
+    contracts/
+    constants/
+    types/
+    validation/
+```
+
+Adapt this structure to the existing repository architecture.
+
+The MCR folder should own MCR-specific:
+
+* Domain models
+* Services
+* API endpoints
+* UI pages
+* Permissions
+* Jobs
+* Notification templates
+* Reports
+* Payment-provider adapters
+* Tests
+* Documentation
+
+Only create small integration points in the existing core platform.
+
+Core integration should ideally be limited to:
+
+* Module registry entry
+* Route registration
+* Permission registration
+* Navigation registration
+* Notification-provider access
+* Audit-log access
+* File-storage access
+* Scheduler or job registration
+* Society settings registration
+* Dependency-injection registration
+
+Avoid placing MCR business logic in core platform folders.
+
+---
+
+# 4. Module enablement
+
+The module must only be visible and usable when the main platform enables MCR for a society.
+
+Required behavior:
+
+* Platform super admin can enable or disable MCR society-wise.
+* Society users cannot bypass this restriction by directly calling an API.
+* Every MCR backend endpoint must check:
+
+  * Authenticated user
+  * Active society context
+  * Society module entitlement
+  * Required permission
+* MCR routes must not appear in the UI when the module is disabled.
+* Deep links must show a proper “Module not enabled” state.
+* Disabling the module must not delete historical data.
+* Re-enabling the module must restore access to historical records.
+* Background jobs must skip societies where MCR is disabled.
+* Public receipt verification, when enabled, should continue to work according to retention policy even if the module is later disabled.
+
+Create a clear module manifest with:
+
+* Module code: `MCR`
+* Display name: `Maintenance & Receipts`
+* Version
+* Required core version
+* Permissions
+* Routes
+* Navigation entries
+* Settings schema
+* Background jobs
+* Notification events
+* Optional dependencies
+
+---
+
+# 5. Multi-tenant data isolation
+
+This is a multi-society platform.
+
+Every MCR record must include `societyId`.
+
+Where applicable, include:
+
+* `flatId`
+* `residentId`
+* `towerId`
+* `createdBy`
+* `updatedBy`
+* `verifiedBy`
+
+No query may rely only on a document ID.
+
+Every read and write must validate the active society.
+
+For example, never do:
+
+```ts
+findById(id)
+```
+
+Instead use a tenant-aware operation such as:
+
+```ts
+findOne({
+  _id: id,
+  societyId: activeSocietyId
+})
+```
+
+Create and test compound indexes containing `societyId`.
+
+Add tests proving that users of Society A cannot read or modify Society B’s MCR data.
+
+---
+
+# 6. Roles and permissions
+
+Integrate with the platform’s existing role and permission engine.
+
+Do not hardcode UI access based only on role names.
+
+Create granular permissions such as:
+
+```text
+MCR_VIEW_SELF
+MCR_VIEW_FLAT
+MCR_VIEW_ALL
+MCR_CONFIGURE
+MCR_GENERATE_DEMAND
+MCR_EDIT_DRAFT_DEMAND
+MCR_PUBLISH_DEMAND
+MCR_SEND_REQUEST
+MCR_SEND_REMINDER
+MCR_RECORD_PAYMENT
+MCR_VERIFY_PAYMENT
+MCR_REJECT_PAYMENT
+MCR_CANCEL_PAYMENT
+MCR_GENERATE_RECEIPT
+MCR_VOID_RECEIPT
+MCR_APPLY_ADJUSTMENT
+MCR_APPROVE_ADJUSTMENT
+MCR_MANAGE_WAIVER
+MCR_VIEW_REPORTS
+MCR_EXPORT_REPORTS
+MCR_MANAGE_TEMPLATES
+MCR_MANAGE_PAYMENT_GATEWAY
+MCR_VIEW_AUDIT
+```
+
+Suggested access principles:
+
+### Resident
+
+* View own flat’s maintenance demands.
+* View outstanding amount.
+* View payment history.
+* View and download receipts.
+* View approved adjustments.
+* Submit payment-reference information when allowed.
+* Download account statement.
+
+### Society accountant or collection operator
+
+* Generate demands.
+* Send requests and reminders.
+* Record cash, cheque, UPI, bank transfer, card or other offline payments.
+* Attach proof.
+* View collection reports.
+* Cannot verify their own entries unless society policy explicitly allows it.
+
+### Society verifier or treasurer
+
+* Verify or reject manually recorded payments.
+* Approve adjustments and waivers.
+* Void receipts using controlled workflow.
+* View audit trails.
+
+### Society admin
+
+* Configure MCR settings.
+* Define charge heads and billing cycles.
+* Manage templates.
+* Configure notification channels.
+* Configure future payment gateway.
+* Assign collection and verification permissions.
+
+### Platform super admin
+
+* Enable or disable MCR.
+* View cross-society operational health.
+* Must not see society financial records unless an explicit support-access workflow is used and audited.
+
+Implement configurable maker-checker control:
+
+* Person recording a payment is the maker.
+* Another authorized person is the checker.
+* A society may enable self-verification only through an explicit setting.
+* Default should require separate verification.
+
+---
+
+# 7. Core domain model
+
+Design clear domain entities. Use the existing database technology and repository pattern.
+
+At minimum, consider the following models.
+
+## 7.1 MCRSocietySettings
+
+Fields may include:
+
+```text
+societyId
+moduleEnabled
+financialYearStartMonth
+defaultCurrency
+societyTimezone
+receiptPrefix
+receiptNumberingMode
+demandNumberPrefix
+defaultDueDays
+gracePeriodDays
+lateFeeEnabled
+lateFeePolicyId
+makerCheckerEnabled
+allowSelfVerification
+allowAdvancePayment
+allowPartialPayment
+allowResidentPaymentSubmission
+notificationChannels
+reminderRules
+receiptTemplateId
+demandTemplateId
+statementTemplateId
+paymentGatewayMode
+activePaymentGatewayProvider
+publicReceiptVerificationEnabled
+dataRetentionPolicy
+createdAt
+updatedAt
+updatedBy
+```
+
+## 7.2 ChargeHead
+
+Examples:
+
+* Monthly maintenance
+* Sinking fund
+* Repair fund
+* Water charges
+* Parking charges
+* Club charges
+* Lift charges
+* Penalty
+* Interest
+* Previous balance
+* Adjustment
+* Other charges
+
+Fields may include:
+
+```text
+societyId
+code
+name
+description
+category
+taxTreatment
+isRecurring
+defaultAmountPaise
+calculationMethod
+isActive
+displayOrder
+effectiveFrom
+effectiveTo
+createdBy
+updatedBy
+timestamps
+```
+
+## 7.3 BillingPlan
+
+Support recurring and one-time charge planning.
+
+Possible calculation methods:
+
+* Fixed per flat
+* Fixed per flat type
+* Area-based
+* Occupancy-based
+* Vehicle-count based
+* Custom flat-wise amount
+* Metered or imported amount
+* Percentage-based
+* Manually entered bulk amount
+
+Fields may include:
+
+```text
+societyId
+name
+frequency
+billingDay
+dueDay
+chargeLines
+applicableFlatFilters
+effectiveFrom
+effectiveTo
+autoGenerate
+autoPublish
+isActive
+version
+createdBy
+updatedBy
+timestamps
+```
+
+## 7.4 MaintenanceDemand
+
+A demand represents an amount payable by a flat for a billing period.
+
+Fields may include:
+
+```text
+societyId
+demandNumber
+flatId
+residentSnapshot
+flatSnapshot
+billingPeriod
+issueDate
+dueDate
+status
+chargeLines
+subtotalPaise
+discountPaise
+waiverPaise
+lateFeePaise
+taxPaise
+adjustmentPaise
+openingBalancePaise
+totalDemandPaise
+paidPaise
+outstandingPaise
+creditAppliedPaise
+version
+publishedAt
+publishedBy
+createdBy
+updatedBy
+timestamps
+```
+
+Demand statuses:
+
+```text
+DRAFT
+PUBLISHED
+PARTIALLY_PAID
+PAID
+OVERDUE
+CANCELLED
+WRITTEN_OFF
+```
+
+Published demands must not be freely edited.
+
+Corrections must use:
+
+* Credit note
+* Debit note
+* Adjustment
+* Cancellation and regeneration where legally and operationally valid
+
+## 7.5 PaymentRecord
+
+Manual payment record fields:
+
+```text
+societyId
+paymentNumber
+flatId
+residentId
+payerName
+payerMobile
+amountPaise
+paymentMethod
+paymentDate
+receivedDate
+bankReference
+upiReference
+chequeNumber
+chequeDate
+bankName
+cardReference
+cashCollectionReference
+notes
+proofFileIds
+status
+source
+idempotencyKey
+enteredBy
+verifiedBy
+verifiedAt
+rejectedBy
+rejectedAt
+rejectionReason
+cancelledBy
+cancelledAt
+cancellationReason
+gatewayProvider
+gatewayOrderId
+gatewayPaymentId
+gatewaySignatureStatus
+metadata
+timestamps
+```
+
+Payment methods should include:
+
+```text
+CASH
+CHEQUE
+UPI
+BANK_TRANSFER
+CARD_OFFLINE
+PAYMENT_GATEWAY
+OTHER
+```
+
+Payment statuses:
+
+```text
+DRAFT
+PENDING_VERIFICATION
+VERIFIED
+REJECTED
+BOUNCED
+CANCELLED
+REFUNDED
+PARTIALLY_REFUNDED
+```
+
+A payment should affect the ledger only after verification, unless an explicitly documented accounting policy requires otherwise.
+
+## 7.6 PaymentAllocation
+
+Support one payment against multiple demands and one demand paid by multiple payments.
+
+Fields:
+
+```text
+societyId
+paymentId
+demandId
+allocatedAmountPaise
+allocationType
+createdBy
+timestamps
+```
+
+Allocation types:
+
+```text
+MANUAL
+OLDEST_FIRST
+SELECTED_DEMAND
+ADVANCE
+REVERSAL
+```
+
+## 7.7 Receipt
+
+Fields may include:
+
+```text
+societyId
+receiptNumber
+paymentId
+flatId
+residentSnapshot
+paymentSnapshot
+allocationSnapshot
+amountPaise
+issuedAt
+issuedBy
+status
+pdfFileId
+pdfChecksum
+templateVersion
+publicVerificationTokenHash
+voidedAt
+voidedBy
+voidReason
+replacementReceiptId
+timestamps
+```
+
+Receipt statuses:
+
+```text
+ISSUED
+VOID
+REPLACED
+```
+
+Receipt numbers must be unique society-wise and generated atomically.
+
+A verified payment should generate only one active receipt unless a formal replacement workflow is followed.
+
+## 7.8 LedgerEntry
+
+Use an immutable ledger-style record.
+
+Fields may include:
+
+```text
+societyId
+flatId
+entryNumber
+entryDate
+entryType
+sourceType
+sourceId
+debitPaise
+creditPaise
+runningBalancePaise
+description
+createdBy
+reversalOfEntryId
+timestamps
+```
+
+Entry types may include:
+
+```text
+DEMAND
+PAYMENT
+LATE_FEE
+WAIVER
+CREDIT_NOTE
+DEBIT_NOTE
+REFUND
+REVERSAL
+ADVANCE
+OPENING_BALANCE
+WRITE_OFF
+```
+
+Ledger entries must not be edited or deleted after posting.
+
+Corrections must be implemented through reversal entries.
+
+## 7.9 NotificationDispatch
+
+Track each outbound communication:
+
+```text
+societyId
+eventType
+entityType
+entityId
+flatId
+residentId
+channel
+destinationMasked
+templateId
+templateVersion
+provider
+providerMessageId
+status
+attemptCount
+lastAttemptAt
+sentAt
+deliveredAt
+failedAt
+failureCode
+failureMessage
+idempotencyKey
+timestamps
+```
+
+Statuses:
+
+```text
+QUEUED
+SENT
+DELIVERED
+FAILED
+SKIPPED
+CANCELLED
+```
+
+---
+
+# 8. Billing and demand generation
+
+Implement professional demand generation.
+
+Required capabilities:
+
+* Monthly, quarterly, half-yearly, yearly and one-time demands.
+* Flat-wise bulk generation.
+* Tower-wise generation.
+* Selected-flat generation.
+* Charge-head configuration.
+* Fixed and variable amounts.
+* Opening balance.
+* Previous outstanding.
+* Advance-credit adjustment.
+* Grace period.
+* Late fees.
+* Waivers.
+* Discounts.
+* One-time special assessments.
+* Bulk preview before publishing.
+* Validation summary showing excluded or invalid flats.
+* Draft generation.
+* Maker-checker publication when configured.
+* Duplicate generation prevention.
+
+Demand generation must be idempotent.
+
+A retry must not create duplicate demands for the same:
+
+```text
+societyId + flatId + billingPlanId + billingPeriod + generationVersion
+```
+
+Before publishing, show:
+
+* Total flats
+* Included flats
+* Excluded flats
+* Total amount
+* Charge-head totals
+* Flats with missing resident contact
+* Flats with unusual balances
+* Validation errors
+
+After publishing:
+
+* Create ledger entries.
+* Recalculate outstanding balances.
+* Queue collection requests according to society settings.
+* Record an audit event.
+* Produce an operational summary.
+
+---
+
+# 9. Collection request workflow
+
+Once a demand is published, the system must be able to send a collection request through available channels.
+
+Supported channels:
+
+* In-app notification
+* Push notification through FCM
+* WhatsApp
+* Email
+* SMS through a society IoT gateway
+* Future external SMS provider
+
+The society should be able to choose:
+
+* Default channels
+* Fallback channels
+* Resident opt-in or opt-out policy where legally required
+* Preferred language
+* Message template
+* Sending time
+* Quiet hours
+* Retry policy
+
+Collection-request content should include:
+
+* Society name
+* Flat number
+* Billing period
+* Total amount
+* Due date
+* Outstanding amount
+* Payment instructions
+* Society bank or UPI information where configured
+* Secure link to view the demand
+* Contact information for queries
+
+Do not expose sensitive data in plain public URLs.
+
+Use signed, expiring or authenticated links according to the use case.
+
+---
+
+# 10. WhatsApp integration
+
+Create a provider-neutral WhatsApp adapter interface.
+
+Do not tightly couple MCR business logic to one WhatsApp vendor.
+
+Suggested interface:
+
+```ts
+interface WhatsAppProvider {
+  sendTemplate(input: WhatsAppTemplateInput): Promise<DispatchResult>;
+  getDeliveryStatus?(providerMessageId: string): Promise<DeliveryStatus>;
+}
+```
+
+Support:
+
+* Template identifiers
+* Language
+* Template variables
+* Text message fallback where allowed
+* Attachment or document link
+* Retry
+* Provider message ID
+* Delivery-status callback
+* Failure logging
+
+Configuration must be society-specific where required and encrypted at rest.
+
+Never write credentials into logs.
+
+Never return secrets through normal settings APIs.
+
+If the core platform already has a messaging abstraction, extend it instead of creating another duplicate system.
+
+---
+
+# 11. Email integration
+
+Use or extend the platform’s existing email service.
+
+Support:
+
+* Maintenance demand email
+* Reminder email
+* Payment-received pending-verification email
+* Payment-confirmed email
+* Receipt email
+* Failed-payment or rejected-payment email
+* Statement email
+
+Email should support:
+
+* HTML template
+* Plain-text fallback
+* Society branding
+* Download link
+* Receipt PDF attachment where supported
+* Retry
+* Delivery logging
+* Bounce or failure status where the provider supports it
+
+Never block the main API request while waiting for an external email provider.
+
+Queue delivery through the existing worker system.
+
+If the platform currently lacks a worker system, add a small reusable job abstraction without embedding it deeply into MCR.
+
+---
+
+# 12. SMS through society IoT gateway
+
+Some societies may have a Jenix IoT gateway with SIM connectivity.
+
+The MCR module must support sending maintenance collection requests, reminders and receipt confirmations through that gateway.
+
+Do not make MCR depend directly on hardware-specific implementation.
+
+Create a provider-neutral SMS interface:
+
+```ts
+interface SmsProvider {
+  send(input: SmsMessageInput): Promise<DispatchResult>;
+}
+```
+
+Implement an IoT gateway adapter that can:
+
+* Resolve the society’s mapped gateway.
+* Verify gateway is active and authorized for SMS.
+* Queue an SMS command.
+* Track command acknowledgement.
+* Track device-side submission status when available.
+* Retry safely.
+* Avoid duplicate messages.
+* Fall back to another configured channel.
+* Record gateway ID and delivery metadata.
+
+Suggested communication flow:
+
+```text
+MCR notification event
+? Notification orchestrator
+? SMS provider resolver
+? Society IoT gateway adapter
+? Existing device command or MQTT infrastructure
+? Gateway sends SMS
+? Gateway acknowledgement
+? Dispatch status updated
+```
+
+Do not put SIM credentials inside the MCR module.
+
+Use the platform’s device mapping and secure command infrastructure.
+
+If gateway SMS functionality is not yet implemented, create:
+
+* A clean interface
+* A mock adapter
+* A documented integration contract
+* Event payload definitions
+* Tests
+
+Do not implement unsafe direct modem commands inside the web application.
+
+SMS templates must be concise and configurable.
+
+---
+
+# 13. Reminder engine
+
+Implement configurable automated reminders.
+
+Possible rules:
+
+* Before due date
+* On due date
+* After due date
+* Recurring every configured number of days
+* Final notice
+* Stop after payment
+* Stop after waiver or cancellation
+* Skip zero outstanding
+* Skip disputed demands
+* Skip residents without valid destination
+* Respect quiet hours
+* Respect maximum reminders per billing cycle
+
+Example configurable sequence:
+
+```text
+7 days before due date
+1 day before due date
+On due date
+3 days overdue
+7 days overdue
+15 days overdue
+Monthly thereafter
+```
+
+Each reminder run must be idempotent.
+
+The scheduler must not send the same reminder twice because of:
+
+* Worker restart
+* API retry
+* Network timeout
+* Duplicate scheduler execution
+* Server failover
+
+Use a deterministic reminder key such as:
+
+```text
+societyId + demandId + reminderRuleId + scheduledDate + channel
+```
+
+Provide:
+
+* Reminder preview
+* Eligible recipient count
+* Channel availability summary
+* Send-now option
+* Scheduled-send option
+* Pause reminder campaign
+* Resume reminder campaign
+* Cancel pending reminders
+* Delivery report
+
+---
+
+# 14. Manual payment recording
+
+Initial release will not require Razorpay or another payment gateway.
+
+Payment confirmation will be manual.
+
+Create a fast payment-entry workflow optimized for unpaid society committee members.
+
+Required workflow:
+
+1. Select or search flat.
+2. Show current outstanding amount.
+3. Show pending demands.
+4. Prefill payer name and mobile.
+5. Enter amount.
+6. Select payment method.
+7. Enter only method-relevant fields.
+8. Optionally attach proof.
+9. Select allocation:
+
+   * Oldest due first
+   * Selected demands
+   * Advance
+10. Submit for verification.
+11. Verifier reviews details.
+12. Verifier confirms or rejects.
+13. Verified payment posts to ledger.
+14. Receipt is generated.
+15. Receipt notification is sent.
+16. Demand balances are recalculated.
+
+Payment entry should support:
+
+* Cash
+* Cheque
+* UPI
+* Bank transfer
+* Offline card payment
+* Other approved methods
+
+Conditional fields:
+
+### Cash
+
+* Collected by
+* Collection location
+* Optional cash-book reference
+
+### Cheque
+
+* Cheque number
+* Cheque date
+* Bank name
+* Deposit date
+* Clearing status
+
+Cheque payments should support:
+
+```text
+RECEIVED
+DEPOSITED
+CLEARED
+BOUNCED
+```
+
+A receipt policy for uncleared cheque payments must be configurable.
+
+### UPI
+
+* UTR or transaction reference
+* Payment date
+* Screenshot or proof
+
+### Bank transfer
+
+* Bank reference
+* Transfer date
+* Optional statement proof
+
+### Offline card
+
+* Terminal reference
+* Last four digits only where required
+* Never store full card number
+* Never store CVV
+
+Prevent accidental duplicate payment entry using:
+
+* Same society
+* Same flat
+* Same amount
+* Same payment date
+* Same reference
+* Similar recent entry warning
+
+Allow authorized users to proceed after acknowledging a duplicate warning.
+
+---
+
+# 15. Payment verification
+
+Create a dedicated verification queue.
+
+Verifier should see:
+
+* Flat
+* Resident
+* Amount
+* Method
+* Date
+* Entered by
+* Reference
+* Proof
+* Current outstanding
+* Potential duplicate warning
+* Existing payments with similar reference
+* Proposed allocations
+
+Verification actions:
+
+* Verify
+* Reject
+* Return for correction
+* Mark cheque deposited
+* Mark cheque cleared
+* Mark cheque bounced
+* Add internal note
+
+Every action must create an audit event.
+
+A rejected payment must not affect the ledger.
+
+A verified payment must be immutable.
+
+Correction after verification must use cancellation, reversal, refund or adjustment workflows.
+
+---
+
+# 16. Receipt generation
+
+After a payment becomes verified:
+
+* Generate an official receipt number atomically.
+* Generate the receipt record.
+* Generate or lazily create the receipt PDF according to architecture.
+* Notify the resident.
+* Make the receipt available for download.
+* Record the event in the audit log.
+
+Receipt must contain:
+
+* Society name
+* Society address
+* Society registration details where configured
+* Receipt number
+* Payment number
+* Date
+* Flat
+* Resident or payer name
+* Amount in figures
+* Amount in words
+* Payment method
+* Payment reference
+* Demand allocations
+* Billing periods covered
+* Advance amount, when applicable
+* Authorized signatory or digital footer
+* Receipt status
+* Verification QR code or secure verification reference
+* “Computer-generated receipt” wording when appropriate
+
+The receipt must not expose internal IDs.
+
+Use society-configurable branding:
+
+* Logo
+* Header
+* Address
+* Registration number
+* PAN or tax details where applicable
+* Footer
+* Authorized signatory image, where policy permits
+
+Do not regenerate a different-looking receipt every time.
+
+Store:
+
+* Template version
+* Data snapshot
+* PDF checksum
+
+Historical receipts must remain reproducible.
+
+---
+
+# 17. Receipt download and sharing
+
+Residents and authorized society users must be able to:
+
+* Open receipt
+* Download PDF
+* Print
+* Share through the device’s native share sheet
+* Send by WhatsApp
+* Send by email
+* Send receipt confirmation through SMS
+
+For the PWA and Capacitor app:
+
+* Generate or download the PDF only when the user requests it, unless already generated and cached.
+* Open the native share sheet when supported.
+* Support WhatsApp sharing through the operating-system share interface.
+* Support standard browser download and print fallback.
+* Use authenticated or time-limited URLs.
+* Avoid generating duplicate files for repeated requests.
+* Cache using receipt version or checksum.
+* Ensure the resident can access only receipts for their authorized flat context.
+
+Provide a full account statement download in table form with:
+
+* Date
+* Document number
+* Description
+* Debit
+* Credit
+* Running balance
+* Payment method
+* Receipt link
+
+Statement filters:
+
+* Financial year
+* Custom date range
+* Billing period
+* Payment status
+* Charge head
+
+---
+
+# 18. Public receipt verification
+
+Add optional receipt verification.
+
+The receipt QR code may open a public verification page containing only safe information:
+
+* Society name
+* Receipt number
+* Receipt date
+* Flat identifier in masked or policy-approved form
+* Amount
+* Receipt status
+* Issued or void status
+
+Do not expose:
+
+* Resident mobile
+* Email
+* Internal IDs
+* Payment credentials
+* Sensitive proof
+* Full personal data
+
+Store only a hash of the public verification token.
+
+Allow society settings to disable public verification.
+
+Voided receipts must show clearly as void.
+
+---
+
+# 19. Adjustments, waivers and reversals
+
+Do not allow destructive editing of financial history.
+
+Support controlled financial operations:
+
+* Credit note
+* Debit note
+* Waiver
+* Discount
+* Write-off
+* Refund
+* Payment reversal
+* Receipt void
+* Replacement receipt
+* Opening balance correction
+* Advance adjustment
+
+Each operation must require:
+
+* Reason
+* Actor
+* Timestamp
+* Permission
+* Approval when configured
+* Audit event
+* Linked source record
+* Ledger reversal or adjustment entry
+
+Prevent silent deletion of:
+
+* Published demands
+* Verified payments
+* Ledger entries
+* Issued receipts
+
+---
+
+# 20. Future payment-gateway architecture
+
+Although the initial release uses manual payment confirmation, the module must be designed so payment-gateway integration can be added without major changes.
+
+Create a provider-neutral payment-gateway abstraction from the beginning.
+
+Suggested interface:
+
+```ts
+interface PaymentGatewayProvider {
+  createOrder(
+    input: CreateGatewayOrderInput
+  ): Promise<CreateGatewayOrderResult>;
+
+  verifyCallback(
+    input: VerifyGatewayCallbackInput
+  ): Promise<VerifyGatewayCallbackResult>;
+
+  processWebhook(
+    input: ProcessGatewayWebhookInput
+  ): Promise<GatewayWebhookResult>;
+
+  fetchPaymentStatus?(
+    input: FetchGatewayPaymentInput
+  ): Promise<GatewayPaymentStatus>;
+
+  refundPayment?(
+    input: RefundGatewayPaymentInput
+  ): Promise<GatewayRefundResult>;
+}
+```
+
+Create a provider registry:
+
+```text
+MANUAL
+RAZORPAY
+FUTURE_PROVIDER
+```
+
+Manual mode must be implemented as a first-class payment mode, not as a temporary hack.
+
+Create gateway-related models such as:
+
+* Gateway configuration
+* Gateway order
+* Gateway transaction
+* Webhook event
+* Refund record
+* Settlement record
+
+Gateway credentials must be:
+
+* Society-specific
+* Encrypted at rest
+* Masked in the UI
+* Never returned after saving
+* Never logged
+* Editable only by authorized users
+* Versioned
+* Testable through a “Verify configuration” action
+* Separated between test and live mode
+
+Society settings should support fields conceptually equivalent to:
+
+```text
+provider
+mode
+keyId
+keySecret
+webhookSecret
+accountIdentifier
+isEnabled
+verifiedAt
+```
+
+The user referred to Salt, Key and Webhook configuration. Implement a provider-neutral credential schema so providers can define required secret fields.
+
+For Razorpay, use the credential names and security requirements supported by the official integration and the existing Jenix India e-commerce implementation.
+
+Before writing the Razorpay adapter:
+
+1. Inspect the Jenix India e-commerce code available to Codex, if it exists in the repository or an accessible reference.
+2. Reuse proven patterns where compatible.
+3. Do not copy insecure or obsolete code.
+4. Validate against current official provider documentation at implementation time.
+5. Keep all Razorpay-specific code inside:
+
+```text
+MCR/backend/payment-gateways/razorpay/
+```
+
+Enabling a payment gateway from society settings should eventually allow this workflow:
+
+```text
+Resident selects outstanding demand
+? backend creates gateway order
+? resident completes payment
+? signed callback or webhook arrives
+? webhook is verified
+? event is stored idempotently
+? payment is created
+? payment is allocated
+? ledger is posted
+? receipt is issued
+? notification is sent
+```
+
+The future gateway integration must not require redesigning:
+
+* Demand
+* Payment
+* Payment allocation
+* Receipt
+* Ledger
+* Notification
+* Reporting
+
+For this phase, implement:
+
+* Provider interface
+* Provider registry
+* Manual provider
+* Configuration schema
+* Disabled Razorpay adapter placeholder or feature-flagged adapter
+* Webhook event model
+* Webhook route structure
+* Signature-verification contract
+* Tests using mocks
+* Documentation for activating the future Razorpay adapter
+
+Do not activate real Razorpay transactions unless valid credentials and the module feature flag are enabled.
+
+---
+
+# 21. Webhook security and idempotency
+
+Design future gateway webhook handling securely.
+
+Requirements:
+
+* Verify provider signature before processing.
+* Preserve raw request body where required for signature verification.
+* Store provider event ID.
+* Reject duplicate events.
+* Make processing idempotent.
+* Return appropriate acknowledgement.
+* Process financial changes in a transaction where supported.
+* Log verification failure without logging secrets.
+* Support event replay by an authorized operator.
+* Maintain status:
+
+  * Received
+  * Verified
+  * Processing
+  * Processed
+  * Failed
+  * Ignored
+* Never trust payment status from the browser alone.
+
+Add tests for:
+
+* Valid webhook
+* Invalid signature
+* Duplicate webhook
+* Out-of-order webhook
+* Retried webhook
+* Unknown order
+* Amount mismatch
+* Society mismatch
+* Already processed payment
+
+---
+
+# 22. UI and UX requirements
+
+The MCR UI must match the existing platform theme.
+
+Reuse:
+
+* Existing layout
+* Navigation
+* Typography
+* Spacing
+* Form controls
+* Buttons
+* Modals
+* Tables
+* Cards
+* Empty states
+* Toasts
+* Loading states
+* Skeletons
+* Dialog patterns
+* Icon library
+* Responsive breakpoints
+* Dark or light theme behavior
+
+Do not introduce a second design system.
+
+The UI must be:
+
+* Modern
+* Professional
+* Mobile-first
+* PWA-friendly
+* Touch-friendly
+* Accessible
+* Suitable for desktop admin use
+* Suitable for residents with limited technical knowledge
+
+Use icons from the existing icon library.
+
+Do not use ASCII substitutes or emoji.
+
+## Required resident screens
+
+* Maintenance dashboard
+* Current outstanding
+* Upcoming due date
+* Demand detail
+* Payment history
+* Receipt list
+* Receipt viewer
+* Account statement
+* Payment submission form, when enabled
+* Notification preferences
+
+## Required society-admin screens
+
+* MCR dashboard
+* Billing plans
+* Charge heads
+* Demand generation
+* Draft demands
+* Published demands
+* Overdue list
+* Collection entry
+* Verification queue
+* Receipts
+* Adjustments and waivers
+* Reminder campaigns
+* Notification delivery report
+* Flat ledger
+* Collection reports
+* Payment method summary
+* Settings
+* Payment-gateway settings
+* Audit history
+
+## Dashboard metrics
+
+Show at minimum:
+
+* Total billed
+* Total collected
+* Total outstanding
+* Collection percentage
+* Overdue amount
+* Payments pending verification
+* Failed notifications
+* Due this week
+* Collected today
+* Collected this month
+* Outstanding by tower
+* Outstanding ageing
+
+All metrics must respect permissions and society context.
+
+---
+
+# 23. Reports
+
+Create professional reports with filters and export support.
+
+Required reports:
+
+* Flat-wise outstanding
+* Tower-wise outstanding
+* Resident ledger
+* Collection register
+* Payment-method report
+* Daily collection report
+* Monthly collection report
+* Demand register
+* Receipt register
+* Pending-verification report
+* Cheque-clearing report
+* Overdue ageing
+* Advance-credit report
+* Waiver and write-off report
+* Notification delivery report
+* Charge-head collection report
+* Financial-year summary
+* Audit report
+
+Ageing buckets:
+
+```text
+Current
+1–30 days
+31–60 days
+61–90 days
+91–180 days
+More than 180 days
+```
+
+Export formats:
+
+* CSV
+* Spreadsheet-compatible format
+* PDF where appropriate
+* Printable HTML
+
+For large datasets:
+
+* Use pagination.
+* Use server-side filtering.
+* Use streaming or background export where the platform supports it.
+* Do not load the entire society history into browser memory.
+
+---
+
+# 24. Notifications and event-driven architecture
+
+Use domain events or the platform’s existing event system.
+
+Suggested MCR events:
+
+```text
+MCR_DEMAND_CREATED
+MCR_DEMAND_PUBLISHED
+MCR_COLLECTION_REQUEST_REQUESTED
+MCR_COLLECTION_REQUEST_SENT
+MCR_REMINDER_DUE
+MCR_REMINDER_SENT
+MCR_PAYMENT_RECORDED
+MCR_PAYMENT_VERIFIED
+MCR_PAYMENT_REJECTED
+MCR_PAYMENT_CANCELLED
+MCR_CHEQUE_BOUNCED
+MCR_RECEIPT_ISSUED
+MCR_RECEIPT_VOIDED
+MCR_ADJUSTMENT_CREATED
+MCR_ADJUSTMENT_APPROVED
+MCR_GATEWAY_WEBHOOK_RECEIVED
+MCR_GATEWAY_PAYMENT_CONFIRMED
+MCR_NOTIFICATION_FAILED
+```
+
+Business transactions should emit events after successful persistence.
+
+Notification failures must not roll back an otherwise valid financial transaction.
+
+Financial processing and communication processing must be separated.
+
+---
+
+# 25. Reliability and concurrency
+
+Financial actions must be safe under concurrent requests.
+
+Protect against:
+
+* Duplicate demand generation
+* Duplicate payment entry
+* Double verification
+* Double ledger posting
+* Duplicate receipt number
+* Duplicate receipt generation
+* Double allocation
+* Duplicate webhook
+* Concurrent balance recalculation
+* Retried job execution
+
+Use:
+
+* Database transactions where supported
+* Unique indexes
+* Optimistic concurrency or version fields
+* Idempotency keys
+* Atomic counters
+* Job locks
+* Retry-safe handlers
+
+Receipt and demand numbering must be atomic society-wise.
+
+Do not generate official numbers using document count.
+
+Create a dedicated sequence or counter mechanism.
+
+---
+
+# 26. Audit logging
+
+Every meaningful action must create an audit record.
+
+Audit examples:
+
+* Setting changed
+* Charge head created or edited
+* Billing plan created or edited
+* Demand generated
+* Demand published
+* Demand cancelled
+* Collection request sent
+* Reminder sent
+* Payment recorded
+* Proof uploaded
+* Payment verified
+* Payment rejected
+* Payment reversed
+* Cheque bounced
+* Receipt generated
+* Receipt downloaded by admin
+* Receipt voided
+* Waiver approved
+* Gateway credentials changed
+* Gateway enabled or disabled
+* Notification template changed
+* Export generated
+
+Audit record should include:
+
+```text
+societyId
+actorUserId
+actorRoleContext
+action
+entityType
+entityId
+beforeSnapshot or changedFields
+afterSnapshot or changedFields
+reason
+requestId
+IP where policy allows
+userAgent where policy allows
+timestamp
+```
+
+Never store unmasked secrets in audit records.
+
+---
+
+# 27. Security requirements
+
+Implement:
+
+* Authentication
+* Society entitlement check
+* Permission check
+* Input validation
+* Output filtering
+* Rate limiting for public endpoints
+* CSRF protection according to platform architecture
+* Secure file access
+* Signed receipt links
+* MIME validation for uploads
+* Upload-size limits
+* Malware scanning hook where platform supports it
+* Secret encryption
+* Sensitive-field masking
+* Structured security logs
+* No secrets in frontend bundles
+* No trust in client-calculated totals
+* Server-side recalculation of all financial amounts
+* Protection against insecure direct object references
+* Protection against mass assignment
+* Sanitization of rendered template content
+* No arbitrary HTML injection in notification templates
+
+Proof files must be accessible only to authorized society users.
+
+---
+
+# 28. API design
+
+Follow the existing platform API conventions.
+
+Suggested route groups:
+
+```text
+/api/mcr/settings
+/api/mcr/charge-heads
+/api/mcr/billing-plans
+/api/mcr/demands
+/api/mcr/payments
+/api/mcr/verifications
+/api/mcr/receipts
+/api/mcr/ledger
+/api/mcr/adjustments
+/api/mcr/reminders
+/api/mcr/notifications
+/api/mcr/reports
+/api/mcr/payment-gateways
+/api/mcr/webhooks/:provider
+```
+
+Use:
+
+* Versioned contracts where the platform uses versioning.
+* DTO validation.
+* Pagination.
+* Sorting whitelist.
+* Filter whitelist.
+* Stable error codes.
+* Request IDs.
+* Idempotency key headers for financial write operations.
+* OpenAPI or the repository’s existing API documentation format.
+
+Example error codes:
+
+```text
+MCR_MODULE_NOT_ENABLED
+MCR_PERMISSION_DENIED
+MCR_INVALID_AMOUNT
+MCR_DEMAND_ALREADY_EXISTS
+MCR_DEMAND_NOT_EDITABLE
+MCR_PAYMENT_DUPLICATE
+MCR_PAYMENT_ALREADY_VERIFIED
+MCR_PAYMENT_REFERENCE_REQUIRED
+MCR_PAYMENT_AMOUNT_EXCEEDS_POLICY
+MCR_RECEIPT_ALREADY_ISSUED
+MCR_RECEIPT_VOID
+MCR_LEDGER_CONFLICT
+MCR_GATEWAY_NOT_CONFIGURED
+MCR_GATEWAY_SIGNATURE_INVALID
+MCR_NOTIFICATION_CHANNEL_UNAVAILABLE
+```
+
+---
+
+# 29. Data migration and compatibility
+
+Do not break existing data.
+
+Create migrations or initialization scripts for:
+
+* MCR module registration
+* Permissions
+* Default settings
+* Default charge-head templates
+* Required indexes
+* Sequence counters
+* Notification templates
+
+Migrations must be:
+
+* Repeatable or safely idempotent
+* Versioned
+* Logged
+* Reversible where practical
+* Tested against an existing populated database
+
+Do not automatically generate financial demands during migration.
+
+---
+
+# 30. Testing requirements
+
+Testing is mandatory.
+
+Do not mark the module complete until all tests pass.
+
+## 30.1 Unit tests
+
+Test:
+
+* Money calculations
+* Demand totals
+* Late-fee rules
+* Discount rules
+* Waiver rules
+* Payment allocation
+* Advance handling
+* Receipt numbering
+* Demand numbering
+* Duplicate detection
+* Reminder eligibility
+* Notification channel resolution
+* Permission decisions
+* Gateway provider registry
+* Webhook idempotency
+* Amount-to-words conversion
+* Receipt data snapshot
+* Ledger reversal
+
+## 30.2 Integration tests
+
+Test:
+
+* Create billing plan
+* Generate demand
+* Publish demand
+* Send collection request
+* Record payment
+* Verify payment
+* Post ledger
+* Generate receipt
+* Download receipt
+* Send receipt notification
+* Reject payment
+* Reverse payment
+* Void receipt
+* Apply waiver
+* Generate report
+* Disable module
+* Cross-society isolation
+* Concurrent verification
+* Duplicate worker execution
+
+## 30.3 End-to-end tests
+
+At minimum create these flows:
+
+### Flow A: Monthly maintenance
+
+```text
+Admin creates billing plan
+? generates monthly demands
+? previews
+? publishes
+? residents receive notification
+? payment is manually recorded
+? verifier confirms
+? receipt is generated
+? resident downloads receipt
+```
+
+### Flow B: Partial payment
+
+```text
+Demand ?5,000
+? payment ?3,000
+? demand becomes partially paid
+? receipt generated for ?3,000
+? outstanding remains ?2,000
+```
+
+### Flow C: Advance payment
+
+```text
+Resident pays more than outstanding
+? current demand is cleared
+? remaining amount becomes advance credit
+? future demand consumes credit according to policy
+```
+
+### Flow D: Cheque bounce
+
+```text
+Cheque recorded
+? verified according to configured cheque policy
+? receipt issued or provisional state used
+? cheque marked bounced
+? payment reversed
+? receipt voided or replaced
+? outstanding restored
+? resident notified
+```
+
+### Flow E: Duplicate protection
+
+```text
+Same payment submitted twice
+? system detects duplicate
+? no double ledger entry
+? no second receipt
+```
+
+### Flow F: Society isolation
+
+```text
+User from Society A attempts to access Society B receipt
+? request is denied
+? event is logged
+```
+
+### Flow G: Module disabled
+
+```text
+MCR disabled for society
+? navigation hidden
+? API denied
+? scheduled reminders skipped
+? historical data retained
+```
+
+### Flow H: Future webhook simulation
+
+```text
+Mock gateway webhook received
+? signature verified by mock provider
+? duplicate webhook ignored
+? payment posted once
+? receipt generated once
+```
+
+## 30.4 Regression tests
+
+Run all existing backend and frontend tests.
+
+Fix only regressions caused by MCR.
+
+Do not weaken existing tests.
+
+Do not remove assertions to make tests pass.
+
+## 30.5 Frontend tests
+
+Test:
+
+* Permission-based visibility
+* Module-disabled state
+* Demand preview
+* Payment form conditional fields
+* Verification actions
+* Receipt download
+* Responsive table behavior
+* Empty states
+* Loading states
+* Error states
+* Icon rendering
+
+Add a specific automated or static check ensuring MCR icon components are not replaced by ASCII characters.
+
+---
+
+# 31. Performance requirements
+
+Design for societies ranging from small buildings to large complexes.
+
+Assume:
+
+* Thousands of flats per society
+* Multiple billing cycles
+* Ten years of retained financial records
+* Millions of ledger and notification records across the platform
+
+Requirements:
+
+* Proper compound indexes
+* Pagination
+* Projection of required fields only
+* No N+1 query patterns
+* Batch operations for demand generation
+* Chunked notification jobs
+* Background PDF creation where suitable
+* Cached summary metrics with safe invalidation where needed
+* Efficient report aggregation
+* Query-time limits and observability
+
+Do not calculate every dashboard metric by loading all records into application memory.
+
+---
+
+# 32. Observability and watchdogs
+
+Add operational visibility.
+
+Track:
+
+* Demand-generation duration
+* Demand-generation failures
+* Payments pending verification
+* Receipt-generation failures
+* Notification queue depth
+* Notification failure rate
+* SMS gateway offline state
+* Email provider failures
+* WhatsApp provider failures
+* Duplicate-job prevention
+* Webhook-processing failures
+* Ledger consistency errors
+* Unallocated verified payments
+* Payments without receipts
+* Receipts without PDFs
+* Overdue scheduled jobs
+
+Create health checks and repair commands where appropriate.
+
+Provide safe reconciliation jobs:
+
+* Verify payment-to-ledger consistency
+* Verify receipt-to-payment consistency
+* Recalculate demand balances
+* Detect orphan allocations
+* Detect duplicate official numbers
+* Retry failed receipt generation
+* Retry failed notifications
+
+Repair jobs must default to dry-run mode.
+
+---
+
+# 33. Documentation
+
+Create:
+
+```text
+MCR/README.md
+MCR/ARCHITECTURE.md
+MCR/API.md
+MCR/PERMISSIONS.md
+MCR/TESTING.md
+MCR/OPERATIONS.md
+MCR/PAYMENT_GATEWAY_INTEGRATION.md
+MCR/IOT_SMS_GATEWAY_CONTRACT.md
+MCR/CHANGELOG.md
+```
+
+Documentation must explain:
+
+* Module purpose
+* Folder structure
+* Domain model
+* Demand lifecycle
+* Payment lifecycle
+* Receipt lifecycle
+* Ledger rules
+* Notification architecture
+* SMS gateway integration
+* Manual-payment workflow
+* Future Razorpay integration
+* Secret management
+* Required indexes
+* Scheduled jobs
+* Error codes
+* Testing procedure
+* Deployment
+* Rollback
+* Troubleshooting
+* Reconciliation procedures
+
+Add a clear example showing how another payment gateway could be added without changing MCR domain services.
+
+---
+
+# 34. Implementation sequence
+
+Implement in controlled phases.
+
+## Phase 0 — Repository inspection
+
+* Read existing architecture.
+* Document relevant extension points.
+* Run current tests.
+* Record baseline results.
+* Identify exact files that require minimal core changes.
+* Create `MCR/IMPLEMENTATION_PLAN.md`.
+
+Do not begin broad refactoring.
+
+## Phase 1 — Module skeleton
+
+* Create MCR folder.
+* Create module manifest.
+* Register module.
+* Add permission definitions.
+* Add feature entitlement guard.
+* Add navigation placeholder.
+* Add basic health endpoint.
+* Add module-disabled tests.
+
+Run tests.
+
+## Phase 2 — Core financial domain
+
+* Settings
+* Charge heads
+* Billing plans
+* Demands
+* Payments
+* Allocations
+* Receipts
+* Ledger
+* Sequence counters
+* Indexes
+* Domain services
+* Unit tests
+
+Run tests.
+
+## Phase 3 — Manual collection workflow
+
+* Payment-entry UI
+* Verification queue
+* Maker-checker
+* Proof attachments
+* Allocation
+* Ledger posting
+* Receipt issuance
+* Audit events
+
+Run tests.
+
+## Phase 4 — Demand automation
+
+* Demand generation
+* Preview
+* Publish
+* Duplicate protection
+* Scheduled generation
+* Late fees
+* Grace period
+* Advance adjustment
+
+Run tests.
+
+## Phase 5 — Communication channels
+
+* Notification orchestration
+* In-app and FCM
+* Email adapter
+* WhatsApp adapter
+* SMS interface
+* IoT gateway SMS contract
+* Templates
+* Retry and dispatch logs
+* Reminder engine
+
+Run tests.
+
+## Phase 6 — PDF, print and sharing
+
+* Receipt PDF
+* Statement PDF
+* Download
+* Print
+* Native share
+* WhatsApp share path
+* Public verification
+* Receipt checksum and template version
+
+Run tests.
+
+## Phase 7 — Reports and dashboards
+
+* Admin dashboard
+* Resident dashboard
+* Reports
+* Exports
+* Ageing
+* Delivery report
+* Audit viewer
+
+Run tests.
+
+## Phase 8 — Future PG foundation
+
+* Provider interface
+* Manual provider
+* Provider registry
+* Society gateway settings
+* Encrypted credentials
+* Webhook model
+* Mock provider
+* Razorpay adapter boundary
+* Documentation
+* Security tests
+
+Do not enable live Razorpay by default.
+
+Run tests.
+
+## Phase 9 — Hardening
+
+* Concurrency tests
+* Security tests
+* Tenant-isolation tests
+* Performance tests
+* Accessibility checks
+* Responsive checks
+* Icon integrity checks
+* Full regression suite
+* Documentation review
+
+---
+
+# 35. Completion criteria
+
+Do not say the task is complete merely because screens are visible.
+
+The MCR module is complete only when:
+
+* MCR exists in a separate folder.
+* Existing architecture remains intact.
+* MCR can be enabled society-wise.
+* Disabled societies cannot access it.
+* Tenant isolation is proven by tests.
+* Charge heads and billing plans work.
+* Demands can be generated, previewed and published.
+* Collection requests can be queued.
+* Reminders work idempotently.
+* Manual payments can be recorded.
+* Maker-checker verification works.
+* Verified payments create immutable ledger entries.
+* Payments can be allocated to demands.
+* Partial payments work.
+* Advance payments work.
+* Receipts are generated once.
+* Receipts can be downloaded, printed and shared.
+* WhatsApp and email adapters are integrated through clean interfaces.
+* IoT gateway SMS contract is implemented.
+* Notification delivery is logged.
+* Reports and exports work.
+* Audit logs cover all financial actions.
+* Payment-gateway abstraction exists.
+* Future Razorpay integration will not require redesigning the domain.
+* Credentials are encrypted and masked.
+* All files remain below 200 lines.
+* Existing icons remain unchanged.
+* No icon is replaced with ASCII or emoji.
+* All new tests pass.
+* All existing regression tests pass.
+* Documentation is complete.
+* No unresolved TypeScript errors remain.
+* No lint errors remain.
+* No knowingly unhandled security issue remains.
+
+---
+
+# 36. Final Codex operating instructions
+
+Work autonomously through the phases.
+
+After each phase:
+
+1. Run relevant tests.
+2. Run lint and type checking.
+3. Review all changed files for the 200-line limit.
+4. Review tenant isolation.
+5. Review permission enforcement.
+6. Review financial idempotency.
+7. Review icons for accidental ASCII replacement.
+8. Update `MCR/IMPLEMENTATION_PROGRESS.md`.
+9. Commit logically separated changes if repository workflow allows it.
+
+When a defect is found:
+
+* Fix the root cause.
+* Add a regression test.
+* Do not hide the defect.
+* Do not disable a failing test.
+* Do not bypass TypeScript safety with unnecessary `any`.
+* Do not silently catch errors.
+
+Before final completion, provide a report containing:
+
+* Architecture implemented
+* New folders and files
+* Minimal changes made to core platform
+* Database models and indexes
+* Permissions
+* APIs
+* UI routes
+* Scheduled jobs
+* Notification providers
+* Manual payment workflow
+* Receipt workflow
+* Future payment-gateway extension path
+* Security controls
+* Test results
+* Regression results
+* Known limitations
+* Deployment steps
+* Rollback steps
+
+The implementation must prioritize:
+
+```text
+Financial correctness
+Tenant isolation
+Auditability
+Idempotency
+Security
+Maintainability
+Minimal core disturbance
+Ease of use
+Long-term extensibility
+```
+
+Do not compromise financial integrity for faster implementation.

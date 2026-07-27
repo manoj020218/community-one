@@ -1,0 +1,52 @@
+import { MODULE_CODES, PERMISSIONS } from '../../config/constants';
+
+export const MCR_ROUTE_PERMISSIONS = [
+  PERMISSIONS.MCR_VIEW_SELF,
+  PERMISSIONS.MCR_VIEW_FLAT,
+  PERMISSIONS.MCR_VIEW_ALL,
+  PERMISSIONS.MCR_CONFIGURE,
+  PERMISSIONS.MCR_VIEW_REPORTS,
+] as const;
+
+export const MCR_MANIFEST = {
+  code: MODULE_CODES.MCR,
+  name: 'Maintenance & Receipts',
+  description: 'Maintenance billing, manual collections, receipts, and ledger workflows',
+  version: '1.0.0',
+  status: 'ACTIVE',
+  icon: 'Banknote',
+  routePrefix: '/mcr',
+  apiPrefix: '/api/mcr',
+  requiredPlan: ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'],
+  defaultEnabled: false,
+  permissions: [
+    PERMISSIONS.MCR_VIEW_SELF,
+    PERMISSIONS.MCR_VIEW_FLAT,
+    PERMISSIONS.MCR_VIEW_ALL,
+    PERMISSIONS.MCR_CONFIGURE,
+    PERMISSIONS.MCR_GENERATE_DEMAND,
+    PERMISSIONS.MCR_EDIT_DRAFT_DEMAND,
+    PERMISSIONS.MCR_PUBLISH_DEMAND,
+    PERMISSIONS.MCR_SEND_REQUEST,
+    PERMISSIONS.MCR_SEND_REMINDER,
+    PERMISSIONS.MCR_RECORD_PAYMENT,
+    PERMISSIONS.MCR_VERIFY_PAYMENT,
+    PERMISSIONS.MCR_REJECT_PAYMENT,
+    PERMISSIONS.MCR_CANCEL_PAYMENT,
+    PERMISSIONS.MCR_GENERATE_RECEIPT,
+    PERMISSIONS.MCR_VOID_RECEIPT,
+    PERMISSIONS.MCR_APPLY_ADJUSTMENT,
+    PERMISSIONS.MCR_APPROVE_ADJUSTMENT,
+    PERMISSIONS.MCR_MANAGE_WAIVER,
+    PERMISSIONS.MCR_VIEW_REPORTS,
+    PERMISSIONS.MCR_EXPORT_REPORTS,
+    PERMISSIONS.MCR_MANAGE_TEMPLATES,
+    PERMISSIONS.MCR_MANAGE_PAYMENT_GATEWAY,
+    PERMISSIONS.MCR_VIEW_AUDIT,
+  ],
+  settingsSchema: {
+    makerCheckerEnabled: { type: 'boolean', default: true },
+    allowResidentPaymentSubmission: { type: 'boolean', default: false },
+    publicReceiptVerificationEnabled: { type: 'boolean', default: false },
+  },
+} as const;
