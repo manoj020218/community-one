@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
 import { getDatabaseStatus } from '../../config/database';
 import { env } from '../../config/env';
+import { mcrDemandAutomationWorker } from '../mcr/mcrDemandAutomation.worker';
+import { mcrLateFeeWorker } from '../mcr/mcrLateFee.worker';
+import { mcrReminderWorker } from '../mcr/mcrReminder.worker';
 import { pushProviderService } from '../notification/pushProvider.service';
+import { samaScheduledSyncWorker } from '../sama/samaScheduledSync.worker';
 import { visitorExpiryWorker } from '../visitor/visitor.expiry.worker';
 import { visitorRealtimeService } from '../visitor/visitor.realtime.service';
 import { HealthLog } from './health.model';
@@ -11,9 +15,15 @@ export class HealthController {
     const dbStatus = getDatabaseStatus();
     const uptime = process.uptime();
     const status = dbStatus.status === 'connected' ? 'ok' : 'degraded';
+    const demandWorkerStatus = mcrDemandAutomationWorker.getStatus();
     const pushHealth = pushProviderService.getProvider().getHealth();
+    const lateFeeWorkerStatus = mcrLateFeeWorker.getStatus();
+    const mcrWorkerStatus = mcrReminderWorker.getStatus();
+    const samaWorkerStatus = samaScheduledSyncWorker.getStatus();
     const workerStatus = visitorExpiryWorker.getStatus();
     const realtimeStatus = visitorRealtimeService.getDiagnostics();
+    const anyWorkerEnabled = workerStatus.enabled || mcrWorkerStatus.enabled || lateFeeWorkerStatus.enabled || demandWorkerStatus.enabled || samaWorkerStatus.enabled;
+    const anyWorkerRunning = workerStatus.running || mcrWorkerStatus.running || lateFeeWorkerStatus.running || demandWorkerStatus.running || samaWorkerStatus.running;
 
     res.status(status === 'ok' ? 200 : 503).json({
       success: true,
@@ -26,8 +36,12 @@ export class HealthController {
         environment: env.NODE_ENV,
         mqttStatus: 'not_configured',
         fcmStatus: pushHealth.status,
-        queueStatus: workerStatus.enabled ? (workerStatus.running ? 'running' : 'stopped') : 'disabled',
+        queueStatus: anyWorkerRunning ? 'running' : anyWorkerEnabled ? 'stopped' : 'disabled',
         visitorRealtimeConnections: realtimeStatus.activeConnections,
+        mcrDemandWorker: demandWorkerStatus,
+        mcrLateFeeWorker: lateFeeWorkerStatus,
+        mcrReminderWorker: mcrWorkerStatus,
+        samaSyncWorker: samaWorkerStatus,
         visitorExpiryWorker: workerStatus,
       },
       message: status === 'ok' ? 'System healthy' : 'System degraded',

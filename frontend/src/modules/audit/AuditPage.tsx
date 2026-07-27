@@ -44,7 +44,7 @@ export function AuditPage() {
             <Filter className="w-4 h-4 text-slate-400" />
             <select value={filterModule} onChange={(e) => { setFilterModule(e.target.value); setPage(1); }} className="input py-2 text-sm">
               <option value="">All Modules</option>
-              {['CORE','PARKING','VISITOR','MAINTENANCE'].map((m) => <option key={m}>{m}</option>)}
+              {['CORE','PARKING','VISITOR','MCR'].map((m) => <option key={m}>{m}</option>)}
             </select>
           </div>
           <select value={filterAction} onChange={(e) => { setFilterAction(e.target.value); setPage(1); }} className="input py-2 text-sm">

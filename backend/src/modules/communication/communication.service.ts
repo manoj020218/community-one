@@ -13,7 +13,14 @@ export interface SmtpSettingsDto {
   enabled?: boolean;
 }
 
-const MASKED_PASSWORD = '••••••••';
+export interface SendEmailDto {
+  toEmail: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+
+const MASKED_PASSWORD = '********';
 
 export class CommunicationService {
   async getSettings(societyId: string): Promise<ICommunicationSettingsDocument> {
@@ -22,7 +29,6 @@ export class CommunicationService {
     return settings;
   }
 
-  /** Returns settings safe to send to the client — SMTP password is masked, never returned in plaintext. */
   async getSettingsForClient(societyId: string): Promise<Record<string, unknown>> {
     const settings = await this.getSettings(societyId);
     const plain = settings.toObject();
@@ -33,9 +39,8 @@ export class CommunicationService {
   }
 
   async updateSmtp(societyId: string, dto: SmtpSettingsDto): Promise<Record<string, unknown>> {
-    await this.getSettings(societyId); // ensures a document exists to $set against
+    await this.getSettings(societyId);
     const next = { ...dto };
-    // Keep the existing password if the client sends back the masked placeholder unchanged.
     if (!next.password || next.password === MASKED_PASSWORD) delete next.password;
 
     await CommunicationSettings.findOneAndUpdate(
@@ -47,10 +52,18 @@ export class CommunicationService {
   }
 
   async sendTestEmail(societyId: string, toEmail: string): Promise<void> {
+    await this.sendEmail(societyId, {
+      toEmail,
+      subject: 'Test email from Jenix Society One',
+      text: 'This is a test email confirming your SMTP settings are working correctly.',
+    });
+  }
+
+  async sendEmail(societyId: string, dto: SendEmailDto): Promise<void> {
     const settings = await this.getSettings(societyId);
     const { smtp } = settings;
     if (!smtp.host || !smtp.port || !smtp.username || !smtp.password || !smtp.fromEmail) {
-      throw new ValidationError('SMTP settings are incomplete — host, port, username, password, and from-email are required');
+      throw new ValidationError('SMTP settings are incomplete - host, port, username, password, and from-email are required');
     }
 
     const transporter = nodemailer.createTransport({
@@ -62,9 +75,10 @@ export class CommunicationService {
 
     await transporter.sendMail({
       from: smtp.fromName ? `"${smtp.fromName}" <${smtp.fromEmail}>` : smtp.fromEmail,
-      to: toEmail,
-      subject: 'Test email from Jenix Society One',
-      text: 'This is a test email confirming your SMTP settings are working correctly.',
+      to: dto.toEmail,
+      subject: dto.subject,
+      text: dto.text,
+      html: dto.html,
     });
   }
 }

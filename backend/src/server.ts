@@ -2,6 +2,10 @@ import app from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 import { logger } from './common/utils/logger';
+import { mcrDemandAutomationWorker } from './modules/mcr/mcrDemandAutomation.worker';
+import { mcrLateFeeWorker } from './modules/mcr/mcrLateFee.worker';
+import { mcrReminderWorker } from './modules/mcr/mcrReminder.worker';
+import { samaScheduledSyncWorker } from './modules/sama/samaScheduledSync.worker';
 import { visitorExpiryWorker } from './modules/visitor/visitor.expiry.worker';
 import { whatsAppService } from './modules/communication/whatsapp.service';
 
@@ -9,6 +13,10 @@ async function startServer(): Promise<void> {
   try {
     await connectDatabase();
     logger.info('Database connected');
+    if (env.MCR_DEMAND_WORKER_ENABLED) mcrDemandAutomationWorker.start();
+    if (env.MCR_LATE_FEE_WORKER_ENABLED) mcrLateFeeWorker.start();
+    if (env.MCR_REMINDER_WORKER_ENABLED) mcrReminderWorker.start();
+    if (env.SAMA_SYNC_WORKER_ENABLED) samaScheduledSyncWorker.start();
     if (env.VISITOR_EXPIRY_WORKER_ENABLED) visitorExpiryWorker.start();
     whatsAppService.reconnectAll().catch((err) => logger.warn('WhatsApp reconnectAll failed', { err }));
 
@@ -20,6 +28,10 @@ async function startServer(): Promise<void> {
     // Graceful shutdown
     const shutdown = async (signal: string) => {
       logger.info(`${signal} received. Shutting down gracefully...`);
+      mcrDemandAutomationWorker.stop();
+      mcrLateFeeWorker.stop();
+      mcrReminderWorker.stop();
+      samaScheduledSyncWorker.stop();
       visitorExpiryWorker.stop();
       server.close(async () => {
         const { disconnectDatabase } = await import('./config/database');

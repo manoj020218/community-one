@@ -12,6 +12,7 @@ export function ModuleRegistryPage() {
   const { currentSociety } = useSocietyStore();
   const queryClient = useQueryClient();
   const societyId = currentSociety?._id || user?.societyId;
+  const canToggleModules = user?.permissions?.includes('module.enable') && user?.permissions?.includes('module.disable');
 
   const { data: modules = [] } = useQuery({
     queryKey: ['modules', societyId],
@@ -61,7 +62,7 @@ export function ModuleRegistryPage() {
 
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">v{module.version}</span>
-              {societyId && module.code !== 'CORE' && module.status !== 'COMING_SOON' && (
+              {societyId && canToggleModules && module.code !== 'CORE' && module.status !== 'COMING_SOON' && (
                 <button onClick={() => toggleMutation.mutate({ moduleCode: module.code, enable: !module.isEnabled })}
                   disabled={toggleMutation.isPending} className="text-slate-400 hover:text-primary-600 transition-colors">
                   {module.isEnabled ? <ToggleRight className="w-6 h-6 text-primary-600" /> : <ToggleLeft className="w-6 h-6" />}

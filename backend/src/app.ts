@@ -31,7 +31,9 @@ import deviceRoutes from './modules/device/device.routes';
 import healthRoutes from './modules/health/health.routes';
 import visitorRoutes from './modules/visitor/visitor.routes';
 import bridgeRoutes from './modules/bridge/bridge.routes';
+import mcrRoutes from './modules/mcr/mcr.routes';
 import communicationRoutes from './modules/communication/communication.routes';
+import samaRoutes from './modules/sama/sama.routes';
 
 const app: express.Application = express();
 
@@ -77,6 +79,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/visitor', visitorRoutes);
 app.use('/api/bridge', bridgeRoutes);
+app.use('/api/mcr', mcrRoutes);
+app.use('/api/sama', samaRoutes);
 app.use('/api/communication', communicationRoutes);
 
 // Error handlers
