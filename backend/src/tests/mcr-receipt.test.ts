@@ -98,7 +98,9 @@ describe('MCR receipt public and lifecycle flows', () => {
     const posterRes = await request(app).get(`/api/mcr/public/receipts/poster?token=${encodeURIComponent(token!)}`);
     expect(posterRes.status).toBe(200);
     expect(posterRes.headers['content-type']).toContain('image/svg+xml');
-    expect(posterRes.text).toContain('<svg');
+    // superagent only populates `.text` for text/*-prefixed content types; image/svg+xml lands in `.body` as a Buffer instead.
+    const posterBody = posterRes.text ?? (Buffer.isBuffer(posterRes.body) ? posterRes.body.toString('utf8') : '');
+    expect(posterBody).toContain('<svg');
   });
 
   it('replaces an active receipt and dispatches it in-app', async () => {

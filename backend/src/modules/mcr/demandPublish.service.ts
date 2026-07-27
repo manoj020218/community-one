@@ -6,15 +6,15 @@ import { mcrAdvanceService } from './mcrAdvance.service';
 import { mcrNumberingService } from './mcrNumbering.service';
 
 export class DemandPublishService {
-  async publishSystem(societyId: string, demandId: string, actorUserId: string) {
+  async publishSystem(societyId: string, demandId: string, actorUserId: string, asOf?: Date) {
     const context: McrActorContext = {
       societyId,
       user: { userId: actorUserId, email: 'system@jenix.local', mobile: '0000000000', roleCode: 'SYSTEM', permissions: [], societyId },
     };
-    return this.publish(context, demandId);
+    return this.publish(context, demandId, asOf);
   }
 
-  async publish(context: McrActorContext, demandId: string): Promise<IMaintenanceDemandDocument> {
+  async publish(context: McrActorContext, demandId: string, asOf?: Date): Promise<IMaintenanceDemandDocument> {
     const demand = await MaintenanceDemand.findOne({ _id: demandId, societyId: context.societyId });
     if (!demand) {
       throw new NotFoundError('MaintenanceDemand');
@@ -22,10 +22,10 @@ export class DemandPublishService {
     if (demand.status !== 'DRAFT') {
       throw new ConflictError('Demand is not in draft state');
     }
-    return this.publishExisting(context, demand);
+    return this.publishExisting(context, demand, asOf);
   }
 
-  async publishExisting(context: McrActorContext, demand: IMaintenanceDemandDocument): Promise<IMaintenanceDemandDocument> {
+  async publishExisting(context: McrActorContext, demand: IMaintenanceDemandDocument, asOf: Date = new Date()): Promise<IMaintenanceDemandDocument> {
     const advanceAllocations = await mcrAdvanceService.allocateToDemand({
       societyId: context.societyId,
       flatId: demand.flatId.toString(),
@@ -54,7 +54,7 @@ export class DemandPublishService {
     demand.outstandingPaise = Math.max(0, demand.totalDemandPaise - advanceAppliedPaise);
     demand.status = demand.outstandingPaise === 0
       ? 'PAID'
-      : demand.dueDate < new Date()
+      : demand.dueDate < asOf
         ? 'OVERDUE'
         : advanceAppliedPaise > 0
           ? 'PARTIALLY_PAID'

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { ConflictError, NotFoundError, ValidationError } from '../../common/errors/AppError';
 import { Flat } from '../flat/flat.model';
 import { Resident } from '../resident/resident.model';
@@ -124,6 +125,9 @@ export class McrGatewayService {
     payment.gatewaySignatureStatus = 'VALID';
     if (`${payload.status}`.toUpperCase() === 'SUCCESS') {
       if (config.autoVerifySuccessfulPayments && ['DRAFT', 'PENDING_VERIFICATION'].includes(payment.status)) {
+        // Persist the gateway fields before verifySystemPayment re-fetches its own copy of the payment —
+        // otherwise these in-memory changes are lost once verification loads a fresh document by ID.
+        await payment.save();
         await mcrPaymentVerificationService.verifySystemPayment(payment.societyId.toString(), payment._id!.toString(), config.updatedBy.toString());
       } else if (payment.status === 'DRAFT') {
         payment.status = 'PENDING_VERIFICATION';
@@ -142,7 +146,14 @@ export class McrGatewayService {
 
   private async getOutstandingPaise(societyId: string, flatId: string) {
     const result = await MaintenanceDemand.aggregate<{ _id: null; total: number }>([
-      { $match: { societyId, flatId, status: { $in: ['PUBLISHED', 'PARTIALLY_PAID', 'OVERDUE'] }, outstandingPaise: { $gt: 0 } } },
+      {
+        $match: {
+          societyId: new mongoose.Types.ObjectId(societyId),
+          flatId: new mongoose.Types.ObjectId(flatId),
+          status: { $in: ['PUBLISHED', 'PARTIALLY_PAID', 'OVERDUE'] },
+          outstandingPaise: { $gt: 0 },
+        },
+      },
       { $group: { _id: null, total: { $sum: '$outstandingPaise' } } },
     ]);
     return result[0]?.total || 0;

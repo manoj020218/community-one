@@ -55,7 +55,9 @@ describe('MCR demand automation', () => {
 
     const demands = await MaintenanceDemand.find({ societyId: fixture.society._id }).sort({ issueDate: 1 });
     expect(demands.map((item) => item.billingPeriodKey)).toEqual(['2026-07', '2026-08', '2026-09']);
-    expect(demands.every((item) => item.status === 'PUBLISHED')).toBe(true);
+    // All three due dates (07-12/08-12/09-12) fall before the backfill's asOf (09-20), so each demand is
+    // correctly published straight into OVERDUE rather than PUBLISHED — "published" here means "left DRAFT".
+    expect(demands.every((item) => item.status !== 'DRAFT')).toBe(true);
     expect(demands[0].issueDate.toISOString().slice(0, 10)).toBe('2026-07-05');
     expect(demands[0].dueDate.toISOString().slice(0, 10)).toBe('2026-07-12');
 

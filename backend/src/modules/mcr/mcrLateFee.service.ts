@@ -74,7 +74,7 @@ export class McrLateFeeService {
           createdBy: actorId,
           updatedBy: actorId,
         });
-        await demandPublishService.publishExisting(context, lateFeeDemand);
+        await demandPublishService.publishExisting(context, lateFeeDemand, asOfDate);
         generatedCount += 1;
         createdForDemand += 1;
       }

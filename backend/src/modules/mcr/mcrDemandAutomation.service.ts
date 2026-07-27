@@ -34,7 +34,7 @@ export class McrDemandAutomationService {
 
         if (plan.autoPublish) {
           for (const draft of drafts) {
-            await demandPublishService.publishSystem(societyId, draft._id!.toString(), runAsUserId);
+            await demandPublishService.publishSystem(societyId, draft._id!.toString(), runAsUserId, dto.asOf);
             publishedCount += 1;
           }
         }

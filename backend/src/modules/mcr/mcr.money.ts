@@ -25,7 +25,11 @@ export function calculateRunningBalance(
   debitPaise: number,
   creditPaise: number
 ): number {
-  assertPaiseAmount(previousBalancePaise, 'previousBalancePaise');
+  // The running balance is a signed net position (negative means the flat is in credit/advance),
+  // so unlike individual debit/credit movements it must not be forced non-negative here.
+  if (!Number.isInteger(previousBalancePaise)) {
+    throw new ValidationError('previousBalancePaise must be an integer');
+  }
   assertLedgerMovement(debitPaise, creditPaise);
   return previousBalancePaise + debitPaise - creditPaise;
 }
