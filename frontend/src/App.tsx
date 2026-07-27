@@ -28,6 +28,7 @@ import { HealthPage } from './modules/health/HealthPage';
 import { ProfilePage } from './modules/profile/ProfilePage';
 import { SettingsPage } from './modules/settings/SettingsPage';
 import { VisitorPage } from './modules/visitor/VisitorPage';
+import { SamaPage } from './modules/sama/SamaPage';
 import { RequireSociety } from './components/common/RequireSociety';
 import { MarketingLayout } from './modules/marketing/MarketingLayout';
 import { LandingPage } from './modules/marketing/LandingPage';
@@ -90,6 +91,7 @@ export default function App() {
         <Route path="/roles" element={<RolesPage />} />
         <Route path="/users" element={<RequireSociety><UsersPage /></RequireSociety>} />
         <Route path="/modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
+        <Route path="/sama" element={<RequireSociety><SamaPage /></RequireSociety>} />
         <Route path="/notifications" element={<NotificationPage />} />
         <Route path="/visitor" element={<RequireSociety><VisitorPage /></RequireSociety>} />
         <Route path="/audit" element={<RequireSociety><AuditPage /></RequireSociety>} />

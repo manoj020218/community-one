@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { X, Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, CreditCard, Receipt, BarChart3, Cpu, Activity, User, LogOut, ChevronRight, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+import { useSamaModule } from '../../modules/sama/useSamaModule';
+import { SAMA_ROUTE_PERMISSIONS } from '../../modules/sama/sama.permissions';
 import { cn } from '../../utils/cn';
 import { hasAnyPermission } from '../../utils/permissions';
 import toast from 'react-hot-toast';
@@ -11,6 +13,7 @@ type NavItem = {
   label: string;
   roles: string[];
   permissions?: string[];
+  moduleCode?: string;
 };
 
 const navItems: NavItem[] = [
@@ -26,6 +29,7 @@ const navItems: NavItem[] = [
   { to: '/roles', icon: Shield, label: 'Roles & Permissions', roles: ['JENIX_SUPER_ADMIN', 'SOCIETY_ADMIN'] },
   { to: '/users', icon: UserCog, label: 'Users', roles: ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT', 'SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'] },
   { to: '/modules', icon: Puzzle, label: 'Modules', roles: [] },
+  { to: '/sama', icon: UserCog, label: 'Staff, Attendance & Access', roles: [], permissions: [...SAMA_ROUTE_PERMISSIONS], moduleCode: 'SAMA' },
   { to: '/notifications', icon: Bell, label: 'Notifications', roles: [] },
   { to: '/audit', icon: ClipboardList, label: 'Audit Logs', roles: [] },
   { to: '/files', icon: FolderOpen, label: 'Files', roles: [] },
@@ -41,6 +45,7 @@ interface SidebarProps { mobile?: boolean; onClose?: () => void; }
 export function Sidebar({ mobile, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { isEnabled: isSamaEnabled } = useSamaModule();
 
   const handleLogout = () => {
     logout();
@@ -50,6 +55,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
 
   const visibleItems = navItems.filter((item) => {
     if (item.permissions?.length && !hasAnyPermission(user, item.permissions)) return false;
+    if (item.moduleCode === 'SAMA' && !isSamaEnabled) return false;
     if (item.roles.length === 0) return true;
     return item.roles.includes(user?.roleCode || '');
   });
