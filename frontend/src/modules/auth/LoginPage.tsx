@@ -124,7 +124,7 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-primary-400 text-xs mt-6">
-          Jenix Society One v1.0.0 — Built for 10-year production life
+          Jenix Society One v1.0.0
         </p>
       </div>
     </div>
