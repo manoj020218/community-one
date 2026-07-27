@@ -1,5 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../common/types';
+import { AuthorizationError } from '../../common/errors/AppError';
 import { societyService } from './society.service';
 import { sendSuccess, sendCreated, sendPaginated, parsePagination } from '../../common/utils/response';
 import { auditService } from '../audit/audit.service';
@@ -37,6 +38,9 @@ export class SocietyController {
   async findById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const society = await societyService.findById(req.params.id);
+      if (!['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'].includes(req.user!.roleCode) && req.user!.societyId !== society._id!.toString()) {
+        throw new AuthorizationError('Access denied to this society');
+      }
       sendSuccess(res, society);
     } catch (error) {
       next(error);
@@ -45,6 +49,10 @@ export class SocietyController {
 
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+      const current = await societyService.findById(req.params.id);
+      if (!['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'].includes(req.user!.roleCode) && req.user!.societyId !== current._id!.toString()) {
+        throw new AuthorizationError('Access denied to this society');
+      }
       const society = await societyService.update(req.params.id, req.body);
       await auditService.log({
         societyId: req.params.id,

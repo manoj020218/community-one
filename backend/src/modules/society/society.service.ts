@@ -6,7 +6,7 @@ import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
 
 function generateCode(name: string): string {
-  const clean = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  const clean = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 13);
   return `${SOCIETY_CODE_PREFIX}-${clean}`;
 }
 
