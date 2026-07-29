@@ -15,7 +15,7 @@ export class RoleController {
 
   async findAll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const roles = await roleService.findAll();
+      const roles = await roleService.findAll(req.user!.roleCode);
       sendSuccess(res, roles, 'Roles retrieved');
     } catch (error) {
       next(error);
@@ -24,7 +24,7 @@ export class RoleController {
 
   async findById(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const role = await roleService.findById(req.params.id);
+      const role = await roleService.findById(req.params.id, req.user!.roleCode);
       sendSuccess(res, role);
     } catch (error) {
       next(error);
@@ -33,7 +33,7 @@ export class RoleController {
 
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const role = await roleService.update(req.params.id, req.body);
+      const role = await roleService.update(req.params.id, req.body, req.user!.roleCode);
       sendSuccess(res, role, 'Role updated');
     } catch (error) {
       next(error);

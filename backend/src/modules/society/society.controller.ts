@@ -28,7 +28,9 @@ export class SocietyController {
   async findAll(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
-      const result = await societyService.findAll(page, limit, req.query.search as string);
+      const isPlatformUser = ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'].includes(req.user!.roleCode);
+      const scopedSocietyId = isPlatformUser ? undefined : req.user!.societyId;
+      const result = await societyService.findAll(page, limit, req.query.search as string, scopedSocietyId);
       sendPaginated(res, result, 'Societies retrieved');
     } catch (error) {
       next(error);
@@ -73,7 +75,8 @@ export class SocietyController {
 
   async getStats(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const stats = await societyService.getStats();
+      const isPlatformUser = ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'].includes(req.user!.roleCode);
+      const stats = await societyService.getStats(isPlatformUser ? undefined : req.user!.societyId);
       sendSuccess(res, stats, 'Stats retrieved');
     } catch (error) {
       next(error);

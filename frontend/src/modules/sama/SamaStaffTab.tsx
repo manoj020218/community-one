@@ -11,7 +11,7 @@ import { useSocietyStore } from '../../store/societyStore';
 import { cn } from '../../utils/cn';
 import {
   LIFECYCLE_STATUS_BADGE, PaginatedResult, SAMA_ACCESS_STATUSES, SAMA_EMPLOYER_TYPES, SAMA_ENGAGEMENT_TYPES, SAMA_PAYMENT_RESPONSIBILITIES,
-  SAMA_STAFF_TYPES, SAMA_VERIFICATION_STATUSES, StaffProfile,
+  SAMA_STAFF_TYPES, SAMA_VERIFICATION_STATUSES, StaffCategory, StaffProfile,
 } from './sama.types';
 
 const BLANK_STAFF = { firstName: '', lastName: '', displayName: '', mobile: '', email: '', staffType: 'SOCIETY_EMPLOYEE' as string, primaryCategory: '' };
@@ -40,6 +40,14 @@ export function SamaStaffTab() {
     queryFn: () => extractData<PaginatedResult<StaffProfile>>(api.get('/sama/staff-profiles', { params: { societyId, limit: 100 } })),
     enabled: !!societyId,
   });
+
+  const { data: categories } = useQuery({
+    queryKey: ['sama-categories', societyId],
+    queryFn: () => extractData<PaginatedResult<StaffCategory>>(api.get('/sama/staff-categories', { params: { societyId, limit: 100 } })),
+    enabled: !!societyId,
+  });
+
+  const eligibleCategories = (categories?.items || []).filter((c) => c.isActive && (c.staffTypes as string[]).includes(staffForm.staffType));
 
   const { data: flats } = useQuery({
     queryKey: ['flats-list', societyId],
@@ -207,11 +215,24 @@ export function SamaStaffTab() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">Staff Type</label>
-              <select value={staffForm.staffType} onChange={(e) => setStaff('staffType')(e.target.value)} className="input">
+              <select
+                value={staffForm.staffType}
+                onChange={(e) => setStaffForm((f) => ({ ...f, staffType: e.target.value, primaryCategory: '' }))}
+                className="input"
+              >
                 {SAMA_STAFF_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
               </select></div>
             <div><label className="label">Primary Category</label>
-              <input value={staffForm.primaryCategory} onChange={(e) => setStaff('primaryCategory')(e.target.value)} className="input" placeholder="GUARD" /></div>
+              <select value={staffForm.primaryCategory} onChange={(e) => setStaff('primaryCategory')(e.target.value)} className="input" disabled={!eligibleCategories.length}>
+                <option value="">{eligibleCategories.length ? 'Select category...' : 'No categories for this staff type'}</option>
+                {eligibleCategories.map((c) => <option key={c._id} value={c.code}>{c.name}</option>)}
+              </select>
+              {!eligibleCategories.length && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Add a category for {staffForm.staffType.replace(/_/g, ' ').toLowerCase()} under the Categories tab, or leave blank.
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => createStaffMutation.mutate()} disabled={createStaffMutation.isPending || !staffForm.firstName || !staffForm.displayName || !staffForm.mobile} className="btn-primary flex-1">

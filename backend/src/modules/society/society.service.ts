@@ -25,8 +25,9 @@ export class SocietyService {
     });
   }
 
-  async findAll(page: number, limit: number, search?: string): Promise<PaginatedResult<ISocietyDocument>> {
+  async findAll(page: number, limit: number, search?: string, scopedSocietyId?: string): Promise<PaginatedResult<ISocietyDocument>> {
     const query: any = { isActive: true };
+    if (scopedSocietyId) query._id = scopedSocietyId;
     if (search) query.$or = [
       { name: { $regex: search, $options: 'i' } },
       { code: { $regex: search, $options: 'i' } },
@@ -67,11 +68,13 @@ export class SocietyService {
     await Society.findByIdAndUpdate(id, { isActive: false, status: 'INACTIVE' });
   }
 
-  async getStats(): Promise<{ total: number; active: number; onboarding: number }> {
+  async getStats(scopedSocietyId?: string): Promise<{ total: number; active: number; onboarding: number }> {
+    const base: any = { isActive: true };
+    if (scopedSocietyId) base._id = scopedSocietyId;
     const [total, active, onboarding] = await Promise.all([
-      Society.countDocuments({ isActive: true }),
-      Society.countDocuments({ status: 'ACTIVE' }),
-      Society.countDocuments({ status: 'ONBOARDING' }),
+      Society.countDocuments(base),
+      Society.countDocuments({ ...base, status: 'ACTIVE' }),
+      Society.countDocuments({ ...base, status: 'ONBOARDING' }),
     ]);
     return { total, active, onboarding };
   }
