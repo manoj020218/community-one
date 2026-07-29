@@ -1,6 +1,15 @@
+import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { FileAsset, IFileAssetDocument } from './fileAsset.model';
 import { env } from '../../config/env';
+
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
 
 export class FileAssetService {
   async saveFile(
@@ -18,6 +27,31 @@ export class FileAssetService {
       url,
       storageProvider: 'LOCAL',
       ...meta,
+    });
+  }
+
+  /** Persists a file that didn't arrive via an HTTP multipart request (e.g. WhatsApp media). */
+  async saveBuffer(
+    buffer: Buffer,
+    uploadedBy: string,
+    meta: { societyId?: string; moduleCode?: string; entityType?: string; entityId?: string; accessLevel?: string; mimeType: string; originalName?: string }
+  ): Promise<IFileAssetDocument> {
+    const ext = EXT_BY_MIME[meta.mimeType] || '';
+    const fileName = `${uuidv4()}${ext}`;
+    fs.writeFileSync(path.join(this.getUploadPath(), fileName), buffer);
+    return FileAsset.create({
+      uploadedBy,
+      fileName,
+      originalName: meta.originalName || fileName,
+      mimeType: meta.mimeType,
+      size: buffer.length,
+      url: `/uploads/${fileName}`,
+      storageProvider: 'LOCAL',
+      societyId: meta.societyId,
+      moduleCode: meta.moduleCode,
+      entityType: meta.entityType,
+      entityId: meta.entityId,
+      accessLevel: meta.accessLevel,
     });
   }
 

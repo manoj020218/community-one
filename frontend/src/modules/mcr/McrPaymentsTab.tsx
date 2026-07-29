@@ -114,6 +114,7 @@ export function McrPaymentsTab() {
                   <td className="table-cell font-mono text-xs">
                     {payment.paymentNumber}
                     {payment.source === 'RESIDENT_SELF' && <span className="badge badge-blue text-[10px] ml-2">Resident Submitted</span>}
+                    {payment.source === 'WHATSAPP_INBOUND' && <span className="badge badge-green text-[10px] ml-2">Via WhatsApp</span>}
                   </td>
                   <td className="table-cell text-sm text-slate-700">{payment.payerName}</td>
                   <td className="table-cell font-semibold">{formatPaise(payment.amountPaise)}</td>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Banknote, LayoutDashboard, Wallet, ListTree, CalendarClock,
   FileText, CreditCard, Receipt, FileBarChart, ShieldCheck, Settings2,
@@ -42,7 +42,9 @@ export function McrPage() {
     ...(hasMcrGatewayAccess(permissions) ? [{ key: 'gateway' as const, label: 'Gateway', icon: ShieldCheck }] : []),
     ...(hasMcrConfigureAccess(permissions) ? [{ key: 'settings' as const, label: 'Settings', icon: Settings2 }] : []),
   ];
-  const [activeTab, setActiveTab] = useState<TabKey>(tabs[0]?.key || 'dashboard');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as TabKey | null;
+  const [activeTab, setActiveTab] = useState<TabKey>(tabFromUrl && tabs.some((t) => t.key === tabFromUrl) ? tabFromUrl : tabs[0]?.key || 'dashboard');
 
   if (!hasMcrAccess(permissions)) {
     return <EmptyState icon={Banknote} title="MCR access unavailable" description="Your current role does not have Maintenance & Receipts permissions." />;

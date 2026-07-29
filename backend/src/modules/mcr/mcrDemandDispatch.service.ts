@@ -4,9 +4,15 @@ import { notificationService } from '../notification/notification.service';
 import { Resident } from '../resident/resident.model';
 import { MaintenanceDemand } from './demand.model';
 import { McrNotificationDispatch } from './mcrNotificationDispatch.model';
+import { mcrSettingsService } from './mcrSettings.service';
+import { buildUpiLink } from './mcrUpi.util';
 
 function money(value: number) {
   return `INR ${(value / 100).toFixed(2)}`;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class McrDemandDispatchService {
@@ -23,6 +29,11 @@ export class McrDemandDispatchService {
     const title = `Maintenance reminder for ${demand.billingPeriodLabel}`;
     const message = `Outstanding amount ${money(demand.outstandingPaise)} is due for flat ${demand.flatSnapshot?.['flatNo'] || ''}.`;
     const results = [];
+    const settings = await mcrSettingsService.getBySociety(societyId, demand.createdBy);
+    const waMessage = settings.collectionUpiId
+      ? `${message}\n\nPay via UPI: ${buildUpiLink(settings.collectionUpiId, settings.collectionUpiPayeeName || 'Society Maintenance', demand.outstandingPaise)}` +
+        (settings.allowResidentPaymentSubmission ? '\n\nAfter paying, reply to THIS message with a screenshot of the payment confirmation so we can verify it.' : '')
+      : message;
 
     if (!residents.length) {
       results.push(await this.record(demand, 'IN_APP', 'SKIPPED', 'NO_RESIDENT', 'No active resident is linked to this flat', eventDate));
@@ -73,8 +84,9 @@ export class McrDemandDispatchService {
             if (!resident.mobile) results.push(await this.record(demand, channel, 'SKIPPED', key, 'Resident mobile is missing', eventDate));
             else if (status.status !== 'CONNECTED') results.push(await this.record(demand, channel, 'SKIPPED', key, 'WhatsApp is not connected', eventDate, resident.mobile));
             else {
-              await whatsAppService.sendMessage(societyId, resident.mobile, message);
-              results.push(await this.record(demand, channel, 'SENT', key, undefined, eventDate, resident.mobile));
+              const sent = await whatsAppService.sendMessage(societyId, resident.mobile, waMessage);
+              results.push(await this.record(demand, channel, 'SENT', key, undefined, eventDate, resident.mobile, sent.id));
+              await sleep(2000); // spread bursts out — reduces the chance of automated-traffic detection on the linked WhatsApp number
             }
           }
 
@@ -102,7 +114,7 @@ export class McrDemandDispatchService {
     return undefined;
   }
 
-  private async record(demand: any, channel: string, status: string, key: string, failureMessage?: string, eventDate?: string, destination?: string) {
+  private async record(demand: any, channel: string, status: string, key: string, failureMessage?: string, eventDate?: string, destination?: string, providerMessageId?: string) {
     const dispatch = await McrNotificationDispatch.create({
       societyId: demand.societyId,
       eventType: 'DEMAND_REMINDER',
@@ -113,6 +125,7 @@ export class McrDemandDispatchService {
       status,
       attemptCount: 1,
       destinationMasked: destination ? this.mask(destination) : undefined,
+      providerMessageId,
       sentAt: status === 'SENT' ? new Date() : undefined,
       failedAt: status === 'FAILED' ? new Date() : undefined,
       failureMessage,

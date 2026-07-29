@@ -45,7 +45,7 @@ export function McrSettingsTab() {
     { key: 'allowSelfVerification', label: 'Allow self-verification', desc: 'Let the person who recorded a payment also verify it' },
     { key: 'allowAdvancePayment', label: 'Allow advance payments', desc: 'Overpayments become advance credit applied to future demands' },
     { key: 'allowPartialPayment', label: 'Allow partial payments', desc: 'Payments smaller than the outstanding amount are accepted' },
-    { key: 'allowResidentPaymentSubmission', label: 'Allow resident payment submission', desc: 'Residents can submit their own payment references for verification' },
+    { key: 'allowResidentPaymentSubmission', label: 'Allow resident payment submission', desc: 'Residents can submit UPI payment proof in-app, or by replying with a screenshot to a WhatsApp reminder — both land here for your verification' },
     { key: 'publicReceiptVerificationEnabled', label: 'Public receipt verification', desc: 'Anyone with a receipt link can verify its authenticity' },
     { key: 'lateFeeEnabled', label: 'Late fees', desc: 'Automatically generate late-fee demands for overdue dues' },
   ];

@@ -4,7 +4,9 @@ import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  downloadMediaMessage,
   WASocket,
+  WAMessage,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import pino from 'pino';
@@ -20,6 +22,16 @@ interface SocietySession {
   qr?: string;
 }
 
+export interface InboundImagePayload {
+  fromMobile: string;
+  quotedMessageId?: string;
+  buffer: Buffer;
+  mimeType: string;
+  caption?: string;
+}
+
+export type InboundImageHandler = (societyId: string, payload: InboundImagePayload) => Promise<void>;
+
 function sessionDir(societyId: string): string {
   return path.join(SESSIONS_ROOT, societyId);
 }
@@ -30,8 +42,19 @@ function toJid(phone: string): string {
   return `${normalized}@s.whatsapp.net`;
 }
 
+function fromJid(jid: string): string {
+  return jid.split('@')[0].split(':')[0];
+}
+
 export class WhatsAppService {
   private sessions = new Map<string, SocietySession>();
+  private inboundImageHandlers: InboundImageHandler[] = [];
+
+  /** Registered by feature modules (e.g. MCR) at server boot — keeps this transport-only
+   * module decoupled from any specific module's business logic. */
+  onInboundImage(handler: InboundImageHandler): void {
+    this.inboundImageHandlers.push(handler);
+  }
 
   /** Reconnects any society whose settings say it was previously linked — call once on server boot. */
   async reconnectAll(): Promise<void> {
@@ -84,7 +107,40 @@ export class WhatsAppService {
       }
     });
 
+    sock.ev.on('messages.upsert', ({ messages, type }) => {
+      if (type !== 'notify') return;
+      for (const msg of messages) {
+        if (msg.key.fromMe || !msg.message) continue;
+        this.handleInboundMessage(societyId, sock, msg).catch((err) =>
+          logger.warn('WhatsApp inbound message handling failed', { societyId, err: err?.message })
+        );
+      }
+    });
+
     return { status: 'CONNECTING' };
+  }
+
+  private async handleInboundMessage(societyId: string, sock: WASocket, msg: WAMessage): Promise<void> {
+    const imageMessage = msg.message?.imageMessage;
+    if (!imageMessage || !this.inboundImageHandlers.length) return;
+
+    const fromMobile = fromJid(msg.key.remoteJid || '');
+    if (!fromMobile) return;
+
+    const buffer = (await downloadMediaMessage(msg, 'buffer', {}, { logger: waLogger, reuploadRequest: sock.updateMediaMessage })) as Buffer;
+    const payload = {
+      fromMobile,
+      quotedMessageId: imageMessage.contextInfo?.stanzaId || undefined,
+      buffer,
+      mimeType: imageMessage.mimetype || 'image/jpeg',
+      caption: imageMessage.caption || undefined,
+    };
+
+    for (const handler of this.inboundImageHandlers) {
+      await handler(societyId, payload).catch((err) =>
+        logger.warn('WhatsApp inbound image handler threw', { societyId, err: err?.message })
+      );
+    }
   }
 
   async getStatus(societyId: string): Promise<{ status: string; qr?: string; phoneNumber?: string }> {
@@ -108,12 +164,13 @@ export class WhatsAppService {
     await this.updateStatus(societyId, 'DISCONNECTED');
   }
 
-  async sendMessage(societyId: string, phone: string, text: string): Promise<void> {
+  async sendMessage(societyId: string, phone: string, text: string): Promise<{ id?: string }> {
     const session = this.sessions.get(societyId);
     if (!session || session.status !== 'CONNECTED') {
       throw new Error('WhatsApp is not connected for this society');
     }
-    await session.sock.sendMessage(toJid(phone), { text });
+    const result = await session.sock.sendMessage(toJid(phone), { text });
+    return { id: result?.key.id || undefined };
   }
 
   private async updateStatus(societyId: string, status: 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED', phoneNumber?: string): Promise<void> {

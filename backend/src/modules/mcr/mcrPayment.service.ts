@@ -9,6 +9,7 @@ import { McrPaymentRecord, IMcrPaymentRecordDocument } from './mcrPaymentRecord.
 import { createMcrPaymentSchema, residentSubmitPaymentSchema } from './mcrPayment.schemas';
 import { mcrNumberingService } from './mcrNumbering.service';
 import { mcrSettingsService } from './mcrSettings.service';
+import { buildUpiLink } from './mcrUpi.util';
 import { parseOrThrow } from './mcr.validation';
 
 interface PaymentInsertInput {
@@ -84,6 +85,33 @@ export class McrPaymentService {
     });
   }
 
+  /** Payment auto-created from a resident's WhatsApp reply to a reminder message. No HTTP
+   * caller/actor exists for this path, so a synthetic system context is built the same way
+   * verifySystemPayment() does for gateway-webhook-triggered verification. */
+  async createInboundWhatsAppPayment(
+    societyId: string,
+    params: { flatId: string; amountPaise: number; proofFileId: string; systemActorUserId: string; notes?: string }
+  ): Promise<IMcrPaymentRecordDocument> {
+    const context: McrActorContext = {
+      societyId,
+      user: { userId: params.systemActorUserId, email: 'system@jenix.local', mobile: '0000000000', roleCode: 'SYSTEM', permissions: [], societyId },
+    };
+    const resident = await this.findResident(societyId, params.flatId);
+    const flat = await Flat.findOne({ _id: params.flatId, societyId });
+
+    return this.insertPayment(context, {
+      flatId: params.flatId,
+      residentId: resident?._id?.toString(),
+      payerName: resident?.name || flat?.flatNo || 'Resident',
+      payerMobile: resident?.mobile,
+      amountPaise: params.amountPaise,
+      paymentMethod: 'UPI',
+      proofFileIds: [params.proofFileId],
+      notes: params.notes,
+      source: 'WHATSAPP_INBOUND',
+    });
+  }
+
   async getUpiQr(context: McrActorContext, amountPaise?: number): Promise<{
     configured: boolean;
     upiId?: string;
@@ -95,9 +123,7 @@ export class McrPaymentService {
     if (!settings.collectionUpiId) return { configured: false };
 
     const payeeName = settings.collectionUpiPayeeName || 'Society Maintenance';
-    const params = new URLSearchParams({ pa: settings.collectionUpiId, pn: payeeName, cu: 'INR' });
-    if (amountPaise && amountPaise > 0) params.set('am', (amountPaise / 100).toFixed(2));
-    const upiLink = `upi://pay?${params.toString()}`;
+    const upiLink = buildUpiLink(settings.collectionUpiId, payeeName, amountPaise);
     const qrDataUrl = await QRCode.toDataURL(upiLink);
 
     return { configured: true, upiId: settings.collectionUpiId, payeeName, upiLink, qrDataUrl };

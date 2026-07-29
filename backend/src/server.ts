@@ -5,6 +5,7 @@ import { logger } from './common/utils/logger';
 import { mcrDemandAutomationWorker } from './modules/mcr/mcrDemandAutomation.worker';
 import { mcrLateFeeWorker } from './modules/mcr/mcrLateFee.worker';
 import { mcrReminderWorker } from './modules/mcr/mcrReminder.worker';
+import { mcrWhatsAppInboundService } from './modules/mcr/mcrWhatsAppInbound.service';
 import { samaScheduledSyncWorker } from './modules/sama/samaScheduledSync.worker';
 import { visitorExpiryWorker } from './modules/visitor/visitor.expiry.worker';
 import { whatsAppService } from './modules/communication/whatsapp.service';
@@ -18,6 +19,7 @@ async function startServer(): Promise<void> {
     if (env.MCR_REMINDER_WORKER_ENABLED) mcrReminderWorker.start();
     if (env.SAMA_SYNC_WORKER_ENABLED) samaScheduledSyncWorker.start();
     if (env.VISITOR_EXPIRY_WORKER_ENABLED) visitorExpiryWorker.start();
+    whatsAppService.onInboundImage((societyId, payload) => mcrWhatsAppInboundService.handle(societyId, payload));
     whatsAppService.reconnectAll().catch((err) => logger.warn('WhatsApp reconnectAll failed', { err }));
 
     const server = app.listen(env.PORT, () => {
