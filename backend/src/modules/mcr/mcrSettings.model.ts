@@ -20,6 +20,10 @@ export interface IMcrSettingsDocument extends Document {
   publicReceiptVerificationEnabled: boolean;
   collectionUpiId: string;
   collectionUpiPayeeName: string;
+  reminderAutomationEnabled: boolean;
+  reminderFrequencyDays: number;
+  reminderTimeOfDay: string;
+  reminderLastRunDate?: string;
   updatedBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -46,6 +50,10 @@ const McrSettingsSchema = new Schema(
     publicReceiptVerificationEnabled: { type: Boolean, default: false },
     collectionUpiId: { type: String, trim: true, default: '' },
     collectionUpiPayeeName: { type: String, trim: true, default: '' },
+    reminderAutomationEnabled: { type: Boolean, default: false },
+    reminderFrequencyDays: { type: Number, default: 1 },
+    reminderTimeOfDay: { type: String, default: '10:00' },
+    reminderLastRunDate: { type: String, trim: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

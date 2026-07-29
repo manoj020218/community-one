@@ -19,6 +19,9 @@ export const mcrSettingsSchema = z.object({
   publicReceiptVerificationEnabled: z.boolean().default(false),
   collectionUpiId: z.string().trim().max(80).default(''),
   collectionUpiPayeeName: z.string().trim().max(120).default(''),
+  reminderAutomationEnabled: z.boolean().default(false),
+  reminderFrequencyDays: z.coerce.number().int().min(1).max(14).default(1),
+  reminderTimeOfDay: z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm 24-hour format').default('10:00'),
 });
 
 export const mcrSettingsUpdateSchema = mcrSettingsSchema.partial();

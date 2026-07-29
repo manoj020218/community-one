@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, Settings2 } from 'lucide-react';
+import { Save, Settings2, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -14,6 +14,7 @@ const BLANK: McrSettings = {
   makerCheckerEnabled: true, allowSelfVerification: false, allowAdvancePayment: true,
   allowPartialPayment: true, allowResidentPaymentSubmission: false, publicReceiptVerificationEnabled: false,
   collectionUpiId: '', collectionUpiPayeeName: '',
+  reminderAutomationEnabled: false, reminderFrequencyDays: 1, reminderTimeOfDay: '10:00',
 };
 
 export function McrSettingsTab() {
@@ -97,6 +98,32 @@ export function McrSettingsTab() {
         </div>
         <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save UPI Details'}
+        </button>
+      </div>
+
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-5"><Bell className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">Automated Reminders</h3></div>
+        <label className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 cursor-pointer mb-1">
+          <div>
+            <p className="text-sm font-medium text-slate-700">Send reminders automatically</p>
+            <p className="text-xs text-slate-500">Off by default. When on, residents with outstanding dues get a reminder on the schedule below, on every enabled channel (in-app, email, WhatsApp).</p>
+          </div>
+          <input type="checkbox" checked={form.reminderAutomationEnabled} onChange={setBool('reminderAutomationEnabled')} className="w-5 h-5 text-indigo-600 rounded flex-shrink-0 ml-3" />
+        </label>
+        {form.reminderAutomationEnabled && (
+          <div className="grid grid-cols-2 gap-4 p-3">
+            <div><label className="label">Repeat every</label>
+              <div className="flex items-center gap-2">
+                <input type="number" min={1} max={14} value={form.reminderFrequencyDays} onChange={setNum('reminderFrequencyDays')} className="input w-24" />
+                <span className="text-sm text-slate-500">day(s)</span>
+              </div>
+            </div>
+            <div><label className="label">Send at</label>
+              <input type="time" value={form.reminderTimeOfDay} onChange={setStr('reminderTimeOfDay')} className="input" /></div>
+          </div>
+        )}
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
+          <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save Reminder Schedule'}
         </button>
       </div>
 

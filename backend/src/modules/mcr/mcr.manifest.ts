@@ -51,5 +51,8 @@ export const MCR_MANIFEST = {
     publicReceiptVerificationEnabled: { type: 'boolean', default: false },
     collectionUpiId: { type: 'string', default: '' },
     collectionUpiPayeeName: { type: 'string', default: '' },
+    reminderAutomationEnabled: { type: 'boolean', default: false },
+    reminderFrequencyDays: { type: 'number', default: 1 },
+    reminderTimeOfDay: { type: 'string', default: '10:00' },
   },
 } as const;

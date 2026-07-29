@@ -39,17 +39,14 @@ class McrReminderWorker {
     this.status.lastRunAt = new Date();
     try {
       const societies = await SocietyModuleConfig.find({ moduleCode: 'MCR', isEnabled: true }).select('societyId');
-      let sentCount = 0;
-      for (const item of societies) {
-        const result = await mcrReminderService.runOutstandingReminders(item.societyId.toString(), { limit: this.status.batchSize, channels: ['IN_APP', 'EMAIL', 'WHATSAPP'] });
-        sentCount += result.sentCount;
-      }
+      const societyIds = societies.map((item) => item.societyId.toString());
+      const { processedSocietyCount, sentCount } = await mcrReminderService.runDueAutomatedReminders(societyIds, this.status.batchSize);
 
-      this.status.processedSocietyCount = societies.length;
+      this.status.processedSocietyCount = processedSocietyCount;
       this.status.sentCount = sentCount;
       this.status.lastSuccessAt = new Date();
       this.status.lastError = undefined;
-      logger.info(`MCR reminder worker processed ${societies.length} societies and sent ${sentCount} reminders`);
+      if (processedSocietyCount) logger.info(`MCR reminder worker ran for ${processedSocietyCount} societies and sent ${sentCount} reminders`);
     } catch (error: any) {
       this.status.lastError = error.message;
       logger.error('MCR reminder worker failed', error);

@@ -37,6 +37,9 @@ export interface McrSettings {
   publicReceiptVerificationEnabled: boolean;
   collectionUpiId: string;
   collectionUpiPayeeName: string;
+  reminderAutomationEnabled: boolean;
+  reminderFrequencyDays: number;
+  reminderTimeOfDay: string;
 }
 
 export interface McrUpiQr {
