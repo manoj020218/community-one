@@ -27,6 +27,20 @@ async function seed(): Promise<void> {
   }
   console.log('Roles seeded');
 
+  // Refresh existing users' permissions from their role's current permission set.
+  // User.permissions is a snapshot copied at creation time (see user.service.ts) and is never
+  // customized per-user, so any drift from ROLE_PERMISSIONS is staleness from a role gaining new
+  // permissions after the user account was created (e.g. a new module) — always safe to re-sync.
+  let refreshedUserCount = 0;
+  for (const [roleCode, permissions] of Object.entries(ROLE_PERMISSIONS)) {
+    const result = await User.updateMany(
+      { roleCode, permissions: { $ne: permissions } },
+      { $set: { permissions } }
+    );
+    refreshedUserCount += result.modifiedCount;
+  }
+  console.log(`User permissions refreshed (${refreshedUserCount} user(s) updated)`);
+
   // Seed Modules
   for (const module of MODULES_SEED) {
     await ModuleRegistry.findOneAndUpdate({ code: module.code }, module, { upsert: true, new: true });
