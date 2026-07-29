@@ -47,6 +47,16 @@ async function seed(): Promise<void> {
   }
   console.log('Modules seeded');
 
+  // Prune registry entries for modules no longer in MODULES_SEED. Renaming/rebuilding a module
+  // (e.g. the old placeholder codes MAINTENANCE -> MCR and STAFF -> SAMA) upserts a new document
+  // under the new code rather than replacing the old one, leaving a stale "Coming Soon" duplicate
+  // behind forever unless pruned. MODULES_SEED is the single source of truth for what exists.
+  const currentModuleCodes = MODULES_SEED.map((module) => module.code);
+  const pruneResult = await ModuleRegistry.deleteMany({ code: { $nin: currentModuleCodes } });
+  if (pruneResult.deletedCount) {
+    console.log(`Pruned ${pruneResult.deletedCount} obsolete module registry entr${pruneResult.deletedCount === 1 ? 'y' : 'ies'}`);
+  }
+
   // Seed Report Definitions
   for (const report of REPORTS_SEED) {
     await ReportDefinition.findOneAndUpdate({ code: report.code }, report, { upsert: true, new: true });
