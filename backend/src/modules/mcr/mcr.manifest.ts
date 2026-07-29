@@ -30,6 +30,7 @@ export const MCR_MANIFEST = {
     PERMISSIONS.MCR_SEND_REQUEST,
     PERMISSIONS.MCR_SEND_REMINDER,
     PERMISSIONS.MCR_RECORD_PAYMENT,
+    PERMISSIONS.MCR_SUBMIT_PAYMENT,
     PERMISSIONS.MCR_VERIFY_PAYMENT,
     PERMISSIONS.MCR_REJECT_PAYMENT,
     PERMISSIONS.MCR_CANCEL_PAYMENT,
@@ -48,5 +49,7 @@ export const MCR_MANIFEST = {
     makerCheckerEnabled: { type: 'boolean', default: true },
     allowResidentPaymentSubmission: { type: 'boolean', default: false },
     publicReceiptVerificationEnabled: { type: 'boolean', default: false },
+    collectionUpiId: { type: 'string', default: '' },
+    collectionUpiPayeeName: { type: 'string', default: '' },
   },
 } as const;

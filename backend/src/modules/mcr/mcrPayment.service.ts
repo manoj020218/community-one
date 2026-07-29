@@ -1,22 +1,47 @@
+import QRCode from 'qrcode';
 import { ConflictError, NotFoundError, ValidationError } from '../../common/errors/AppError';
 import { Flat } from '../flat/flat.model';
 import { FileAsset } from '../fileAsset/fileAsset.model';
 import { Resident } from '../resident/resident.model';
+import { User } from '../user/user.model';
 import { McrActorContext } from './mcr.access.service';
 import { McrPaymentRecord, IMcrPaymentRecordDocument } from './mcrPaymentRecord.model';
-import { createMcrPaymentSchema } from './mcrPayment.schemas';
+import { createMcrPaymentSchema, residentSubmitPaymentSchema } from './mcrPayment.schemas';
 import { mcrNumberingService } from './mcrNumbering.service';
+import { mcrSettingsService } from './mcrSettings.service';
 import { parseOrThrow } from './mcr.validation';
+
+interface PaymentInsertInput {
+  flatId: string;
+  residentId?: string;
+  payerName: string;
+  payerMobile?: string;
+  amountPaise: number;
+  paymentMethod: string;
+  paymentDate?: Date;
+  receivedDate?: Date;
+  bankReference?: string;
+  upiReference?: string;
+  chequeNumber?: string;
+  chequeDate?: Date;
+  bankName?: string;
+  cardReference?: string;
+  cashCollectionReference?: string;
+  notes?: string;
+  proofFileIds: string[];
+  idempotencyKey?: string;
+  source: string;
+}
 
 export class McrPaymentService {
   async listBySociety(societyId: string, status?: string): Promise<IMcrPaymentRecordDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
-    return McrPaymentRecord.find(query).sort({ receivedDate: -1, createdAt: -1 });
+    return McrPaymentRecord.find(query).sort({ receivedDate: -1, createdAt: -1 }).populate('proofFileIds', 'url originalName mimeType');
   }
 
   async findById(societyId: string, paymentId: string): Promise<IMcrPaymentRecordDocument> {
-    const payment = await McrPaymentRecord.findOne({ _id: paymentId, societyId });
+    const payment = await McrPaymentRecord.findOne({ _id: paymentId, societyId }).populate('proofFileIds', 'url originalName mimeType');
     if (!payment) throw new NotFoundError('MCR payment');
     return payment;
   }
@@ -27,6 +52,58 @@ export class McrPaymentService {
     if (!flat) throw new NotFoundError('Flat');
 
     const resident = await this.findResident(context.societyId, dto.flatId, dto.residentId);
+    return this.insertPayment(context, { ...dto, residentId: resident?._id?.toString(), source: 'MANUAL' });
+  }
+
+  /** Resident-initiated UPI payment submission — flat/payer are always derived from the
+   * caller's own account, never from client input, so a resident can never claim a payment
+   * against a flat they don't belong to. */
+  async createResidentPayment(context: McrActorContext, input: unknown): Promise<IMcrPaymentRecordDocument> {
+    if (!context.user.flatId) throw new ValidationError('Your account is not linked to a flat');
+
+    const settings = await mcrSettingsService.getBySociety(context.societyId, context.user.userId);
+    if (!settings.allowResidentPaymentSubmission) {
+      throw new ValidationError('Resident payment submission is not enabled for this society');
+    }
+
+    const dto = parseOrThrow(residentSubmitPaymentSchema, input);
+    const flat = await Flat.findOne({ _id: context.user.flatId, societyId: context.societyId });
+    if (!flat) throw new NotFoundError('Flat');
+
+    const resident = await this.findResident(context.societyId, context.user.flatId);
+    const user = await User.findById(context.user.userId);
+
+    return this.insertPayment(context, {
+      ...dto,
+      flatId: context.user.flatId,
+      residentId: resident?._id?.toString(),
+      payerName: user?.name || context.user.email,
+      payerMobile: user?.mobile,
+      paymentMethod: 'UPI',
+      source: 'RESIDENT_SELF',
+    });
+  }
+
+  async getUpiQr(context: McrActorContext, amountPaise?: number): Promise<{
+    configured: boolean;
+    upiId?: string;
+    payeeName?: string;
+    upiLink?: string;
+    qrDataUrl?: string;
+  }> {
+    const settings = await mcrSettingsService.getBySociety(context.societyId, context.user.userId);
+    if (!settings.collectionUpiId) return { configured: false };
+
+    const payeeName = settings.collectionUpiPayeeName || 'Society Maintenance';
+    const params = new URLSearchParams({ pa: settings.collectionUpiId, pn: payeeName, cu: 'INR' });
+    if (amountPaise && amountPaise > 0) params.set('am', (amountPaise / 100).toFixed(2));
+    const upiLink = `upi://pay?${params.toString()}`;
+    const qrDataUrl = await QRCode.toDataURL(upiLink);
+
+    return { configured: true, upiId: settings.collectionUpiId, payeeName, upiLink, qrDataUrl };
+  }
+
+  private async insertPayment(context: McrActorContext, dto: PaymentInsertInput): Promise<IMcrPaymentRecordDocument> {
     await this.assertProofFiles(context.societyId, dto.proofFileIds);
     const paymentDate = dto.paymentDate || dto.receivedDate || new Date();
     const receivedDate = dto.receivedDate || paymentDate;
@@ -37,7 +114,7 @@ export class McrPaymentService {
         societyId: context.societyId,
         paymentNumber,
         flatId: dto.flatId,
-        residentId: resident?._id,
+        residentId: dto.residentId,
         payerName: dto.payerName,
         payerMobile: dto.payerMobile,
         amountPaise: dto.amountPaise,
@@ -54,7 +131,7 @@ export class McrPaymentService {
         notes: dto.notes,
         proofFileIds: dto.proofFileIds,
         status: 'PENDING_VERIFICATION',
-        source: 'MANUAL',
+        source: dto.source,
         idempotencyKey: dto.idempotencyKey,
         enteredBy: context.user.userId,
       });

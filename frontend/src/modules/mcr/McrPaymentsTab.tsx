@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, CreditCard, CheckCircle2, XCircle, Ban, AlertOctagon } from 'lucide-react';
+import { Plus, CreditCard, CheckCircle2, XCircle, Ban, AlertOctagon, Paperclip } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -104,17 +104,35 @@ export function McrPaymentsTab() {
               <th className="table-header text-left">Amount</th>
               <th className="table-header text-left">Method</th>
               <th className="table-header text-left">Date</th>
+              <th className="table-header text-left">Proof</th>
               <th className="table-header text-left">Status</th>
               <th className="table-header text-left">Actions</th>
             </tr></thead>
             <tbody>
               {data.map((payment) => (
                 <tr key={payment._id} className="table-row">
-                  <td className="table-cell font-mono text-xs">{payment.paymentNumber}</td>
+                  <td className="table-cell font-mono text-xs">
+                    {payment.paymentNumber}
+                    {payment.source === 'RESIDENT_SELF' && <span className="badge badge-blue text-[10px] ml-2">Resident Submitted</span>}
+                  </td>
                   <td className="table-cell text-sm text-slate-700">{payment.payerName}</td>
                   <td className="table-cell font-semibold">{formatPaise(payment.amountPaise)}</td>
                   <td className="table-cell"><span className="badge badge-gray text-xs">{payment.paymentMethod.replace('_', ' ')}</span></td>
                   <td className="table-cell text-xs text-slate-500">{formatDate(payment.paymentDate)}</td>
+                  <td className="table-cell">
+                    {payment.proofFileIds?.length ? (
+                      <div className="flex flex-col gap-1">
+                        {payment.proofFileIds.map((f, i) => {
+                          const url = typeof f === 'string' ? undefined : f.url;
+                          return url ? (
+                            <a key={i} href={url} target="_blank" rel="noreferrer" className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs">
+                              <Paperclip className="w-3 h-3" /> View
+                            </a>
+                          ) : null;
+                        })}
+                      </div>
+                    ) : <span className="text-xs text-slate-400">—</span>}
+                  </td>
                   <td className="table-cell"><span className={cn('badge', PAYMENT_STATUS_BADGE[payment.status])}>{payment.status.replace('_', ' ')}</span></td>
                   <td className="table-cell">
                     {payment.status === 'PENDING_VERIFICATION' && (

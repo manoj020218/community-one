@@ -17,6 +17,8 @@ export const mcrSettingsSchema = z.object({
   allowPartialPayment: z.boolean().default(true),
   allowResidentPaymentSubmission: z.boolean().default(false),
   publicReceiptVerificationEnabled: z.boolean().default(false),
+  collectionUpiId: z.string().trim().max(80).default(''),
+  collectionUpiPayeeName: z.string().trim().max(120).default(''),
 });
 
 export const mcrSettingsUpdateSchema = mcrSettingsSchema.partial();

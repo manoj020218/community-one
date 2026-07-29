@@ -58,6 +58,38 @@ export class McrPaymentController {
     }
   }
 
+  async getUpiQr(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const amountPaise = typeof req.query.amountPaise === 'string' ? Number(req.query.amountPaise) : undefined;
+      const result = await mcrPaymentService.getUpiQr(context, amountPaise);
+      sendSuccess(res, result, 'UPI collection details retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async submitSelf(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const payment = await mcrPaymentService.createResidentPayment(context, req.body);
+      await auditService.log({
+        societyId: context.societyId,
+        actorUserId: context.user.userId,
+        actorRole: context.user.roleCode,
+        moduleCode: 'MCR',
+        action: 'MCR_PAYMENT_SUBMITTED',
+        entityType: 'McrPaymentRecord',
+        entityId: payment._id!.toString(),
+        newValue: { paymentNumber: payment.paymentNumber, amountPaise: payment.amountPaise, status: payment.status },
+        ipAddress: req.ip,
+      });
+      sendCreated(res, payment, 'Payment submitted — pending verification');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async verify(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);

@@ -38,6 +38,15 @@ export const createMcrPaymentSchema = z.object({
   }
 });
 
+export const residentSubmitPaymentSchema = z.object({
+  amountPaise: paiseSchema.min(1),
+  upiReference: z.string().trim().min(1).max(80),
+  paymentDate: z.coerce.date().optional(),
+  notes: z.string().trim().max(500).optional(),
+  proofFileIds: z.array(objectIdSchema).min(1, 'A payment screenshot is required').max(5),
+  idempotencyKey: z.string().trim().min(1).max(64).optional(),
+});
+
 export const verifyMcrPaymentSchema = z.object({
   allocations: z.array(z.object({
     demandId: objectIdSchema,

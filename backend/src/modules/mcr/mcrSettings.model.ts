@@ -18,6 +18,8 @@ export interface IMcrSettingsDocument extends Document {
   allowPartialPayment: boolean;
   allowResidentPaymentSubmission: boolean;
   publicReceiptVerificationEnabled: boolean;
+  collectionUpiId: string;
+  collectionUpiPayeeName: string;
   updatedBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -42,6 +44,8 @@ const McrSettingsSchema = new Schema(
     allowPartialPayment: { type: Boolean, default: true },
     allowResidentPaymentSubmission: { type: Boolean, default: false },
     publicReceiptVerificationEnabled: { type: Boolean, default: false },
+    collectionUpiId: { type: String, trim: true, default: '' },
+    collectionUpiPayeeName: { type: String, trim: true, default: '' },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

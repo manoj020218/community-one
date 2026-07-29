@@ -87,6 +87,7 @@ export const PERMISSIONS = {
   MCR_SEND_REQUEST: 'mcr.send_request',
   MCR_SEND_REMINDER: 'mcr.send_reminder',
   MCR_RECORD_PAYMENT: 'mcr.record_payment',
+  MCR_SUBMIT_PAYMENT: 'mcr.submit_payment',
   MCR_VERIFY_PAYMENT: 'mcr.verify_payment',
   MCR_REJECT_PAYMENT: 'mcr.reject_payment',
   MCR_CANCEL_PAYMENT: 'mcr.cancel_payment',

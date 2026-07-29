@@ -35,6 +35,16 @@ export interface McrSettings {
   allowPartialPayment: boolean;
   allowResidentPaymentSubmission: boolean;
   publicReceiptVerificationEnabled: boolean;
+  collectionUpiId: string;
+  collectionUpiPayeeName: string;
+}
+
+export interface McrUpiQr {
+  configured: boolean;
+  upiId?: string;
+  payeeName?: string;
+  upiLink?: string;
+  qrDataUrl?: string;
 }
 
 export interface ChargeHead {
@@ -118,6 +128,8 @@ export interface McrPaymentRecord {
   bankName?: string;
   cardReference?: string;
   notes?: string;
+  source?: string;
+  proofFileIds?: Array<{ _id: string; url: string; originalName?: string; mimeType?: string } | string>;
   enteredBy: string;
   verifiedBy?: string;
   verifiedAt?: string;

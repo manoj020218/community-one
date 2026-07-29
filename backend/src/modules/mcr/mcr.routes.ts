@@ -37,8 +37,10 @@ router.post('/demands/:demandId/publish', requirePermission(PERMISSIONS.MCR_PUBL
 router.post('/demands/:demandId/reminders', requirePermission(PERMISSIONS.MCR_SEND_REMINDER), mcrReminderController.sendForDemand.bind(mcrReminderController));
 router.post('/late-fees/run', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), mcrLateFeeController.run.bind(mcrLateFeeController));
 router.get('/payments', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_RECORD_PAYMENT, PERMISSIONS.MCR_VERIFY_PAYMENT), mcrPaymentController.list.bind(mcrPaymentController));
+router.get('/payments/upi-qr', requireAnyPermission(...MCR_ROUTE_PERMISSIONS), mcrPaymentController.getUpiQr.bind(mcrPaymentController));
 router.get('/payments/:paymentId', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_RECORD_PAYMENT, PERMISSIONS.MCR_VERIFY_PAYMENT), mcrPaymentController.getById.bind(mcrPaymentController));
 router.post('/payments', requirePermission(PERMISSIONS.MCR_RECORD_PAYMENT), mcrPaymentController.create.bind(mcrPaymentController));
+router.post('/payments/self', requirePermission(PERMISSIONS.MCR_SUBMIT_PAYMENT), mcrPaymentController.submitSelf.bind(mcrPaymentController));
 router.post('/payments/:paymentId/verify', requirePermission(PERMISSIONS.MCR_VERIFY_PAYMENT), mcrPaymentController.verify.bind(mcrPaymentController));
 router.post('/payments/:paymentId/reject', requirePermission(PERMISSIONS.MCR_REJECT_PAYMENT), mcrPaymentController.reject.bind(mcrPaymentController));
 router.post('/payments/:paymentId/cancel', requirePermission(PERMISSIONS.MCR_CANCEL_PAYMENT), mcrPaymentController.cancel.bind(mcrPaymentController));

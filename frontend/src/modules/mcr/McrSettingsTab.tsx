@@ -13,6 +13,7 @@ const BLANK: McrSettings = {
   lateFeeEnabled: false, lateFeeAmountPaise: 0, lateFeeIntervalDays: 30,
   makerCheckerEnabled: true, allowSelfVerification: false, allowAdvancePayment: true,
   allowPartialPayment: true, allowResidentPaymentSubmission: false, publicReceiptVerificationEnabled: false,
+  collectionUpiId: '', collectionUpiPayeeName: '',
 };
 
 export function McrSettingsTab() {
@@ -81,6 +82,22 @@ export function McrSettingsTab() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-5"><Settings2 className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">UPI Collection Details</h3></div>
+        <p className="text-xs text-slate-500 mb-4">
+          Residents pay this UPI ID directly and submit their transaction reference with a screenshot for your verification — no payment gateway required.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className="label">Society UPI ID</label>
+            <input value={form.collectionUpiId} onChange={setStr('collectionUpiId')} className="input" placeholder="society@upi" /></div>
+          <div><label className="label">Payee Name</label>
+            <input value={form.collectionUpiPayeeName} onChange={setStr('collectionUpiPayeeName')} className="input" placeholder="Your Society Name" /></div>
+        </div>
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
+          <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save UPI Details'}
+        </button>
       </div>
 
       <div className="card p-6">
