@@ -43,6 +43,8 @@ router.post('/staff-profiles/:staffId/approve', requirePermission(PERMISSIONS.SA
 router.post('/staff-profiles/:staffId/suspend', requirePermission(PERMISSIONS.SAMA_EDIT_STAFF), staffProfileController.suspend.bind(staffProfileController));
 router.post('/staff-profiles/:staffId/reinstate', requirePermission(PERMISSIONS.SAMA_APPROVE_STAFF), staffProfileController.reinstate.bind(staffProfileController));
 router.post('/staff-profiles/:staffId/terminate', requirePermission(PERMISSIONS.SAMA_APPROVE_STAFF), staffProfileController.terminate.bind(staffProfileController));
+router.post('/staff-profiles/:staffId/generate-login', requirePermission(PERMISSIONS.SAMA_EDIT_STAFF), staffProfileController.generateLogin.bind(staffProfileController));
+router.post('/staff-profiles/:staffId/reset-password', requirePermission(PERMISSIONS.SAMA_EDIT_STAFF), staffProfileController.resetLoginPassword.bind(staffProfileController));
 router.get('/staff-categories', requireAnyPermission(PERMISSIONS.SAMA_VIEW_STAFF, PERMISSIONS.SAMA_MANAGE_STAFF_CATEGORIES), staffCategoryController.list.bind(staffCategoryController));
 router.post('/staff-categories', requirePermission(PERMISSIONS.SAMA_MANAGE_STAFF_CATEGORIES), staffCategoryController.create.bind(staffCategoryController));
 router.patch('/staff-categories/:categoryId', requirePermission(PERMISSIONS.SAMA_MANAGE_STAFF_CATEGORIES), staffCategoryController.update.bind(staffCategoryController));

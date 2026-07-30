@@ -57,6 +57,14 @@ export interface StaffProfile {
   lifecycleStatus: SamaLifecycleStatus;
   suspensionReason?: string;
   terminationReason?: string;
+  linkedUserId?: string;
+}
+
+export interface GuardCredentials {
+  staffId: string;
+  username: string;
+  tempPassword: string;
+  generatedAt: string;
 }
 
 export interface StaffEngagement {

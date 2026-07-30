@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Briefcase, CheckCircle2, PauseCircle, PlayCircle, XCircle } from 'lucide-react';
+import { Plus, Users, Briefcase, CheckCircle2, PauseCircle, PlayCircle, XCircle, KeyRound, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -9,8 +9,9 @@ import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn } from '../../utils/cn';
+import { CredentialRevealModal } from './CredentialRevealModal';
 import {
-  LIFECYCLE_STATUS_BADGE, PaginatedResult, SAMA_ACCESS_STATUSES, SAMA_EMPLOYER_TYPES, SAMA_ENGAGEMENT_TYPES, SAMA_PAYMENT_RESPONSIBILITIES,
+  GuardCredentials, LIFECYCLE_STATUS_BADGE, PaginatedResult, SAMA_ACCESS_STATUSES, SAMA_EMPLOYER_TYPES, SAMA_ENGAGEMENT_TYPES, SAMA_PAYMENT_RESPONSIBILITIES,
   SAMA_STAFF_TYPES, SAMA_VERIFICATION_STATUSES, StaffCategory, StaffProfile,
 } from './sama.types';
 
@@ -34,6 +35,7 @@ export function SamaStaffTab() {
   const [engagementForm, setEngagementForm] = useState(BLANK_ENGAGEMENT);
   const [reasonPrompt, setReasonPrompt] = useState<{ staffId: string; action: 'suspend' | 'terminate' } | null>(null);
   const [reason, setReason] = useState('');
+  const [credentials, setCredentials] = useState<GuardCredentials | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['sama-staff', societyId],
@@ -87,6 +89,18 @@ export function SamaStaffTab() {
   const reinstateMutation = useMutation({
     mutationFn: (staffId: string) => api.post(`/sama/staff-profiles/${staffId}/reinstate`, { societyId }),
     onSuccess: () => { invalidateStaff(); toast.success('Staff reinstated'); },
+  });
+
+  const generateLoginMutation = useMutation({
+    mutationFn: (staffId: string) => extractData<GuardCredentials>(api.post(`/sama/staff-profiles/${staffId}/generate-login`, { societyId })),
+    onSuccess: (result) => { invalidateStaff(); setCredentials(result); },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to generate login'),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (staffId: string) => extractData<GuardCredentials>(api.post(`/sama/staff-profiles/${staffId}/reset-password`, { societyId })),
+    onSuccess: (result) => setCredentials(result),
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to reset password'),
   });
 
   const reasonMutation = useMutation({
@@ -187,6 +201,17 @@ export function SamaStaffTab() {
                         <button onClick={() => setReasonPrompt({ staffId: staff._id, action: 'terminate' })} className="text-red-600 hover:text-red-700" title="Terminate">
                           <XCircle className="w-4 h-4" />
                         </button>
+                      )}
+                      {staff.primaryCategory === 'GUARD' && staff.lifecycleStatus !== 'TERMINATED' && (
+                        !staff.linkedUserId ? (
+                          <button onClick={() => generateLoginMutation.mutate(staff._id)} disabled={generateLoginMutation.isPending} className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-xs font-medium" title="Generate Login">
+                            <KeyRound className="w-3.5 h-3.5" /> Generate Login
+                          </button>
+                        ) : (
+                          <button onClick={() => resetPasswordMutation.mutate(staff._id)} disabled={resetPasswordMutation.isPending} className="text-slate-500 hover:text-slate-700 flex items-center gap-1 text-xs font-medium" title="Reset Password">
+                            <RotateCcw className="w-3.5 h-3.5" /> Reset Password
+                          </button>
+                        )
                       )}
                     </div>
                   </td>
@@ -304,6 +329,8 @@ export function SamaStaffTab() {
           </div>
         </div>
       </Modal>
+
+      <CredentialRevealModal credentials={credentials} onClose={() => setCredentials(null)} />
     </div>
   );
 }

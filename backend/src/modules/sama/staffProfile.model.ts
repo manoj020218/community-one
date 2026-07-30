@@ -22,6 +22,7 @@ export interface IStaffProfileDocument extends Document {
   terminatedAt?: Date;
   terminatedByUserId?: string;
   terminationReason?: string;
+  linkedUserId?: string;
   createdBy: string;
   updatedBy: string;
 }
@@ -49,6 +50,7 @@ const StaffProfileSchema = new Schema(
     terminatedAt: { type: Date },
     terminatedByUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     terminationReason: { type: String, trim: true },
+    linkedUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },

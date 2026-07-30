@@ -53,6 +53,29 @@ export class StaffProfileController {
     await this.lifecycleAction(req, res, next, 'SAMA_STAFF_PROFILE_TERMINATED', 'SAMA staff profile terminated', (context) => staffProfileService.terminate(context, req.params.staffId, req.body));
   }
 
+  async generateLogin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await samaAccessService.getActorContext(req.user!, typeof req.body.societyId === 'string' ? req.body.societyId : undefined);
+      const result = await staffProfileService.generateLogin(context, req.params.staffId);
+      // Never persist the plaintext temp password in the audit trail — only that a login was issued.
+      await auditService.log({ societyId: context.societyId, actorUserId: context.user.userId, actorRole: context.user.roleCode, moduleCode: 'SAMA', action: 'SAMA_STAFF_LOGIN_GENERATED', entityType: 'StaffProfile', entityId: result.staffId, newValue: { username: result.username }, ipAddress: req.ip });
+      sendCreated(res, result, 'Guard login generated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resetLoginPassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await samaAccessService.getActorContext(req.user!, typeof req.body.societyId === 'string' ? req.body.societyId : undefined);
+      const result = await staffProfileService.resetLoginPassword(context, req.params.staffId);
+      await auditService.log({ societyId: context.societyId, actorUserId: context.user.userId, actorRole: context.user.roleCode, moduleCode: 'SAMA', action: 'SAMA_STAFF_LOGIN_RESET', entityType: 'StaffProfile', entityId: result.staffId, newValue: { username: result.username }, ipAddress: req.ip });
+      sendSuccess(res, result, 'Guard password reset');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   private async lifecycleAction(
     req: AuthenticatedRequest,
     res: Response,

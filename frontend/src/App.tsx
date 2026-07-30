@@ -28,6 +28,7 @@ import { HealthPage } from './modules/health/HealthPage';
 import { ProfilePage } from './modules/profile/ProfilePage';
 import { SettingsPage } from './modules/settings/SettingsPage';
 import { VisitorPage } from './modules/visitor/VisitorPage';
+import { GuardKioskPage } from './modules/guardKiosk/GuardKioskPage';
 import { McrPage } from './modules/mcr/McrPage';
 import { SamaPage } from './modules/sama/SamaPage';
 import { RequireSociety } from './components/common/RequireSociety';
@@ -48,6 +49,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function DashboardRoute() {
   const { user } = useAuthStore();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.roleCode === 'SECURITY_GUARD') return <Navigate to="/guard-kiosk" replace />;
   if (hasPermission(user, 'visitor.request.create')) return <VisitorPage />;
   if (user.roleCode === 'JENIX_SUPER_ADMIN' || user.roleCode === 'JENIX_SUPPORT') return <SuperAdminDashboard />;
   if (['OWNER', 'TENANT', 'FAMILY_MEMBER'].includes(user.roleCode)) return <ResidentDashboard />;
@@ -66,6 +68,9 @@ export default function App() {
     <Routes>
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Guard Kiosk — full-screen, no Sidebar/TopBar shell */}
+      <Route path="/guard-kiosk" element={<ProtectedRoute><RequireSociety><GuardKioskPage /></RequireSociety></ProtectedRoute>} />
 
       {/* Public marketing routes — no auth required */}
       <Route element={<MarketingLayout />}>

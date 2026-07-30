@@ -1,5 +1,8 @@
-import { ValidationError } from '../../common/errors/AppError';
+import { ConflictError, NotFoundError, ValidationError } from '../../common/errors/AppError';
 import { buildPaginatedResult, parsePagination } from '../../common/utils/response';
+import { hashPassword } from '../../common/utils/password';
+import { roleService } from '../role/role.service';
+import { User } from '../user/user.model';
 import { SamaActorContext } from './sama.access.service';
 import { samaNumberingService } from './samaNumbering.service';
 import { StaffCategory } from './staffCategory.model';
@@ -14,6 +17,16 @@ import {
   staffProfileUpdateSchema,
 } from './staffProfile.schemas';
 import { parseOrThrow } from './sama.validation';
+
+const PASSWORD_ADJECTIVES = ['Blue', 'Green', 'Royal', 'Silver', 'Golden', 'Smart', 'Grand', 'Swift', 'Bright', 'Clear'];
+const PASSWORD_NOUNS = ['Tiger', 'Diamond', 'Eagle', 'Crown', 'Ridge', 'Peak', 'Grove', 'Valley', 'River', 'Stone'];
+
+function generatePassword(): string {
+  const adj = PASSWORD_ADJECTIVES[Math.floor(Math.random() * PASSWORD_ADJECTIVES.length)];
+  const noun = PASSWORD_NOUNS[Math.floor(Math.random() * PASSWORD_NOUNS.length)];
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `${adj}${noun}@${num}`;
+}
 
 export class StaffProfileService {
   async listBySociety(societyId: string, input: unknown) {
@@ -126,6 +139,51 @@ export class StaffProfileService {
     staff.updatedBy = context.user.userId;
     await staff.save();
     return staff;
+  }
+
+  /** Guard-category staff are usually functionally illiterate and never self-register — an
+   * admin generates their login credentials on their behalf and hands them over directly. */
+  async generateLogin(context: SamaActorContext, staffId: string) {
+    const staff = await StaffProfile.findOne({ _id: staffId, societyId: context.societyId }).orFail();
+    if (staff.primaryCategory !== 'GUARD') throw new ValidationError('Only staff in the Guard category can be issued a login');
+    if (staff.linkedUserId) throw new ConflictError('This staff member already has a login — use reset password instead');
+
+    const tempPassword = generatePassword();
+    const passwordHash = await hashPassword(tempPassword);
+    const permissions = await roleService.getPermissionsForRole('SECURITY_GUARD');
+    const user = await User.create({
+      name: staff.displayName,
+      // staffCode is only unique within a society, but User.email must be globally unique —
+      // fold in societyId so two societies' identically-coded guards never collide.
+      email: `${staff.staffCode.toLowerCase()}.${context.societyId}@guard.internal.jenix`,
+      mobile: staff.mobile,
+      passwordHash,
+      roleCode: 'SECURITY_GUARD',
+      permissions,
+      societyId: context.societyId,
+      isActive: true,
+      isEmailVerified: true,
+      isMobileVerified: true,
+    });
+
+    staff.linkedUserId = user._id!.toString();
+    staff.updatedBy = context.user.userId;
+    await staff.save();
+
+    return { staffId: staff._id!.toString(), username: staff.mobile, tempPassword, generatedAt: new Date() };
+  }
+
+  async resetLoginPassword(context: SamaActorContext, staffId: string) {
+    const staff = await StaffProfile.findOne({ _id: staffId, societyId: context.societyId }).orFail();
+    if (!staff.linkedUserId) throw new NotFoundError('Login for this staff member');
+
+    const tempPassword = generatePassword();
+    const passwordHash = await hashPassword(tempPassword);
+    await User.findByIdAndUpdate(staff.linkedUserId, { passwordHash });
+    staff.updatedBy = context.user.userId;
+    await staff.save();
+
+    return { staffId: staff._id!.toString(), username: staff.mobile, tempPassword, generatedAt: new Date() };
   }
 
   private async findCategory(societyId: string, staffType: string, primaryCategory?: string) {
