@@ -65,3 +65,5 @@ export const SOFTWARE_APPLICATION_SCHEMA = {
     audienceType: 'Housing societies, RWAs, apartment residents, society committees, security staff, IoT gate hardware installers',
   },
 };
+
+export const LANDING_STRUCTURED_DATA: Record<string, unknown>[] = [ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA];

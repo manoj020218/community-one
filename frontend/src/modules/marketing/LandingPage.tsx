@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
-import { LANDING_KEYWORDS, ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from '../../components/seo/seoContent';
+import { LANDING_KEYWORDS, LANDING_STRUCTURED_DATA } from '../../components/seo/seoContent';
 
 // ─── Module definitions ────────────────────────────────────────────────────────
 const MODULES = [
@@ -650,7 +650,7 @@ export function LandingPage() {
         description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, maintenance billing, vehicle & parking control, and IoT gate access, all in one app. Free onboarding, no card needed."
         keywords={LANDING_KEYWORDS}
         path="/"
-        structuredData={[ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA]}
+        structuredData={LANDING_STRUCTURED_DATA}
       />
       <HeroSection />
       <StatsStrip />
