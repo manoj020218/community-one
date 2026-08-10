@@ -5,6 +5,8 @@ import {
   CheckCircle2, Copy, Check, AlertCircle, Loader2, Eye, EyeOff, Tag,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { Seo } from '../../components/seo/Seo';
+import { ONBOARD_KEYWORDS } from '../../components/seo/seoContent';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa',
@@ -188,6 +190,12 @@ export function OnboardPage() {
   // ─── Registration Form ─────────────────────────────────────────────────────
   return (
     <div className="pt-16">
+      <Seo
+        title="Register Your Society Free | Jenix Community One Onboarding"
+        description="Onboard your housing society, RWA or apartment complex on Jenix Community One in minutes. Free registration, no credit card required — start managing residents, payments and visitors digitally today."
+        keywords={ONBOARD_KEYWORDS}
+        path="/onboard"
+      />
       {/* Hero */}
       <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-white py-16">
         <div className="max-w-2xl mx-auto px-4 text-center">

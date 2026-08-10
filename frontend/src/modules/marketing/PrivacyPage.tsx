@@ -1,8 +1,17 @@
+import { Seo } from '../../components/seo/Seo';
+import { PRIVACY_KEYWORDS } from '../../components/seo/seoContent';
+
 export function PrivacyPage() {
   const updated = 'July 10, 2026';
 
   return (
     <div className="pt-16">
+      <Seo
+        title="Privacy Policy | Jenix Community One"
+        description="Read how Jenix Community One collects, uses and protects resident, society and visitor data on our society management platform."
+        keywords={PRIVACY_KEYWORDS}
+        path="/privacy"
+      />
       <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-white py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-4xl font-black mb-3">Privacy Policy</h1>

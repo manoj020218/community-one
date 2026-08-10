@@ -1,9 +1,18 @@
 import { Link } from 'react-router-dom';
 import { Building2, Cpu, Globe, Users, ArrowRight, Mail, MapPin } from 'lucide-react';
+import { Seo } from '../../components/seo/Seo';
+import { ABOUT_KEYWORDS, ORGANIZATION_SCHEMA } from '../../components/seo/seoContent';
 
 export function AboutPage() {
   return (
     <div className="pt-16">
+      <Seo
+        title="About Us | Jenix Community One — Society Management by IOT Soft"
+        description="Jenix Community One is built by IOT Soft, an Indian IoT and smart building technology company, to modernize gated community and housing society management with digital tools and hardware integration."
+        keywords={ABOUT_KEYWORDS}
+        path="/about"
+        structuredData={ORGANIZATION_SCHEMA}
+      />
       {/* Hero */}
       <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-white py-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
@@ -71,7 +80,7 @@ export function AboutPage() {
               Future modules include visitor management, maintenance request tracking, amenity booking, complaint management, digital polls, and emergency alerts — making Jenix a true all-in-one society operating system.
             </p>
             <p>
-              We also build and integrate IoT hardware — smart gate controllers, RFID readers, and access control devices — that connect directly to the platform for real-time entry management.
+              We also build and integrate IoT hardware — smart gate controllers, boom barriers, RFID readers, and access control devices — that connect directly to the platform for real-time entry management. We work with gate hardware sellers and installers looking to pair their equipment with a ready-made society management platform.
             </p>
           </div>
         </div>

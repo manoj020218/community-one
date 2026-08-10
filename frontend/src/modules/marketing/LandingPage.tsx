@@ -7,6 +7,8 @@ import {
   ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, Timer, UserCog,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { Seo } from '../../components/seo/Seo';
+import { LANDING_KEYWORDS, ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA } from '../../components/seo/seoContent';
 
 // ─── Module definitions ────────────────────────────────────────────────────────
 const MODULES = [
@@ -248,7 +250,7 @@ function FeaturesSection() {
     {
       icon: ShieldCheck,
       title: 'IoT Access Control',
-      desc: 'Smart gate management powered by hardware. RFID, QR codes and mobile-based entry for residents and staff.',
+      desc: 'Smart gate management powered by hardware. RFID, QR codes, boom barriers and mobile-based entry — built to integrate with your existing gate hardware and installers.',
       color: 'bg-red-50',
       iconColor: 'text-red-600',
     },
@@ -643,6 +645,13 @@ function CTASection() {
 export function LandingPage() {
   return (
     <div>
+      <Seo
+        title="Jenix Community One | Society Management Software for Gated Communities in India"
+        description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, maintenance billing, vehicle & parking control, and IoT gate access, all in one app. Free onboarding, no card needed."
+        keywords={LANDING_KEYWORDS}
+        path="/"
+        structuredData={[ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA]}
+      />
       <HeroSection />
       <StatsStrip />
       <ProblemSection />

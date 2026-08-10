@@ -1,8 +1,17 @@
+import { Seo } from '../../components/seo/Seo';
+import { TERMS_KEYWORDS } from '../../components/seo/seoContent';
+
 export function TermsPage() {
   const updated = 'July 10, 2026';
 
   return (
     <div className="pt-16">
+      <Seo
+        title="Terms of Service | Jenix Community One"
+        description="Terms and conditions for using the Jenix Community One society management platform for residents, committees and staff."
+        keywords={TERMS_KEYWORDS}
+        path="/terms"
+      />
       <section className="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-white py-16">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-4xl font-black mb-3">Terms &amp; Conditions</h1>
