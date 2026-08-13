@@ -21,6 +21,11 @@ const SocietySchema = new Schema(
       enum: ['BASIC', 'STANDARD', 'PREMIUM', 'ENTERPRISE'],
       default: 'BASIC',
     },
+    vertical: {
+      type: String,
+      enum: ['COMMUNITY', 'HOSTEL'],
+      default: 'COMMUNITY',
+    },
     enabledModules: [{ type: String }],
     status: {
       type: String,

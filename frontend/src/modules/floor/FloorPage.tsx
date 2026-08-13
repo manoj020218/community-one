@@ -9,6 +9,7 @@ import { Modal } from '../../components/common/Modal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Tower, Floor } from '../../types';
+import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
@@ -19,6 +20,7 @@ export function FloorPage() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const terms = useTerminology();
 
   const [selectedTowerId, setSelectedTowerId] = useState('');
   const [flatGenTarget, setFlatGenTarget] = useState<{ floor: Floor; tower: Tower } | null>(null);
@@ -92,11 +94,11 @@ export function FloorPage() {
     <div className="space-y-6">
       <PageHeader
         title="Floors"
-        subtitle="Floors are auto-created from tower configuration — generate flats per floor here"
+        subtitle={`Floors are auto-created from ${terms.building.toLowerCase()} configuration — generate ${terms.unit.toLowerCase()}s per floor here`}
         action={
           selectedTower && floors.length > 0 ? (
             <button onClick={() => setGenAllTarget(selectedTower)} className="btn-primary flex items-center gap-2">
-              <Zap className="w-4 h-4" /> Generate All Flats ({floors.length} floors)
+              <Zap className="w-4 h-4" /> Generate All {terms.unitPlural} ({floors.length} floors)
             </button>
           ) : null
         }
@@ -105,7 +107,7 @@ export function FloorPage() {
       {/* Tower selector tabs */}
       <div className="card p-4">
         {towers.length === 0 ? (
-          <p className="text-sm text-slate-500">No towers yet — <button onClick={() => navigate('/towers')} className="text-primary-600 underline">create towers first</button></p>
+          <p className="text-sm text-slate-500">No {terms.buildingPlural.toLowerCase()} yet — <button onClick={() => navigate('/towers')} className="text-primary-600 underline">create {terms.building.toLowerCase()}s first</button></p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {towers.map((t) => (
@@ -131,7 +133,7 @@ export function FloorPage() {
 
       {/* Floor list */}
       {!selectedTowerId ? (
-        <EmptyState icon={LayoutGrid} title="Select a tower" description="Choose a tower above to view and manage its floors" />
+        <EmptyState icon={LayoutGrid} title={`Select a ${terms.building.toLowerCase()}`} description={`Choose a ${terms.building.toLowerCase()} above to view and manage its floors`} />
       ) : floorsLoading ? (
         <div className="card p-8 text-center text-slate-400">Loading floors...</div>
       ) : floors.length === 0 ? (

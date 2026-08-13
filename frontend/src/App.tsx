@@ -31,6 +31,7 @@ import { VisitorPage } from './modules/visitor/VisitorPage';
 import { GuardKioskPage } from './modules/guardKiosk/GuardKioskPage';
 import { McrPage } from './modules/mcr/McrPage';
 import { SamaPage } from './modules/sama/SamaPage';
+import { LeasePage } from './modules/lease/LeasePage';
 import { RequireSociety } from './components/common/RequireSociety';
 import { MarketingLayout } from './modules/marketing/MarketingLayout';
 import { LandingPage } from './modules/marketing/LandingPage';
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="/modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
         <Route path="/mcr" element={<RequireSociety><McrPage /></RequireSociety>} />
         <Route path="/sama" element={<RequireSociety><SamaPage /></RequireSociety>} />
+        <Route path="/lease" element={<RequireSociety><LeasePage /></RequireSociety>} />
         <Route path="/notifications" element={<NotificationPage />} />
         <Route path="/visitor" element={<RequireSociety><VisitorPage /></RequireSociety>} />
         <Route path="/audit" element={<RequireSociety><AuditPage /></RequireSociety>} />

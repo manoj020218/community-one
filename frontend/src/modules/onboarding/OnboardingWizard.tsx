@@ -1,28 +1,39 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, ChevronRight, ChevronLeft, Layers3, LayoutGrid, Users, Puzzle, Cpu, Eye } from 'lucide-react';
+import { CheckCircle2, ChevronRight, ChevronLeft, Layers3, LayoutGrid, Users, Puzzle, Cpu, Eye, Building2, BedDouble } from 'lucide-react';
 import { api } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
+import { terminologyFor } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
 
-const STEPS = [
-  { id: 1, title: 'Society Details', icon: CheckCircle2, desc: 'Verify basic information' },
-  { id: 2, title: 'Towers & Blocks', icon: Layers3, desc: 'Set up building structure' },
-  { id: 3, title: 'Flats Setup', icon: LayoutGrid, desc: 'Generate flat numbers' },
-  { id: 4, title: 'Admin Users', icon: Users, desc: 'Create society admins' },
-  { id: 5, title: 'Modules', icon: Puzzle, desc: 'Enable required modules' },
-  { id: 6, title: 'Devices', icon: Cpu, desc: 'Map IoT devices (optional)' },
-  { id: 7, title: 'Review', icon: Eye, desc: 'Final review and finish' },
-];
+type Vertical = 'COMMUNITY' | 'HOSTEL';
 
 export function OnboardingWizard() {
   const { id: societyId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
+  const [vertical, setVertical] = useState<Vertical>('COMMUNITY');
   const [towerConfig, setTowerConfig] = useState({ count: 1, prefix: 'Tower', floors: 10, flatsPerFloor: 4 });
+  const terms = terminologyFor(vertical);
+
+  const STEPS = [
+    { id: 1, title: 'Setup Type', icon: Building2, desc: 'Community or hostel?' },
+    { id: 2, title: `${terms.org} Details`, icon: CheckCircle2, desc: 'Verify basic information' },
+    { id: 3, title: terms.buildingPlural, icon: Layers3, desc: 'Set up building structure' },
+    { id: 4, title: `${terms.unitPlural} Setup`, icon: LayoutGrid, desc: `Generate ${terms.unit.toLowerCase()} numbers` },
+    { id: 5, title: 'Admin Users', icon: Users, desc: `Create ${terms.org.toLowerCase()} admins` },
+    { id: 6, title: 'Modules', icon: Puzzle, desc: 'Enable required modules' },
+    { id: 7, title: 'Devices', icon: Cpu, desc: 'Map IoT devices (optional)' },
+    { id: 8, title: 'Review', icon: Eye, desc: 'Final review and finish' },
+  ];
+
+  const verticalMutation = useMutation({
+    mutationFn: (v: Vertical) => api.patch(`/societies/${societyId}`, { vertical: v }),
+    onSuccess: (_res, v) => { setVertical(v); queryClient.invalidateQueries({ queryKey: ['society', societyId] }); },
+  });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -45,14 +56,14 @@ export function OnboardingWizard() {
     mutationFn: () => api.patch(`/societies/${societyId}`, { status: 'ACTIVE', onboardingComplete: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['societies'] });
-      toast.success('Onboarding complete! Society is now active.');
+      toast.success(`Onboarding complete! ${terms.org} is now active.`);
       navigate('/societies');
     },
   });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <PageHeader title="Society Onboarding" subtitle="Set up your society step by step" />
+      <PageHeader title={`${terms.org} Onboarding`} subtitle={`Set up your ${terms.org.toLowerCase()} step by step`} />
 
       {/* Steps Progress */}
       <div className="card p-4">
@@ -73,40 +84,61 @@ export function OnboardingWizard() {
       {/* Step Content */}
       <div className="card p-6 min-h-[300px]">
         {currentStep === 1 && (
-          <div>
-            <h3 className="section-title mb-2">Society Details Verified</h3>
-            <p className="text-slate-500 text-sm mb-4">Your society basic details have been saved. Review and proceed.</p>
-            <div className="p-4 bg-emerald-50 rounded-xl flex items-center gap-3 text-emerald-700">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Society information is complete</span>
+          <div className="space-y-4">
+            <h3 className="section-title mb-2">What are you setting up?</h3>
+            <p className="text-slate-500 text-sm mb-4">This decides the words you'll see throughout the app — you can't change it later without contacting support.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {([
+                { v: 'COMMUNITY' as Vertical, icon: Building2, label: 'Community / Society', desc: 'Apartments, owners, tenants, maintenance billing' },
+                { v: 'HOSTEL' as Vertical, icon: BedDouble, label: 'Hostel', desc: 'Rooms, students, wardens, rent collection' },
+              ]).map((opt) => (
+                <button key={opt.v} onClick={() => verticalMutation.mutate(opt.v)}
+                  className={cn('p-5 rounded-2xl border-2 text-left transition-all', vertical === opt.v ? 'border-primary-500 bg-primary-50' : 'border-slate-100 hover:border-slate-200')}>
+                  <opt.icon className={cn('w-8 h-8 mb-3', vertical === opt.v ? 'text-primary-600' : 'text-slate-400')} />
+                  <p className="font-semibold text-slate-900">{opt.label}</p>
+                  <p className="text-xs text-slate-500 mt-1">{opt.desc}</p>
+                  {vertical === opt.v && <span className="badge badge-green text-xs mt-3 inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Selected</span>}
+                </button>
+              ))}
             </div>
           </div>
         )}
 
         {currentStep === 2 && (
-          <div className="space-y-4">
-            <h3 className="section-title">Configure Towers & Blocks</h3>
-            <p className="text-slate-500 text-sm">Generate the building structure automatically</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div><label className="label">Number of Towers</label>
-                <input type="number" min={1} max={12} value={towerConfig.count} onChange={(e) => setTowerConfig((t) => ({ ...t, count: +e.target.value }))} className="input" /></div>
-              <div><label className="label">Tower Prefix</label>
-                <input type="text" value={towerConfig.prefix} onChange={(e) => setTowerConfig((t) => ({ ...t, prefix: e.target.value }))} className="input" /></div>
-              <div><label className="label">Floors per Tower</label>
-                <input type="number" min={1} max={50} value={towerConfig.floors} onChange={(e) => setTowerConfig((t) => ({ ...t, floors: +e.target.value }))} className="input" /></div>
-              <div><label className="label">Flats per Floor</label>
-                <input type="number" min={1} max={20} value={towerConfig.flatsPerFloor} onChange={(e) => setTowerConfig((t) => ({ ...t, flatsPerFloor: +e.target.value }))} className="input" /></div>
-            </div>
-            <div className="p-4 bg-primary-50 rounded-xl text-sm text-primary-700">
-              This will generate {towerConfig.count} tower(s) × {towerConfig.floors} floors × {towerConfig.flatsPerFloor} flats = <strong>{towerConfig.count * towerConfig.floors * towerConfig.flatsPerFloor} flats total</strong>
+          <div>
+            <h3 className="section-title mb-2">{terms.org} Details Verified</h3>
+            <p className="text-slate-500 text-sm mb-4">Your {terms.org.toLowerCase()} basic details have been saved. Review and proceed.</p>
+            <div className="p-4 bg-emerald-50 rounded-xl flex items-center gap-3 text-emerald-700">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm font-medium">{terms.org} information is complete</span>
             </div>
           </div>
         )}
 
         {currentStep === 3 && (
+          <div className="space-y-4">
+            <h3 className="section-title">Configure {terms.buildingPlural}</h3>
+            <p className="text-slate-500 text-sm">Generate the building structure automatically</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="label">Number of {terms.buildingPlural}</label>
+                <input type="number" min={1} max={12} value={towerConfig.count} onChange={(e) => setTowerConfig((t) => ({ ...t, count: +e.target.value }))} className="input" /></div>
+              <div><label className="label">{terms.building} Prefix</label>
+                <input type="text" value={towerConfig.prefix} onChange={(e) => setTowerConfig((t) => ({ ...t, prefix: e.target.value }))} className="input" /></div>
+              <div><label className="label">Floors per {terms.building}</label>
+                <input type="number" min={1} max={50} value={towerConfig.floors} onChange={(e) => setTowerConfig((t) => ({ ...t, floors: +e.target.value }))} className="input" /></div>
+              <div><label className="label">{terms.unitPlural} per Floor</label>
+                <input type="number" min={1} max={20} value={towerConfig.flatsPerFloor} onChange={(e) => setTowerConfig((t) => ({ ...t, flatsPerFloor: +e.target.value }))} className="input" /></div>
+            </div>
+            <div className="p-4 bg-primary-50 rounded-xl text-sm text-primary-700">
+              This will generate {towerConfig.count} {terms.building.toLowerCase()}(s) × {towerConfig.floors} floors × {towerConfig.flatsPerFloor} {terms.unit.toLowerCase()}s = <strong>{towerConfig.count * towerConfig.floors * towerConfig.flatsPerFloor} {terms.unit.toLowerCase()}s total</strong>
+            </div>
+          </div>
+        )}
+
+        {currentStep === 4 && (
           <div>
-            <h3 className="section-title mb-2">Generate Flats</h3>
-            <p className="text-slate-500 text-sm mb-4">Flats will be auto-generated based on your tower configuration (e.g., A-101, A-102...)</p>
+            <h3 className="section-title mb-2">Generate {terms.unitPlural}</h3>
+            <p className="text-slate-500 text-sm mb-4">{terms.unitPlural} will be auto-generated based on your {terms.building.toLowerCase()} configuration (e.g., A-101, A-102...)</p>
             <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending} className="btn-primary">
               {generateMutation.isPending ? 'Generating...' : 'Generate Structure Now'}
             </button>
@@ -118,7 +150,7 @@ export function OnboardingWizard() {
           </div>
         )}
 
-        {currentStep >= 4 && currentStep <= 6 && (
+        {currentStep >= 5 && currentStep <= 7 && (
           <div>
             <h3 className="section-title mb-2">{STEPS[currentStep - 1].title}</h3>
             <p className="text-slate-500 text-sm">This can be configured after onboarding from the respective management pages.</p>
@@ -126,12 +158,12 @@ export function OnboardingWizard() {
           </div>
         )}
 
-        {currentStep === 7 && (
+        {currentStep === 8 && (
           <div className="space-y-4">
             <h3 className="section-title">Review & Complete</h3>
-            <p className="text-slate-500 text-sm">Your society is ready to go live. Click finish to activate it.</p>
+            <p className="text-slate-500 text-sm">Your {terms.org.toLowerCase()} is ready to go live. Click finish to activate it.</p>
             <div className="space-y-2">
-              {STEPS.slice(0, 6).map((s) => (
+              {STEPS.slice(0, 7).map((s) => (
                 <div key={s.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span className="text-sm font-medium text-slate-700">{s.title}</span>
@@ -148,7 +180,7 @@ export function OnboardingWizard() {
         <button disabled={currentStep <= 1} onClick={() => setCurrentStep((s) => s - 1)} className="btn-secondary flex items-center gap-2 disabled:opacity-50">
           <ChevronLeft className="w-4 h-4" /> Previous
         </button>
-        {currentStep < 7 ? (
+        {currentStep < 8 ? (
           <button onClick={() => setCurrentStep((s) => s + 1)} className="btn-primary flex items-center gap-2">
             Next <ChevronRight className="w-4 h-4" />
           </button>

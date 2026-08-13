@@ -48,6 +48,21 @@ export class DeviceController {
       sendSuccess(res, null, 'Device disabled');
     } catch (error) { next(error); }
   }
+
+  async pushEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const log = await deviceService.pushEvent(req.params.apiKey, req.body);
+      sendSuccess(res, { received: log.parsedEvents.length, warning: log.warning }, 'Event received');
+    } catch (error) { next(error); }
+  }
+
+  async listEventLogs(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 200);
+      const logs = await deviceService.listEventLogs(req.params.id, limit);
+      sendSuccess(res, logs, 'Event logs retrieved');
+    } catch (error) { next(error); }
+  }
 }
 
 export const deviceController = new DeviceController();

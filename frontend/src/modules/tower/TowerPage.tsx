@@ -11,6 +11,7 @@ import { useSocietyStore } from '../../store/societyStore';
 import { Tower, Floor } from '../../types';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
+import { useTerminology } from '../../utils/terminology';
 
 const TOWER_TYPES = ['TOWER', 'BLOCK', 'VILLA_ROW', 'SHOP_BLOCK', 'OTHER'];
 const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
@@ -24,6 +25,7 @@ export function TowerPage() {
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
+  const terms = useTerminology();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [form, setForm] = useState({ name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false });
@@ -133,8 +135,8 @@ export function TowerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Towers & Blocks"
-        subtitle="Create towers — floors are auto-generated, then configure flats per floor"
+        title={terms.buildingPlural}
+        subtitle={`Create ${terms.building.toLowerCase()}s — floors are auto-generated, then configure ${terms.unit.toLowerCase()}s per floor`}
         action={
           <div className="flex items-center gap-2">
             <button onClick={() => genMutation.mutate()} disabled={genMutation.isPending} className="btn-secondary text-sm flex items-center gap-1.5">
@@ -143,17 +145,17 @@ export function TowerPage() {
             </button>
             <input type="number" value={genCount} onChange={(e) => setGenCount(+e.target.value)} className="w-16 input text-sm py-2" min={1} max={12} />
             <button onClick={() => setShowAddModal(true)} className="btn-primary flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add Tower
+              <Plus className="w-4 h-4" /> Add {terms.building}
             </button>
           </div>
         }
       />
 
       {isLoading ? (
-        <div className="card p-8 text-center text-slate-400">Loading towers...</div>
+        <div className="card p-8 text-center text-slate-400">Loading {terms.buildingPlural.toLowerCase()}...</div>
       ) : towers.length === 0 ? (
-        <EmptyState icon={Layers3} title="No towers yet" description="Add a tower — floors are auto-generated from the floor count you set"
-          action={<button onClick={() => setShowAddModal(true)} className="btn-primary">Add First Tower</button>} />
+        <EmptyState icon={Layers3} title={`No ${terms.building.toLowerCase()}s yet`} description={`Add a ${terms.building.toLowerCase()} — floors are auto-generated from the floor count you set`}
+          action={<button onClick={() => setShowAddModal(true)} className="btn-primary">Add First {terms.building}</button>} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {towers.map((t) => {

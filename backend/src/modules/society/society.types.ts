@@ -1,6 +1,7 @@
 export type SocietyStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'ONBOARDING';
 export type BillingStatus = 'ACTIVE' | 'TRIAL' | 'EXPIRED' | 'SUSPENDED';
 export type PlanCode = 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+export type SocietyVertical = 'COMMUNITY' | 'HOSTEL';
 
 export interface ISociety {
   name: string;
@@ -15,6 +16,7 @@ export interface ISociety {
   contactMobile: string;
   contactEmail: string;
   planCode: PlanCode;
+  vertical: SocietyVertical;
   enabledModules: string[];
   status: SocietyStatus;
   billingStatus: BillingStatus;
@@ -54,4 +56,5 @@ export interface UpdateSocietyDto {
   logoUrl?: string;
   planCode?: PlanCode;
   status?: SocietyStatus;
+  vertical?: SocietyVertical;
 }

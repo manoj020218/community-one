@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Cpu, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Cpu, Wifi, WifiOff, Radio } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 import { VoiceInputField } from '../../components/common/VoiceInputField';
+import { DeviceEventLogModal } from './DeviceEventLogModal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Device } from '../../types';
@@ -14,6 +15,9 @@ import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
 
 const DEVICE_TYPES = ['BOOM_BARRIER_CONTROLLER','UHF_READER','QR_SCANNER','RFID_READER','ACCESS_READER','RELAY_CONTROLLER','GATE_CAMERA','GUARD_DEVICE','PANIC_BUTTON','IOT_GATEWAY','OTHER'];
+// 'GENERIC' has no push adapter registered — devices of that make can still be heartbeat-monitored
+// but won't be parsed if they push events. Add a brand here once its adapter exists in the backend registry.
+const DEVICE_MAKES = ['GENERIC', 'U5'];
 
 export function DevicePage() {
   const { user } = useAuthStore();
@@ -21,7 +25,8 @@ export function DevicePage() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ societyId, deviceName: '', deviceType: 'UHF_READER', deviceCode: '', gateName: '', location: '', ipAddress: '' });
+  const [logDevice, setLogDevice] = useState<Device | null>(null);
+  const [form, setForm] = useState({ societyId, deviceName: '', deviceType: 'UHF_READER', make: 'GENERIC', deviceCode: '', gateName: '', location: '', ipAddress: '' });
 
   const { data: devices = [], isLoading } = useQuery({
     queryKey: ['devices', societyId],
@@ -64,10 +69,14 @@ export function DevicePage() {
                 </div>
                 <h3 className="font-semibold text-slate-800 text-sm mb-0.5">{device.deviceName}</h3>
                 <p className="text-xs text-slate-500 mb-3">{device.deviceType.replace(/_/g, ' ')} · {device.deviceCode}</p>
+                {device.make && device.make !== 'GENERIC' && <p className="text-xs text-slate-600"><span className="font-medium">Make:</span> {device.make}</p>}
                 {device.gateName && <p className="text-xs text-slate-600"><span className="font-medium">Gate:</span> {device.gateName}</p>}
                 {device.location && <p className="text-xs text-slate-600"><span className="font-medium">Location:</span> {device.location}</p>}
                 {device.lastHeartbeatAt && <p className="text-xs text-slate-400 mt-2">Last seen: {formatDateTime(device.lastHeartbeatAt)}</p>}
                 {device.firmwareVersion && <p className="text-xs text-slate-400">FW: {device.firmwareVersion}</p>}
+                <button onClick={() => setLogDevice(device)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg py-1.5">
+                  <Radio className="w-3 h-3" /> Push URL & Event Log
+                </button>
               </div>
             ))
           )}
@@ -80,6 +89,9 @@ export function DevicePage() {
           <div><label className="label">Device Type</label>
             <select value={form.deviceType} onChange={(e) => set('deviceType')(e.target.value)} className="input">
               {DEVICE_TYPES.map((t) => <option key={t}>{t.replace(/_/g, ' ')}</option>)}</select></div>
+          <div><label className="label">Make <span className="text-slate-400 font-normal">(brand — decides how pushed events get parsed)</span></label>
+            <select value={form.make} onChange={(e) => set('make')(e.target.value)} className="input">
+              {DEVICE_MAKES.map((m) => <option key={m}>{m}</option>)}</select></div>
           <VoiceInputField label="Device Code" value={form.deviceCode} onChange={set('deviceCode')} placeholder="DEV-001" required />
           <VoiceInputField label="Gate Name" value={form.gateName} onChange={set('gateName')} placeholder="Main Gate" />
           <VoiceInputField label="Location" value={form.location} onChange={set('location')} placeholder="Tower A Entrance" />
@@ -90,6 +102,8 @@ export function DevicePage() {
           </div>
         </div>
       </Modal>
+
+      <DeviceEventLogModal device={logDevice} onClose={() => setLogDevice(null)} />
     </div>
   );
 }

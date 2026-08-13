@@ -10,6 +10,7 @@ import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Resident } from '../../types';
+import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const MEMBER_TYPES = ['OWNER', 'TENANT', 'FAMILY_MEMBER', 'STAFF', 'VENDOR'];
@@ -19,6 +20,7 @@ export function ResidentPage() {
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
+  const terms = useTerminology();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -59,8 +61,8 @@ export function ResidentPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Residents" subtitle="Manage all members, owners, and tenants"
-        action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Add Resident</button>} />
+      <PageHeader title={terms.personPlural} subtitle={`Manage all ${terms.person.toLowerCase()}s, owners, and tenants`}
+        action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Add {terms.person}</button>} />
 
       <div className="card p-4">
         <div className="relative">
@@ -72,8 +74,8 @@ export function ResidentPage() {
       {isLoading ? <TableSkeleton rows={6} cols={5} /> : (
         <div className="card overflow-hidden">
           {!data?.items?.length ? (
-            <EmptyState icon={Users} title="No residents yet" description="Add your first resident to get started"
-              action={<button onClick={() => setShowModal(true)} className="btn-primary">Add Resident</button>} />
+            <EmptyState icon={Users} title={`No ${terms.person.toLowerCase()}s yet`} description={`Add your first ${terms.person.toLowerCase()} to get started`}
+              action={<button onClick={() => setShowModal(true)} className="btn-primary">Add {terms.person}</button>} />
           ) : (
             <>
               <div className="overflow-x-auto">

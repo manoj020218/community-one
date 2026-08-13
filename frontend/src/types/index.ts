@@ -40,6 +40,7 @@ export interface Society {
   contactMobile: string;
   contactEmail: string;
   planCode: string;
+  vertical?: 'COMMUNITY' | 'HOSTEL';
   enabledModules: string[];
   status: string;
   billingStatus: string;
@@ -120,8 +121,14 @@ export interface Receipt {
 export interface Device {
   _id: string; societyId: string; deviceName: string; deviceType: string;
   deviceCode: string; gateName?: string; location?: string; ipAddress?: string;
-  apiKey: string; firmwareVersion?: string; lastHeartbeatAt?: string;
+  apiKey: string; make?: string; firmwareVersion?: string; lastHeartbeatAt?: string;
   onlineStatus: boolean; status: string;
+}
+
+export interface DeviceEventLog {
+  _id: string; deviceId: string; make: string; rawBody: unknown;
+  parsedEvents: Array<{ deviceExternalUserId: string; personName?: string; timestamp: string; method: string; passed: boolean }>;
+  warning?: string; receivedAt: string;
 }
 
 export interface Role {
@@ -129,3 +136,19 @@ export interface Role {
 }
 
 export type UserRole = 'JENIX_SUPER_ADMIN' | 'JENIX_SUPPORT' | 'SOCIETY_ADMIN' | 'COMMITTEE_MEMBER' | 'ACCOUNTANT' | 'SECURITY_GUARD' | 'FACILITY_MANAGER' | 'OWNER' | 'TENANT' | 'FAMILY_MEMBER';
+
+export type LeaseStatus = 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'RENEWED';
+
+export interface Lease {
+  _id: string; societyId: string;
+  flatId: any; residentId: any;
+  rentAmount: number; depositAmount: number;
+  depositRefundAmount?: number; depositRefundedAt?: string;
+  billingDay: number;
+  startDate: string; endDate: string;
+  noticePeriodDays: number;
+  status: LeaseStatus;
+  terminationDate?: string; terminationReason?: string;
+  remarks?: string;
+  createdAt: string;
+}

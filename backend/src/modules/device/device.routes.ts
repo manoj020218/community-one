@@ -8,8 +8,13 @@ const router: Router = Router();
 // Heartbeat is public but uses device API key
 router.post('/:id/heartbeat', deviceController.heartbeat.bind(deviceController));
 
+// Device event push — public, identified purely by the apiKey path segment (not a header) since
+// terminal firmware "third-party push" settings typically only let you configure a fixed URL.
+router.post('/push/:apiKey', deviceController.pushEvent.bind(deviceController));
+
 router.use(authenticate);
 router.get('/society/:societyId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findBySociety.bind(deviceController));
+router.get('/:id/event-logs', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.listEventLogs.bind(deviceController));
 router.post('/', requirePermission(PERMISSIONS.DEVICE_CREATE), deviceController.create.bind(deviceController));
 router.get('/:id', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findById.bind(deviceController));
 router.patch('/:id', requirePermission(PERMISSIONS.DEVICE_UPDATE), deviceController.update.bind(deviceController));

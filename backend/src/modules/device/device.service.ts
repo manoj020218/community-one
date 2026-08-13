@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Device, IDeviceDocument } from './device.model';
+import { DeviceEventLog, IDeviceEventLogDocument } from './deviceEventLog.model';
+import { getAdapter } from './adapters/registry';
 import { NotFoundError, AuthenticationError } from '../../common/errors/AppError';
 
 export interface CreateDeviceDto {
@@ -60,6 +62,38 @@ export class DeviceService {
       { new: true }
     );
     return updated!;
+  }
+
+  /**
+   * Device-brand-agnostic push ingestion. Identified purely by the apiKey in the URL (no IP/serial
+   * guessing) — safe for firmware that can only be configured with a fixed push URL, no headers.
+   * Validation phase only: normalizes and logs every push so the adapter's field-name guesses can
+   * be checked against what a real device actually sends. Does not yet write to a movement/attendance
+   * ledger or trigger notifications — that's the next phase once the payload shape is confirmed.
+   */
+  async pushEvent(apiKey: string, rawBody: unknown): Promise<IDeviceEventLogDocument> {
+    const device = await Device.findOne({ apiKey, isActive: true });
+    if (!device) throw new AuthenticationError('Invalid device API key');
+
+    const adapter = getAdapter(device.make);
+    const parsed = adapter
+      ? adapter.parse(rawBody, device.deviceTimezoneOffsetMinutes)
+      : { events: [], warning: `No adapter registered for make "${device.make}"` };
+
+    await Device.findByIdAndUpdate(device._id, { lastHeartbeatAt: new Date(), onlineStatus: true });
+
+    return DeviceEventLog.create({
+      deviceId: device._id,
+      societyId: device.societyId,
+      make: device.make,
+      rawBody,
+      parsedEvents: parsed.events,
+      warning: parsed.warning,
+    });
+  }
+
+  async listEventLogs(deviceId: string, limit: number): Promise<IDeviceEventLogDocument[]> {
+    return DeviceEventLog.find({ deviceId }).sort({ receivedAt: -1 }).limit(limit);
   }
 
   async disable(id: string): Promise<void> {

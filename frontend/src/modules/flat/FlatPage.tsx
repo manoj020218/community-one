@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Flat, Tower, Floor } from '../../types';
 import { cn } from '../../utils/cn';
+import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
@@ -29,6 +30,7 @@ export function FlatPage() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const terms = useTerminology();
 
   const [page, setPage] = useState(1);
   const [filterTower, setFilterTower] = useState('');
@@ -90,11 +92,11 @@ export function FlatPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Flats & Apartments"
-        subtitle="View all flats · manage residents, vehicles & pets per flat"
+        title={terms.unitPlural}
+        subtitle={`View all ${terms.unit.toLowerCase()}s · manage ${terms.person.toLowerCase()}s, vehicles & pets per ${terms.unit.toLowerCase()}`}
         action={
           <button onClick={() => setShowGenModal(true)} className="btn-primary flex items-center gap-2">
-            <Zap className="w-4 h-4" /> Generate Flats
+            <Zap className="w-4 h-4" /> Generate {terms.unitPlural}
           </button>
         }
       />
@@ -103,13 +105,13 @@ export function FlatPage() {
       <div className="card p-4 flex items-center gap-3 flex-wrap">
         <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
         <select value={filterTower} onChange={(e) => { setFilterTower(e.target.value); setPage(1); }} className="input w-auto min-w-[160px] py-2 text-sm">
-          <option value="">All Towers</option>
+          <option value="">All {terms.buildingPlural}</option>
           {towers.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
         </select>
         {filterTower && (
           <button onClick={() => { setFilterTower(''); setPage(1); }} className="text-xs text-slate-500 hover:text-slate-700 underline">Clear filter</button>
         )}
-        <span className="ml-auto text-xs text-slate-500">{data?.total ?? 0} flats total</span>
+        <span className="ml-auto text-xs text-slate-500">{data?.total ?? 0} {terms.unit.toLowerCase()}s total</span>
       </div>
 
       {isLoading ? (
@@ -119,9 +121,9 @@ export function FlatPage() {
           {flats.length === 0 ? (
             <EmptyState
               icon={LayoutGrid}
-              title="No flats yet"
-              description="Generate flats from Towers page or use the Generate Flats button above"
-              action={<button onClick={() => setShowGenModal(true)} className="btn-primary flex items-center gap-2"><Zap className="w-4 h-4" /> Generate Flats</button>}
+              title={`No ${terms.unit.toLowerCase()}s yet`}
+              description={`Generate ${terms.unit.toLowerCase()}s from the ${terms.buildingPlural} page or use the button above`}
+              action={<button onClick={() => setShowGenModal(true)} className="btn-primary flex items-center gap-2"><Zap className="w-4 h-4" /> Generate {terms.unitPlural}</button>}
             />
           ) : (
             <>

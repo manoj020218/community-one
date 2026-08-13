@@ -13,6 +13,8 @@ export interface IDeviceDocument extends Document {
   ipAddress?: string;
   macAddress?: string;
   apiKey: string;
+  make: string;
+  deviceTimezoneOffsetMinutes: number;
   firmwareVersion?: string;
   lastHeartbeatAt?: Date;
   onlineStatus: boolean;
@@ -35,7 +37,13 @@ const DeviceSchema = new Schema(
     location: { type: String },
     ipAddress: { type: String },
     macAddress: { type: String },
-    apiKey: { type: String, required: true },
+    apiKey: { type: String, required: true, unique: true },
+    // Brand/protocol identifier used to pick a DeviceAdapter (see ./adapters). 'GENERIC'
+    // means no push-event adapter is registered for this device yet.
+    make: { type: String, default: 'GENERIC', uppercase: true, trim: true },
+    // U5-family terminals default their clock to China Standard Time (UTC+8) regardless
+    // of install location — this offset converts a device-reported local timestamp to UTC.
+    deviceTimezoneOffsetMinutes: { type: Number, default: 480 },
     firmwareVersion: { type: String },
     lastHeartbeatAt: { type: Date },
     onlineStatus: { type: Boolean, default: false },
