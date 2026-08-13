@@ -88,7 +88,7 @@ export function DevicePage() {
           <VoiceInputField label="Device Name" value={form.deviceName} onChange={set('deviceName')} placeholder="Main Gate UHF Reader" required />
           <div><label className="label">Device Type</label>
             <select value={form.deviceType} onChange={(e) => set('deviceType')(e.target.value)} className="input">
-              {DEVICE_TYPES.map((t) => <option key={t}>{t.replace(/_/g, ' ')}</option>)}</select></div>
+              {DEVICE_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}</select></div>
           <div><label className="label">Make <span className="text-slate-400 font-normal">(brand — decides how pushed events get parsed)</span></label>
             <select value={form.make} onChange={(e) => set('make')(e.target.value)} className="input">
               {DEVICE_MAKES.map((m) => <option key={m}>{m}</option>)}</select></div>
