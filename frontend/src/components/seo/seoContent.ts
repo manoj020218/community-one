@@ -40,6 +40,15 @@ export const TERMS_KEYWORDS = [
   'terms of service Jenix Community One', 'society management software agreement', 'SaaS terms and conditions India',
 ];
 
+export const HOSTEL_KEYWORDS = [
+  'hostel management software India', 'hostel management system', 'PG management software', 'girls hostel management software',
+  'boys hostel management software', 'college hostel software', 'student hostel app', 'hostel attendance software',
+  'hostel gate entry system', 'smart gate hostel', 'biometric attendance hostel', 'hostel fee management software',
+  'hostel rent management software', 'digital hostel register', 'paperless hostel management', 'multi hostel management software',
+  'hostel owner software India', 'hostel safety software', 'parent notification hostel app', 'working women hostel management',
+  'PG rent management app', 'hostel visitor management system', 'hostel warden software',
+];
+
 export const ORGANIZATION_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -67,3 +76,20 @@ export const SOFTWARE_APPLICATION_SCHEMA = {
 };
 
 export const LANDING_STRUCTURED_DATA: Record<string, unknown>[] = [ORGANIZATION_SCHEMA, SOFTWARE_APPLICATION_SCHEMA];
+
+export const HOSTEL_SOFTWARE_APPLICATION_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Jenix Hostel',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: `${SITE_URL}/hostel`,
+  description: 'Hostel and PG management platform for India — smart gate entry/exit tracking, digital student records, room and rent management, and multi-hostel support for owners.',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
+  audience: {
+    '@type': 'Audience',
+    audienceType: 'Hostel owners, PG owners, wardens, hostel administrators, students, parents',
+  },
+};
+
+export const HOSTEL_STRUCTURED_DATA: Record<string, unknown>[] = [ORGANIZATION_SCHEMA, HOSTEL_SOFTWARE_APPLICATION_SCHEMA];

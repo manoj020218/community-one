@@ -35,6 +35,7 @@ import { LeasePage } from './modules/lease/LeasePage';
 import { RequireSociety } from './components/common/RequireSociety';
 import { MarketingLayout } from './modules/marketing/MarketingLayout';
 import { LandingPage } from './modules/marketing/LandingPage';
+import { HostelLandingPage } from './modules/marketing/HostelLandingPage';
 import { AboutPage } from './modules/marketing/AboutPage';
 import { PrivacyPage } from './modules/marketing/PrivacyPage';
 import { TermsPage } from './modules/marketing/TermsPage';
@@ -76,6 +77,7 @@ export default function App() {
       {/* Public marketing routes — no auth required */}
       <Route element={<MarketingLayout />}>
         <Route path="/" element={<SmartHome />} />
+        <Route path="/hostel" element={<HostelLandingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />

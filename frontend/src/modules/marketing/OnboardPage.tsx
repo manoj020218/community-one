@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Building2, User, Mail, Phone, ArrowRight,
   CheckCircle2, Copy, Check, AlertCircle, Loader2, Eye, EyeOff, Tag,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { Seo } from '../../components/seo/Seo';
-import { ONBOARD_KEYWORDS } from '../../components/seo/seoContent';
+import { ONBOARD_KEYWORDS, HOSTEL_KEYWORDS } from '../../components/seo/seoContent';
+import { terminologyFor } from '../../utils/terminology';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa',
@@ -33,6 +34,12 @@ interface SuccessData {
 
 export function OnboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Cosmetic only — this form still creates the same underlying Society record either way (the
+  // ?type=hostel param just swaps display copy so a hostel prospect isn't confused by "Society"
+  // wording). The actual vertical is chosen after login, in the first-run Onboarding Wizard.
+  const isHostel = searchParams.get('type') === 'hostel';
+  const terms = terminologyFor(isHostel ? 'HOSTEL' : 'COMMUNITY');
   const [form, setForm] = useState(BLANK);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -98,16 +105,16 @@ export function OnboardPage() {
             <div className="inline-flex w-16 h-16 items-center justify-center bg-emerald-500 rounded-2xl shadow-lg mb-4">
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-black text-white">Society Registered!</h1>
+            <h1 className="text-2xl font-black text-white">{terms.org} Registered!</h1>
             <p className="text-white/60 text-sm mt-1">
-              <span className="text-white font-semibold">{success.societyName}</span> is now on Jenix Community One
+              <span className="text-white font-semibold">{success.societyName}</span> is now on Jenix
             </p>
           </div>
 
           <div className="bg-white rounded-3xl shadow-2xl p-8 space-y-5">
             {/* Society info */}
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
-              <p className="text-xs text-primary-500 font-semibold uppercase tracking-wider mb-1">Society Code</p>
+              <p className="text-xs text-primary-500 font-semibold uppercase tracking-wider mb-1">{terms.org} Code</p>
               <p className="font-mono font-bold text-primary-700 text-lg">{success.societyCode}</p>
               <p className="text-xs text-primary-500 mt-1">
                 Trial active until{' '}
@@ -174,7 +181,7 @@ export function OnboardPage() {
               onClick={goToLogin}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-primary-600 to-purple-600 text-white font-bold text-base hover:opacity-90 transition-opacity shadow-lg"
             >
-              Login to Your Society <ArrowRight className="w-5 h-5" />
+              Login to Your {terms.org} <ArrowRight className="w-5 h-5" />
             </button>
 
             <p className="text-center text-xs text-slate-400">
@@ -191,9 +198,11 @@ export function OnboardPage() {
   return (
     <div className="pt-16">
       <Seo
-        title="Register Your Society Free | Jenix Community One Onboarding"
-        description="Onboard your housing society, RWA or apartment complex on Jenix Community One in minutes. Free registration, no credit card required — start managing residents, payments and visitors digitally today."
-        keywords={ONBOARD_KEYWORDS}
+        title={isHostel ? 'Register Your Hostel Free | Jenix Hostel Onboarding' : 'Register Your Society Free | Jenix Community One Onboarding'}
+        description={isHostel
+          ? 'Onboard your hostel or PG on Jenix in minutes. Free registration, no credit card required — start managing rooms, students and rent digitally today.'
+          : 'Onboard your housing society, RWA or apartment complex on Jenix Community One in minutes. Free registration, no credit card required — start managing residents, payments and visitors digitally today.'}
+        keywords={isHostel ? HOSTEL_KEYWORDS : ONBOARD_KEYWORDS}
         path="/onboard"
       />
       {/* Hero */}
@@ -202,9 +211,9 @@ export function OnboardPage() {
           <div className="inline-flex w-14 h-14 items-center justify-center bg-white/10 rounded-2xl border border-white/20 mb-5">
             <Building2 className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black mb-3">Register Your Society</h1>
+          <h1 className="text-3xl sm:text-4xl font-black mb-3">Register Your {terms.org}</h1>
           <p className="text-white/65 text-base">
-            Get 6 months free access to Jenix Community One. Your credentials will be created instantly.
+            Get 6 months free access to Jenix. Your credentials will be created instantly.
           </p>
         </div>
       </section>
@@ -218,12 +227,12 @@ export function OnboardPage() {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-primary-600" />
-                <h2 className="font-semibold text-slate-800 text-sm">Society Information</h2>
+                <h2 className="font-semibold text-slate-800 text-sm">{terms.org} Information</h2>
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="label">Society Name <span className="text-red-500">*</span></label>
-                  <input value={form.societyName} onChange={set('societyName')} required placeholder="e.g. Blue Diamond Heights" className="input" />
+                  <label className="label">{terms.org} Name <span className="text-red-500">*</span></label>
+                  <input value={form.societyName} onChange={set('societyName')} required placeholder={isHostel ? 'e.g. Sunrise Girls Hostel' : 'e.g. Blue Diamond Heights'} className="input" />
                 </div>
                 <div>
                   <label className="label">Full Address <span className="text-red-500">*</span></label>
@@ -253,7 +262,7 @@ export function OnboardPage() {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
                 <User className="w-4 h-4 text-emerald-600" />
-                <h2 className="font-semibold text-slate-800 text-sm">Society Admin Details</h2>
+                <h2 className="font-semibold text-slate-800 text-sm">{terms.org} Admin Details</h2>
                 <span className="text-xs text-slate-400 ml-1">(you — the person managing this platform)</span>
               </div>
               <div className="p-6 space-y-4">
@@ -314,7 +323,7 @@ export function OnboardPage() {
                 {loading ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Registering your society...</>
                 ) : (
-                  <><Building2 className="w-5 h-5" /> Register Society &amp; Get Credentials</>
+                  <><Building2 className="w-5 h-5" /> Register {terms.org} &amp; Get Credentials</>
                 )}
               </button>
 
