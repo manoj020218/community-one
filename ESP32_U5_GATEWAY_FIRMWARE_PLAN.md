@@ -4,7 +4,9 @@
 
 A dedicated, always-on hardware bridge that replaces the Node.js poller script (`backend/scripts/u5Poller.ts`) described in `U5_DEVICE_INTEGRATION_HANDOFF.md`. It sits on the same LAN as the U5 terminal, polls it for new attendance records, and forwards them to the already-deployed Jenix backend. **Read that handoff doc first** — this firmware is a direct hardware port of a solution already proven working against real hardware; nothing about the protocol is new or speculative.
 
-**Explicit non-goal: this device never touches photo data.** `pic_large` (the base64 JPEG per attendance record) must never be parsed into a buffer, held in memory, or forwarded anywhere. Photos stay on the U5 device only.
+**Photos stay on the U5 device by default.** `pic_large` (the base64 JPEG per attendance record) must never be parsed into a buffer or forwarded during **regular polling** (Steps 1–4 below). There is now one deliberate exception — **on-demand fetch**, added in [On-Demand Photo Fetch](#on-demand-photo-fetch-audit--incident-lookup) below, for when an admin explicitly needs to see one specific record's photo (audit/incident lookup). Outside of that exact flow, no photo is ever fetched, buffered, or sent.
+
+> **Status note (2026-08-14):** an earlier firmware build already has the core poll → parse → push loop working end-to-end against real hardware (verified live: real punches correctly parsed and delivered to Jenix). That build currently forwards `pic_large` unfiltered on every regular poll, which the filtered-parse approach below is meant to fix — Jenix now strips it server-side as a backstop either way, but the firmware should stop sending it at all to save bandwidth. The on-demand section below is new, on top of that working base.
 
 ---
 
@@ -112,7 +114,7 @@ Body: { "data": [ { "userid": "...", "name": "...", "checkin_time": "...", "ispa
 
 This is the **exact same endpoint and payload shape** the Node poller already uses successfully — no backend changes needed. Build this JSON with a small `JsonDocument` (only the filtered fields, so it's tiny) and `serializeJson`.
 
-Expected response: `{"success": true, "data": {"received": <n>, "warning": null}}`, HTTP 200. Only advance the NVS-stored timestamp if this returns 200 — if the push fails, retry on the next poll cycle rather than losing the record.
+Expected response: `{"success": true, "data": {"received": <n>, "warning": null, "photoRequest": null}}`, HTTP 200. Only advance the NVS-stored timestamp if this returns 200 — if the push fails, retry on the next poll cycle rather than losing the record. **The `photoRequest` field is new — see [On-Demand Photo Fetch](#on-demand-photo-fetch-audit--incident-lookup) below.** It's `null` on almost every poll; check it every time regardless, since it's how Jenix asks this gateway to fetch a specific photo.
 
 The `apiKey` (`c59ada87b12b48338aa4aae008ae0f9b`) is the device's real, already-registered credential in Jenix (Society: Krishna Nagar, device "Main Gate U5"). Treat it as a secret — anyone with this URL can post fake attendance events. Don't hardcode it in a way that ends up in a public repo/log; store it in `Preferences` alongside WiFi credentials, or as a build-time define kept out of version control.
 
@@ -123,6 +125,37 @@ The `apiKey` (`c59ada87b12b48338aa4aae008ae0f9b`) is the device's real, already-
 - Poll interval: 15–30s is reasonable (matches the Node poller default of 15s; the U5's own `Poll time(s)` setting is currently 5s, but that's for its unrelated polling connection to a different server — no need to match it).
 - Standard ESP32 WiFi reliability pattern: `WiFi.onEvent` (or a periodic `WiFi.status() != WL_CONNECTED` check) to auto-reconnect on drop.
 - A watchdog timer (`esp_task_wdt`) is worth adding so a hang (e.g., device or Jenix unreachable mid-request) doesn't require a manual power cycle.
+
+---
+
+## On-Demand Photo Fetch (audit / incident lookup)
+
+**Why this exists:** photos are never fetched or sent during regular polling — but for an audit or safety incident, an admin sometimes genuinely needs to see one specific record's snapshot to visually confirm who it was. Rather than always sending every photo (bandwidth cost, plus Jenix explicitly does not want photos stored on the VPS at all), Jenix can now ask *this gateway* to fetch *one specific* photo, on demand, only when a human requests it. Nothing is cached anywhere — not on the gateway, not on the VPS.
+
+**There is no direct path for Jenix to call this gateway** (no port-forwarding, no public IP) — so the request has to ride the same poll channel already working. This means a request takes up to one poll interval to be noticed (~15–30s), not instant. That's fine for this use case.
+
+### The flow
+
+1. An admin in the Jenix UI clicks "Fetch photo" against a specific attendance record (identified by `userid` + `checkin_time`, exactly as this gateway already sends them).
+2. On your gateway's **next regular poll**, the push response (Step 3 above) will include a non-null `photoRequest`:
+   ```json
+   { "success": true, "data": { "received": 0, "warning": null,
+     "photoRequest": { "requestId": "a1b2c3...", "deviceExternalUserId": "2120152124", "checkinTime": "2026-08-14 13:06:37" } } }
+   ```
+   `checkinTime` here is already in the device's own local time format — match it as an exact string against the `checkin_time` field from `/getWorkNoteList`, same field you already read during regular polling.
+3. When `photoRequest` is present, make **one more call** to `POST http://<u5-ip>/getWorkNoteList` (same as Step 1, same body), but this time **do not filter out `pic_large`** — instead, walk the response looking for the single record whose `userid` matches `deviceExternalUserId` and whose `checkin_time` matches `checkinTime`. Extract only that one record's `pic_large`. Discard everything else from this response immediately (don't hold the rest of the batch in memory any longer than it takes to find the match).
+4. POST just that one photo to Jenix:
+   ```
+   POST http://community.iotsoft.in/api/devices/photo/c59ada87b12b48338aa4aae008ae0f9b
+   Content-Type: application/json
+   Body: { "requestId": "a1b2c3...", "photoBase64": "<the pic_large value, unchanged>" }
+   ```
+   Expected response: `{"success": true}`, HTTP 200. If the matching record can't be found (e.g., it's aged out of the device's own local buffer — see the caveat in `U5_DEVICE_INTEGRATION_HANDOFF.md`), it's fine to simply not call this endpoint; the request will just expire on the Jenix side after a few minutes and the admin will see a "no response" message.
+5. Done — go back to normal polling. Don't hold the photo in memory any longer than the single POST call needs it for.
+
+### Memory note
+
+This is the *one* place in this firmware where a full photo does get parsed and briefly held in RAM (during step 3, until it's matched and forwarded). That's expected and fine — it happens at most once, only when a human explicitly asks, never as part of the regular poll loop. Free the buffer/string immediately after the POST in step 4 completes.
 
 ---
 
@@ -160,3 +193,4 @@ A simple serial-console or captive-portal (`WiFiManager` library) provisioning f
 4. Trigger a real punch on the U5 device, confirm it shows up in Jenix within one poll cycle.
 5. Power-cycle the ESP32, confirm no duplicate records get re-sent (NVS dedupe working).
 6. Leave it running unattended for a few hours/overnight, confirm it's still polling (no WiFi-drop lockup) and no duplicate/missed records.
+7. For the on-demand flow: from the Jenix admin UI, click "Fetch photo from device" on a recent event, confirm the gateway picks up the `photoRequest` on its next poll, fetches the matching record's photo, and the image appears in the UI within roughly one poll interval. Confirm a *regular* poll immediately after still doesn't include `pic_large` anywhere.
