@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Device, IDeviceDocument } from './device.model';
 import { DeviceEventLog, IDeviceEventLogDocument } from './deviceEventLog.model';
 import { getAdapter } from './adapters/registry';
+import { sanitizeRawBody } from './sanitizeRawBody';
 import { NotFoundError, AuthenticationError } from '../../common/errors/AppError';
 
 export interface CreateDeviceDto {
@@ -86,7 +87,7 @@ export class DeviceService {
       deviceId: device._id,
       societyId: device.societyId,
       make: device.make,
-      rawBody,
+      rawBody: sanitizeRawBody(rawBody),
       parsedEvents: parsed.events,
       warning: parsed.warning,
     });

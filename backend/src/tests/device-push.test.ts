@@ -102,4 +102,20 @@ describe('Device push ingestion', () => {
     const updated = await Device.findById(device._id);
     expect(updated?.onlineStatus).toBe(true);
   });
+
+  it('strips photo data from the stored rawBody regardless of what the gateway sends, but still parses fields correctly', async () => {
+    const { token, device } = await createDeviceFixture();
+    const hugePic = 'a'.repeat(5000);
+
+    await request(app).post(`/api/devices/push/${device.apiKey}`).send({
+      data: [{ userid: '1042', name: 'Rahul', checkin_time: '2026-08-13 09:15:00', pic_large: hugePic }],
+    });
+
+    const logsRes = await request(app).get(`/api/devices/${device._id}/event-logs`).set('Authorization', `Bearer ${token}`);
+    const log = logsRes.body.data[0];
+    expect(log.rawBody.data[0].pic_large).toBe('[stripped: image data not stored]');
+    expect(JSON.stringify(log.rawBody)).not.toContain(hugePic);
+    expect(log.parsedEvents[0].deviceExternalUserId).toBe('1042');
+    expect(log.parsedEvents[0].personName).toBe('Rahul');
+  });
 });
