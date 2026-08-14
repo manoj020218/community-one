@@ -118,4 +118,34 @@ describe('Device push ingestion', () => {
     expect(log.parsedEvents[0].deviceExternalUserId).toBe('1042');
     expect(log.parsedEvents[0].personName).toBe('Rahul');
   });
+
+  it('carries an on-demand photo request through a poll cycle without ever persisting it', async () => {
+    const { token, device } = await createDeviceFixture();
+
+    const createRes = await request(app).post(`/api/devices/${device._id}/photo-requests`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ deviceExternalUserId: '1042', checkinTime: '2026-08-13 09:15:00' });
+    expect(createRes.status).toBe(201);
+    const { requestId } = createRes.body.data;
+
+    // Gateway's next regular poll should see the pending request surfaced in the push response.
+    const pushRes = await request(app).post(`/api/devices/push/${device.apiKey}`).send({ data: [] });
+    expect(pushRes.body.data.photoRequest).toMatchObject({ requestId, deviceExternalUserId: '1042' });
+
+    // Not ready yet.
+    const pendingRes = await request(app).get(`/api/devices/photo-requests/${requestId}`).set('Authorization', `Bearer ${token}`);
+    expect(pendingRes.body.data.status).toBe('PENDING');
+
+    // Gateway delivers the photo.
+    const fulfillRes = await request(app).post(`/api/devices/photo/${device.apiKey}`).send({ requestId, photoBase64: 'fake-jpeg-bytes' });
+    expect(fulfillRes.status).toBe(200);
+
+    // First read returns it...
+    const readyRes = await request(app).get(`/api/devices/photo-requests/${requestId}`).set('Authorization', `Bearer ${token}`);
+    expect(readyRes.body.data).toEqual({ status: 'READY', photoBase64: 'fake-jpeg-bytes' });
+
+    // ...and it's gone immediately after — never held any longer than needed.
+    const goneRes = await request(app).get(`/api/devices/photo-requests/${requestId}`).set('Authorization', `Bearer ${token}`);
+    expect(goneRes.body.data.status).toBe('NOT_FOUND');
+  });
 });

@@ -51,8 +51,8 @@ export class DeviceController {
 
   async pushEvent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const log = await deviceService.pushEvent(req.params.apiKey, req.body);
-      sendSuccess(res, { received: log.parsedEvents.length, warning: log.warning }, 'Event received');
+      const { log, photoRequest } = await deviceService.pushEvent(req.params.apiKey, req.body);
+      sendSuccess(res, { received: log.parsedEvents.length, warning: log.warning, photoRequest }, 'Event received');
     } catch (error) { next(error); }
   }
 
@@ -61,6 +61,28 @@ export class DeviceController {
       const limit = Math.min(Number(req.query.limit) || 50, 200);
       const logs = await deviceService.listEventLogs(req.params.id, limit);
       sendSuccess(res, logs, 'Event logs retrieved');
+    } catch (error) { next(error); }
+  }
+
+  async requestPhoto(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { deviceExternalUserId, checkinTime } = req.body;
+      const requestId = await deviceService.requestPhoto(req.params.id, deviceExternalUserId, checkinTime);
+      sendCreated(res, { requestId }, 'Photo requested — the gateway will fetch it on its next poll');
+    } catch (error) { next(error); }
+  }
+
+  async getPhotoRequestStatus(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      sendSuccess(res, deviceService.getPhotoRequestStatus(req.params.requestId));
+    } catch (error) { next(error); }
+  }
+
+  async fulfillPhoto(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { requestId, photoBase64 } = req.body;
+      deviceService.fulfillPhoto(req.params.apiKey, requestId, photoBase64);
+      sendSuccess(res, null, 'Photo delivered');
     } catch (error) { next(error); }
   }
 }

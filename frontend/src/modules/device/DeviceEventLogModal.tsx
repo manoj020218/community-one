@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Copy, RefreshCw, AlertTriangle } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
+import { DevicePhotoFetch } from './DevicePhotoFetch';
 import { Device, DeviceEventLog } from '../../types';
 import { formatDateTime } from '../../utils/cn';
 import toast from 'react-hot-toast';
@@ -58,9 +59,12 @@ export function DeviceEventLogModal({ device, onClose }: DeviceEventLogModalProp
                 </div>
                 {log.parsedEvents.length > 0 ? (
                   log.parsedEvents.map((e, i) => (
-                    <p key={i} className="text-sm text-slate-700">
-                      <strong>{e.personName || e.deviceExternalUserId}</strong> · {e.method} · {e.passed ? 'Passed' : 'Denied'} · {formatDateTime(e.timestamp)}
-                    </p>
+                    <div key={i}>
+                      <p className="text-sm text-slate-700">
+                        <strong>{e.personName || e.deviceExternalUserId}</strong> · {e.method} · {e.passed ? 'Passed' : 'Denied'} · {formatDateTime(e.timestamp)}
+                      </p>
+                      <DevicePhotoFetch deviceId={device._id} deviceExternalUserId={e.deviceExternalUserId} checkinTimeUtc={e.timestamp} />
+                    </div>
                   ))
                 ) : (
                   <p className="text-xs text-slate-400">Raw body received, nothing parsed — check the adapter's field-name variants against the JSON below.</p>
