@@ -26,6 +26,15 @@ export interface HeartbeatDto {
   metadata?: Record<string, any>;
 }
 
+export interface HealthReportDto {
+  firmwareVersion?: string;
+  ipAddress?: string;
+  freeHeap?: number;
+  wifiRssi?: number;
+  uptimeSeconds?: number;
+  resetReason?: string;
+}
+
 /** Reverses the adapter's UTC conversion, back to the "YYYY-MM-DD HH:MM:SS" string the device's own
  *  API reports timestamps in — a photo request has to match by the device's own string, not our UTC one. */
 function toDeviceLocalTimeString(utcTimestamp: string, deviceTimezoneOffsetMinutes: number): string {
@@ -131,6 +140,33 @@ export class DeviceService {
   fulfillPhoto(apiKey: string, requestId: string, photoBase64: string): void {
     const ok = fulfillPhotoRequest(requestId, apiKey, photoBase64);
     if (!ok) throw new NotFoundError('Photo request');
+  }
+
+  /**
+   * Lets a setup wizard confirm an apiKey is real and see which society/device it belongs to
+   * before finishing provisioning — no device _id needed, just the key the installer pasted in.
+   */
+  async verifyApiKey(apiKey: string): Promise<{ deviceName: string; societyName: string }> {
+    const device = await Device.findOne({ apiKey, isActive: true }).populate<{ societyId: { name: string } }>('societyId', 'name');
+    if (!device) throw new AuthenticationError('Invalid device API key');
+    return { deviceName: device.deviceName, societyName: device.societyId.name };
+  }
+
+  /** apiKey-path variant of heartbeat() — a gateway only knows its apiKey, not the device's Mongo _id. */
+  async heartbeatByApiKey(apiKey: string, dto: HealthReportDto): Promise<void> {
+    const device = await Device.findOne({ apiKey, isActive: true });
+    if (!device) throw new AuthenticationError('Invalid device API key');
+
+    await Device.findByIdAndUpdate(device._id, {
+      lastHeartbeatAt: new Date(),
+      onlineStatus: true,
+      ...(dto.firmwareVersion && { firmwareVersion: dto.firmwareVersion }),
+      ...(dto.ipAddress && { ipAddress: dto.ipAddress }),
+      ...(dto.freeHeap !== undefined && { lastFreeHeap: dto.freeHeap }),
+      ...(dto.wifiRssi !== undefined && { lastWifiRssi: dto.wifiRssi }),
+      ...(dto.uptimeSeconds !== undefined && { lastUptimeSeconds: dto.uptimeSeconds }),
+      ...(dto.resetReason && { lastResetReason: dto.resetReason }),
+    });
   }
 
   async disable(id: string): Promise<void> {

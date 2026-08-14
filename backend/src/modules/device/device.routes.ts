@@ -16,11 +16,18 @@ router.post('/push/:apiKey', deviceController.pushEvent.bind(deviceController));
 // endpoint. Never persisted server-side, see photoRequest.store.ts.
 router.post('/photo/:apiKey', deviceController.fulfillPhoto.bind(deviceController));
 
+// Setup-wizard + unattended-field-device support — all public, apiKey-path or model-path auth,
+// no Jenix login involved since these are called by hardware, not a browser session.
+router.get('/verify/:apiKey', deviceController.verifyApiKey.bind(deviceController));
+router.post('/heartbeat/:apiKey', deviceController.heartbeatByApiKey.bind(deviceController));
+router.get('/firmware/:deviceModel/latest', deviceController.getLatestFirmware.bind(deviceController));
+
 router.use(authenticate);
 router.get('/society/:societyId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findBySociety.bind(deviceController));
 router.get('/:id/event-logs', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.listEventLogs.bind(deviceController));
 router.post('/:id/photo-requests', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.requestPhoto.bind(deviceController));
 router.get('/photo-requests/:requestId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.getPhotoRequestStatus.bind(deviceController));
+router.post('/firmware', requirePermission(PERMISSIONS.FIRMWARE_MANAGE), deviceController.registerFirmwareRelease.bind(deviceController));
 router.post('/', requirePermission(PERMISSIONS.DEVICE_CREATE), deviceController.create.bind(deviceController));
 router.get('/:id', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findById.bind(deviceController));
 router.patch('/:id', requirePermission(PERMISSIONS.DEVICE_UPDATE), deviceController.update.bind(deviceController));

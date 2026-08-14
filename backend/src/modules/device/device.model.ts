@@ -17,6 +17,10 @@ export interface IDeviceDocument extends Document {
   deviceTimezoneOffsetMinutes: number;
   firmwareVersion?: string;
   lastHeartbeatAt?: Date;
+  lastFreeHeap?: number;
+  lastWifiRssi?: number;
+  lastUptimeSeconds?: number;
+  lastResetReason?: string;
   onlineStatus: boolean;
   mappedModuleCode?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
@@ -46,6 +50,12 @@ const DeviceSchema = new Schema(
     deviceTimezoneOffsetMinutes: { type: Number, default: 480 },
     firmwareVersion: { type: String },
     lastHeartbeatAt: { type: Date },
+    // Field-diagnostics snapshot from the gateway's last heartbeat — lets an admin check a
+    // years-deployed, unattended device's health from Jenix without a site visit.
+    lastFreeHeap: { type: Number },
+    lastWifiRssi: { type: Number },
+    lastUptimeSeconds: { type: Number },
+    lastResetReason: { type: String },
     onlineStatus: { type: Boolean, default: false },
     mappedModuleCode: { type: String },
     status: { type: String, enum: ['ACTIVE','INACTIVE','MAINTENANCE'], default: 'ACTIVE' },

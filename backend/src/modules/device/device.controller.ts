@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../common/types';
 import { deviceService } from './device.service';
+import { firmwareReleaseService } from './firmwareRelease.service';
 import { sendSuccess, sendCreated } from '../../common/utils/response';
 import { auditService } from '../audit/audit.service';
 
@@ -83,6 +84,33 @@ export class DeviceController {
       const { requestId, photoBase64 } = req.body;
       deviceService.fulfillPhoto(req.params.apiKey, requestId, photoBase64);
       sendSuccess(res, null, 'Photo delivered');
+    } catch (error) { next(error); }
+  }
+
+  async verifyApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      sendSuccess(res, await deviceService.verifyApiKey(req.params.apiKey));
+    } catch (error) { next(error); }
+  }
+
+  async heartbeatByApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await deviceService.heartbeatByApiKey(req.params.apiKey, req.body);
+      sendSuccess(res, null, 'Health report received');
+    } catch (error) { next(error); }
+  }
+
+  async getLatestFirmware(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const release = await firmwareReleaseService.getLatest(req.params.deviceModel);
+      sendSuccess(res, { version: release.version, url: release.url, sha256: release.sha256, releaseNotes: release.releaseNotes });
+    } catch (error) { next(error); }
+  }
+
+  async registerFirmwareRelease(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const release = await firmwareReleaseService.register(req.body, req.user!.userId);
+      sendCreated(res, release, 'Firmware release registered');
     } catch (error) { next(error); }
   }
 }

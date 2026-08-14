@@ -56,6 +56,9 @@ export const PERMISSIONS = {
   DEVICE_READ: 'device.read',
   DEVICE_UPDATE: 'device.update',
   DEVICE_DISABLE: 'device.disable',
+  // Platform-level, not society-scoped — publishing firmware affects every gateway of a given
+  // model across every customer. Deliberately NOT granted to SOCIETY_ADMIN.
+  FIRMWARE_MANAGE: 'firmware.manage',
   PAYMENT_CREATE: 'payment.create',
   PAYMENT_READ: 'payment.read',
   RECEIPT_GENERATE: 'receipt.generate',
