@@ -118,8 +118,22 @@ function HeroSection() {
           </div>
         </div>
 
-        {/* Hero visual — device-mockup style gate event card (swap for real device photo when available) */}
-        <div className="mt-20 relative max-w-2xl mx-auto">
+        {/* Hero visual — real Smart Gate terminal photo + live gate-event mockup card */}
+        <div className="mt-20 grid md:grid-cols-2 gap-10 items-center max-w-4xl mx-auto">
+          <div className="relative flex justify-center">
+            <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full" />
+            <div className="relative bg-white rounded-3xl p-5 shadow-2xl shadow-indigo-950/50 border border-white/10">
+              <img
+                src="/images/u5-hostel-device.jpg"
+                alt="Jenix Smart Gate face-recognition terminal used for hostel entry and exit tracking"
+                className="w-48 sm:w-56 h-auto rounded-xl"
+                width={340}
+                height={765}
+                loading="eager"
+              />
+            </div>
+          </div>
+
           <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/10">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">

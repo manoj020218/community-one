@@ -1,16 +1,21 @@
 import { useCallback, useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { api, extractData } from '../../services/api';
 import { User } from '../../types';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import { terminologyFor } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 export function LoginPage() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  // Cosmetic only, same convention as OnboardPage — ?type=hostel just swaps display copy.
+  const isHostel = searchParams.get('type') === 'hostel';
+  const terms = terminologyFor(isHostel ? 'HOSTEL' : 'COMMUNITY');
   const prefill = (location.state as { prefillEmail?: string; prefillPassword?: string } | null) ?? {};
   const [identifier, setIdentifier] = useState(prefill.prefillEmail ?? '');
   const [password, setPassword] = useState(prefill.prefillPassword ?? '');
@@ -70,8 +75,8 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 border border-white/20">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Jenix Society One</h1>
-          <p className="text-primary-300 mt-2 text-sm">Modular Society Management Platform</p>
+          <h1 className="text-3xl font-bold text-white">Jenix {terms.brandSubtitle}</h1>
+          <p className="text-primary-300 mt-2 text-sm">Modular {terms.org} Management Platform</p>
         </div>
 
         {/* Card */}
@@ -116,15 +121,15 @@ export function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-500">
               New to Jenix?{' '}
-              <Link to="/onboard" className="text-primary-600 font-semibold hover:underline">
-                Register your society →
+              <Link to={isHostel ? '/onboard?type=hostel' : '/onboard'} className="text-primary-600 font-semibold hover:underline">
+                Register your {terms.org.toLowerCase()} →
               </Link>
             </p>
           </div>
         </div>
 
         <p className="text-center text-primary-400 text-xs mt-6">
-          Jenix Society One v1.0.0
+          Jenix {terms.brandSubtitle} v1.0.0
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Building2, Menu, X, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../utils/cn';
@@ -15,6 +15,9 @@ const navLinks = [
 export function MarketingLayout() {
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHostel = location.pathname.startsWith('/hostel');
+  const loginHref = isHostel ? '/login?type=hostel' : '/login';
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -85,10 +88,10 @@ export function MarketingLayout() {
                 </Link>
               ) : (
                 <>
-                  <Link to="/login" className={cn('text-sm font-medium transition-colors', scrolled ? 'text-slate-600 hover:text-slate-900' : 'text-white/80 hover:text-white')}>
+                  <Link to={loginHref} className={cn('text-sm font-medium transition-colors', scrolled ? 'text-slate-600 hover:text-slate-900' : 'text-white/80 hover:text-white')}>
                     Login
                   </Link>
-                  <Link to="/login" className="flex items-center gap-1.5 text-sm font-semibold bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-md">
+                  <Link to={loginHref} className="flex items-center gap-1.5 text-sm font-semibold bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-md">
                     Free Trial <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </>
@@ -113,8 +116,8 @@ export function MarketingLayout() {
                 </a>
               ))}
               <div className="border-t border-slate-100 pt-3 mt-3 space-y-2">
-                <Link to="/login" className="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => setMobileOpen(false)}>Login</Link>
-                <Link to="/login" className="block px-4 py-2.5 rounded-lg text-sm font-semibold bg-primary-600 text-white text-center hover:bg-primary-700" onClick={() => setMobileOpen(false)}>Start Free Trial</Link>
+                <Link to={loginHref} className="block px-4 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50" onClick={() => setMobileOpen(false)}>Login</Link>
+                <Link to={loginHref} className="block px-4 py-2.5 rounded-lg text-sm font-semibold bg-primary-600 text-white text-center hover:bg-primary-700" onClick={() => setMobileOpen(false)}>Start Free Trial</Link>
               </div>
             </div>
           </div>

@@ -83,10 +83,11 @@ export function OnboardPage() {
   };
 
   const goToLogin = () => {
+    const loginPath = isHostel ? '/login?type=hostel' : '/login';
     if (success) {
-      navigate('/login', { state: { prefillEmail: success.email, prefillPassword: success.password } });
+      navigate(loginPath, { state: { prefillEmail: success.email, prefillPassword: success.password } });
     } else {
-      navigate('/login');
+      navigate(loginPath);
     }
   };
 
@@ -335,7 +336,7 @@ export function OnboardPage() {
                 </p>
                 <p className="text-xs text-slate-400">
                   Already registered?{' '}
-                  <Link to="/login" className="text-primary-600 hover:underline font-medium">Login here →</Link>
+                  <Link to={isHostel ? '/login?type=hostel' : '/login'} className="text-primary-600 hover:underline font-medium">Login here →</Link>
                 </p>
               </div>
             </div>
