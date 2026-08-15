@@ -6,6 +6,7 @@ import { PageHeader } from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { hasPermission } from '../../utils/permissions';
+import { useTerminology } from '../../utils/terminology';
 import { Society } from '../../types';
 import toast from 'react-hot-toast';
 import { HealthTab } from '../health/HealthTab';
@@ -21,6 +22,7 @@ type TabKey = 'general' | 'health' | 'communication' | 'members' | 'visitor';
 export function SettingsPage() {
   const { user } = useAuthStore();
   const { currentSociety, setCurrentSociety } = useSocietyStore();
+  const terms = useTerminology();
   const queryClient = useQueryClient();
   const societyId = currentSociety?._id || user?.societyId || '';
 
@@ -46,7 +48,7 @@ export function SettingsPage() {
 
   const updateSocietyMutation = useMutation({
     mutationFn: (d: any) => extractData<Society>(api.patch(`/societies/${societyId}`, d)),
-    onSuccess: (updated) => { setCurrentSociety(updated); queryClient.invalidateQueries({ queryKey: ['society-detail'] }); toast.success('Society settings saved!'); },
+    onSuccess: (updated) => { setCurrentSociety(updated); queryClient.invalidateQueries({ queryKey: ['society-detail'] }); toast.success(`${terms.org} settings saved!`); },
     onError: () => toast.error('Failed to save settings'),
   });
 
@@ -73,7 +75,7 @@ export function SettingsPage() {
         <div className="space-y-6 max-w-2xl">
           {!isSuperAdmin && societyId && (
             <div className="card p-6">
-              <div className="flex items-center gap-2 mb-5"><Globe className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">Society Settings</h3></div>
+              <div className="flex items-center gap-2 mb-5"><Globe className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">{terms.org} Settings</h3></div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div><label className="label">Timezone</label>
@@ -92,7 +94,7 @@ export function SettingsPage() {
                   <div><label className="label">State</label><input type="text" value={societyForm.state} onChange={setSoc('state')} className="input" placeholder="Maharashtra" /></div>
                 </div>
                 <button onClick={() => updateSocietyMutation.mutate(societyForm)} disabled={updateSocietyMutation.isPending} className="btn-primary flex items-center gap-2 text-sm">
-                  <Save className="w-4 h-4" />{updateSocietyMutation.isPending ? 'Saving...' : 'Save Society Settings'}
+                  <Save className="w-4 h-4" />{updateSocietyMutation.isPending ? 'Saving...' : `Save ${terms.org} Settings`}
                 </button>
               </div>
             </div>

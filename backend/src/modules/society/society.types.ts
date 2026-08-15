@@ -42,6 +42,7 @@ export interface CreateSocietyDto {
   planCode?: PlanCode;
   logoUrl?: string;
   country?: string;
+  vertical?: SocietyVertical;
 }
 
 export interface UpdateSocietyDto {
