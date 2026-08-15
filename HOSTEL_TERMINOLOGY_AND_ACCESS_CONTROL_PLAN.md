@@ -40,7 +40,7 @@ This is the JENIX_SUPER_ADMIN-only internal tool (`POST/PATCH /societies`, gated
 
 Built and deployed as designed: `backend/src/modules/bed/` (model/types/validator/service/controller/routes, LEASE-style layout), gated by vertical (not Module Registry) — hidden entirely for Community. Frontend: expand-in-place Beds panel on `FlatPage.tsx`'s Room rows (generate/assign/release/maintenance), `BedAssignModal.tsx`. Full backend test suite green (29/29 suites, 87/87 tests) after the change. Commit `0706007`.
 
-## Phase C — `ACCESS_CONTROL` module ("Member Access Control") — IN PROGRESS 2026-08-15
+## Phase C — `ACCESS_CONTROL` module ("Member Access Control") — SHIPPED 2026-08-15
 
 Re-verified fresh (not from stale notes) that this is still just a placeholder: `modules.seed.ts` has the seed row (`status: COMING_SOON`), `MODULE_CODES.ACCESS_CONTROL` exists in `constants.ts`, but there is no backend folder, no `/api/access` mount in `app.ts`, and no frontend page anywhere. The user had seen SAMA's real "Access" tab (Access Policies/Credentials/Device Bindings/Events for staff via EdgeFolio) and the Module Registry's card for this placeholder (which looks like a normal module card, just with a small "Coming" badge and no toggle button) and reasonably mistook one or both for this being already built.
 
