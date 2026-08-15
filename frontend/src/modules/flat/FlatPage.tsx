@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Zap, Filter, Users, Car, PawPrint, Loader2, ChevronRight } from 'lucide-react';
+import { LayoutGrid, Zap, Filter, Users, Car, PawPrint, Loader2, ChevronRight, ChevronDown, BedDouble, Wrench, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { Modal } from '../../components/common/Modal';
+import { BedAssignModal } from './BedAssignModal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
-import { Flat, Tower, Floor } from '../../types';
+import { Flat, Tower, Floor, Bed } from '../../types';
 import { cn } from '../../utils/cn';
 import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
@@ -22,6 +23,13 @@ const occupancyColors: Record<string, string> = {
   VACANT: 'badge-gray',
   LOCKED: 'badge-yellow',
   UNDER_RENOVATION: 'badge-red',
+};
+
+const bedStatusColors: Record<string, string> = {
+  OCCUPIED: 'badge-blue',
+  VACANT: 'badge-gray',
+  MAINTENANCE: 'badge-yellow',
+  RESERVED: 'badge-green',
 };
 
 export function FlatPage() {
@@ -38,6 +46,8 @@ export function FlatPage() {
   const [genTower, setGenTower] = useState('');
   const [genFloor, setGenFloor] = useState('');
   const [flatConfig, setFlatConfig] = useState({ flatsPerFloor: 4, flatType: '2BHK', areaSqFt: 850, startUnit: 1 });
+  const [expandedFlatId, setExpandedFlatId] = useState<string | null>(null);
+  const isHostel = terms.unit === 'Room';
 
   const { data, isLoading } = useQuery({
     queryKey: ['flats', societyId, page, filterTower],
@@ -131,7 +141,8 @@ export function FlatPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-slate-100">
-                      <th className="table-header text-left">Flat No</th>
+                      {isHostel && <th className="table-header w-8"></th>}
+                      <th className="table-header text-left">{terms.unit} No</th>
                       <th className="table-header text-left">Tower / Floor</th>
                       <th className="table-header text-left">Type</th>
                       <th className="table-header text-left">Area</th>
@@ -140,48 +151,67 @@ export function FlatPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {flats.map((f) => (
-                      <tr key={f._id} className="table-row group">
-                        <td className="table-cell font-mono font-semibold text-slate-800">{f.flatNo}</td>
-                        <td className="table-cell text-sm text-slate-600">
-                          <span>{(f.towerId as any)?.name || '—'}</span>
-                          <span className="text-slate-400 mx-1">·</span>
-                          <span className="text-slate-500">{(f.floorId as any)?.floorName || '—'}</span>
-                        </td>
-                        <td className="table-cell"><span className="badge badge-blue">{f.flatType}</span></td>
-                        <td className="table-cell text-slate-600">{f.areaSqFt ? `${f.areaSqFt} sqft` : '—'}</td>
-                        <td className="table-cell">
-                          <span className={cn('badge text-xs', occupancyColors[f.occupancyStatus] || 'badge-gray')}>
-                            {f.occupancyStatus.replace(/_/g, ' ')}
-                          </span>
-                        </td>
-                        <td className="table-cell">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => navigate('/residents')}
-                              title="Manage residents for this flat"
-                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
-                            >
-                              <Users className="w-3 h-3" /> Residents
-                            </button>
-                            <button
-                              onClick={() => navigate('/vehicles')}
-                              title="Manage vehicles"
-                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                            >
-                              <Car className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => navigate('/pets')}
-                              title="Manage pets"
-                              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-                            >
-                              <PawPrint className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {flats.map((f) => {
+                      const isExpanded = expandedFlatId === f._id;
+                      return (
+                        <Fragment key={f._id}>
+                          <tr className="table-row group">
+                            {isHostel && (
+                              <td className="table-cell">
+                                <button onClick={() => setExpandedFlatId(isExpanded ? null : f._id)} className="text-slate-400 hover:text-primary-600" title="Show beds">
+                                  {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                </button>
+                              </td>
+                            )}
+                            <td className="table-cell font-mono font-semibold text-slate-800">{f.flatNo}</td>
+                            <td className="table-cell text-sm text-slate-600">
+                              <span>{(f.towerId as any)?.name || '—'}</span>
+                              <span className="text-slate-400 mx-1">·</span>
+                              <span className="text-slate-500">{(f.floorId as any)?.floorName || '—'}</span>
+                            </td>
+                            <td className="table-cell"><span className="badge badge-blue">{f.flatType}</span></td>
+                            <td className="table-cell text-slate-600">{f.areaSqFt ? `${f.areaSqFt} sqft` : '—'}</td>
+                            <td className="table-cell">
+                              <span className={cn('badge text-xs', occupancyColors[f.occupancyStatus] || 'badge-gray')}>
+                                {f.occupancyStatus.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="table-cell">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => navigate('/residents')}
+                                  title={`Manage ${terms.person.toLowerCase()}s for this ${terms.unit.toLowerCase()}`}
+                                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                >
+                                  <Users className="w-3 h-3" /> {terms.personPlural}
+                                </button>
+                                <button
+                                  onClick={() => navigate('/vehicles')}
+                                  title="Manage vehicles"
+                                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                                >
+                                  <Car className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => navigate('/pets')}
+                                  title="Manage pets"
+                                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+                                >
+                                  <PawPrint className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {isHostel && isExpanded && (
+                            <tr>
+                              <td colSpan={7} className="p-0 bg-slate-50 border-b border-slate-100">
+                                <BedsPanel flatId={f._id} societyId={societyId} />
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -267,6 +297,94 @@ export function FlatPage() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function BedsPanel({ flatId, societyId }: { flatId: string; societyId: string }) {
+  const queryClient = useQueryClient();
+  const [assignBed, setAssignBed] = useState<Bed | null>(null);
+  const [genCount, setGenCount] = useState(4);
+
+  const { data: beds = [], isLoading } = useQuery({
+    queryKey: ['beds', 'flat', flatId],
+    queryFn: () => extractData<Bed[]>(api.get(`/beds/flat/${flatId}`)),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['beds', 'flat', flatId] });
+
+  const generateMutation = useMutation({
+    mutationFn: () => api.post('/beds/generate', { societyId, flatId, count: genCount }),
+    onSuccess: (res) => {
+      invalidate();
+      toast.success(`${(res.data as any).data.length} beds generated`);
+    },
+  });
+
+  const releaseMutation = useMutation({
+    mutationFn: (bedId: string) => api.post(`/beds/${bedId}/release`),
+    onSuccess: () => { invalidate(); toast.success('Bed released'); },
+  });
+
+  const maintenanceMutation = useMutation({
+    mutationFn: ({ bedId, status }: { bedId: string; status: string }) => api.patch(`/beds/${bedId}`, { status }),
+    onSuccess: () => { invalidate(); toast.success('Bed updated'); },
+  });
+
+  if (isLoading) return <div className="p-4 text-center text-slate-400 text-sm">Loading beds...</div>;
+
+  return (
+    <div className="px-6 py-4">
+      {beds.length === 0 ? (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-500">No beds set up for this room yet.</p>
+          <div className="flex items-center gap-2">
+            <input type="number" value={genCount} onChange={(e) => setGenCount(+e.target.value)} className="w-16 input text-sm py-1.5" min={1} max={20} />
+            <button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending} className="btn-primary text-sm flex items-center gap-1.5 py-1.5">
+              {generateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BedDouble className="w-3.5 h-3.5" />} Generate Beds
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {beds.map((bed) => {
+            const resident = typeof bed.assignedResidentId === 'object' ? bed.assignedResidentId : null;
+            return (
+              <div key={bed._id} className="bg-white rounded-xl border border-slate-100 p-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 bg-primary-50 text-primary-600 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {bed.bedNumber}
+                  </div>
+                  <div className="min-w-0">
+                    <span className={cn('badge text-xs', bedStatusColors[bed.status] || 'badge-gray')}>{bed.status}</span>
+                    {resident && <p className="text-xs text-slate-600 truncate mt-0.5">{resident.name}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {bed.status === 'OCCUPIED' && resident ? (
+                    <button onClick={() => releaseMutation.mutate(bed._id)} title="Release bed" className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">
+                      <UserX className="w-3.5 h-3.5" />
+                    </button>
+                  ) : bed.status !== 'MAINTENANCE' ? (
+                    <button onClick={() => setAssignBed(bed)} title="Assign resident" className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
+                      <Users className="w-3.5 h-3.5" />
+                    </button>
+                  ) : null}
+                  <button
+                    onClick={() => maintenanceMutation.mutate({ bedId: bed._id, status: bed.status === 'MAINTENANCE' ? 'VACANT' : 'MAINTENANCE' })}
+                    title={bed.status === 'MAINTENANCE' ? 'Mark vacant' : 'Mark under maintenance'}
+                    className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <BedAssignModal bedId={assignBed?._id || null} bedNumber={assignBed?.bedNumber} flatId={flatId} onClose={() => setAssignBed(null)} />
     </div>
   );
 }

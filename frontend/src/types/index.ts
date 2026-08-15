@@ -78,6 +78,12 @@ export interface Resident {
   status: string;
 }
 
+export interface Bed {
+  _id: string; societyId: string; flatId: any; bedNumber: string;
+  status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE' | 'RESERVED';
+  assignedResidentId?: { _id: string; name: string; mobile: string } | string;
+}
+
 export interface Vehicle {
   _id: string; societyId: string; flatId: any; vehicleNo: string;
   vehicleType: string; brand?: string; model?: string; color?: string;
