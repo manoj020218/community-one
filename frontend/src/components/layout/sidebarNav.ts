@@ -1,7 +1,8 @@
-import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText } from 'lucide-react';
+import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound } from 'lucide-react';
 import { MCR_ROUTE_PERMISSIONS } from '../../modules/mcr/mcr.permissions';
 import { SAMA_ROUTE_PERMISSIONS } from '../../modules/sama/sama.permissions';
 import { LEASE_ROUTE_PERMISSIONS } from '../../modules/lease/lease.permissions';
+import { ACCESS_CONTROL_ROUTE_PERMISSIONS } from '../../modules/access-control/access-control.permissions';
 
 export type NavItem = {
   to: string;
@@ -83,6 +84,14 @@ export const navGroups: NavGroup[] = [
     color: { text: 'text-orange-600', dot: 'bg-orange-500', activeBg: 'bg-orange-50', activeText: 'text-orange-700', activeDot: 'bg-orange-500' },
     items: [
       { to: '/lease', icon: FileText, label: 'Rent & Lease', roles: [], permissions: [...LEASE_ROUTE_PERMISSIONS], moduleCode: 'LEASE' },
+    ],
+  },
+  {
+    id: 'access-control',
+    label: 'Member Access Control',
+    color: { text: 'text-rose-600', dot: 'bg-rose-500', activeBg: 'bg-rose-50', activeText: 'text-rose-700', activeDot: 'bg-rose-500' },
+    items: [
+      { to: '/access', icon: KeyRound, label: 'Member Access Control', roles: [], permissions: [...ACCESS_CONTROL_ROUTE_PERMISSIONS], moduleCode: 'ACCESS_CONTROL' },
     ],
   },
   {

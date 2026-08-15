@@ -1,5 +1,6 @@
 import { MCR_MANIFEST } from '../modules/mcr/mcr.manifest';
 import { SAMA_MANIFEST } from '../modules/sama/sama.manifest';
+import { ACCESS_CONTROL_MANIFEST } from '../modules/access-control/access-control.manifest';
 
 export const MODULES_SEED = [
   { code: 'CORE', name: 'Core Platform', description: 'Foundation module for all society management', version: '1.0.0', status: 'ACTIVE', icon: 'Home', routePrefix: '/', apiPrefix: '/api', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: true, permissions: [] },
@@ -8,7 +9,7 @@ export const MODULES_SEED = [
   { code: 'LEASE', name: 'Rent & Lease Management', description: 'Tenancy terms, rent collection and deposit tracking', version: '1.0.0', status: 'ACTIVE', icon: 'FileText', routePrefix: '/lease', apiPrefix: '/api/leases', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: ['lease.create','lease.read','lease.update','lease.renew','lease.terminate'] },
   MCR_MANIFEST,
   { code: 'BOOKING', name: 'Facility Booking', description: 'Book common areas like hall, pool, gym etc.', version: '1.0.0', status: 'COMING_SOON', icon: 'CalendarCheck', routePrefix: '/booking', apiPrefix: '/api/booking', requiredPlan: ['PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
-  { code: 'ACCESS_CONTROL', name: 'Member Access Control', description: 'Gym, spa, pool access management', version: '1.0.0', status: 'COMING_SOON', icon: 'KeyRound', routePrefix: '/access', apiPrefix: '/api/access', requiredPlan: ['PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
+  ACCESS_CONTROL_MANIFEST,
   { code: 'ANNOUNCEMENT', name: 'Announcements & Events', description: 'Society-wide announcements, events, fundraising', version: '1.0.0', status: 'COMING_SOON', icon: 'Megaphone', routePrefix: '/announcements', apiPrefix: '/api/announcements', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   { code: 'FUND_AUDIT', name: 'Fund & Audit', description: 'Transparent fund utilization and audit reports', version: '1.0.0', status: 'COMING_SOON', icon: 'BarChart3', routePrefix: '/fund-audit', apiPrefix: '/api/fund-audit', requiredPlan: ['STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   { code: 'COMPLAINT', name: 'Complaint Management', description: 'Resident complaint tracking and resolution', version: '1.0.0', status: 'COMING_SOON', icon: 'MessageSquareWarning', routePrefix: '/complaints', apiPrefix: '/api/complaints', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },

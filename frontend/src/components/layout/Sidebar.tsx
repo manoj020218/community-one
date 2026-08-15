@@ -19,6 +19,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
   const { isEnabled: isMcrEnabled } = useSocietyModule('MCR');
   const { isEnabled: isSamaEnabled } = useSamaModule();
   const { isEnabled: isLeaseEnabled } = useLeaseModule();
+  const { isEnabled: isAccessControlEnabled } = useSocietyModule('ACCESS_CONTROL');
   const terms = useTerminology();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -44,6 +45,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
     if (item.moduleCode === 'MCR' && !isMcrEnabled) return false;
     if (item.moduleCode === 'SAMA' && !isSamaEnabled) return false;
     if (item.moduleCode === 'LEASE' && !isLeaseEnabled) return false;
+    if (item.moduleCode === 'ACCESS_CONTROL' && !isAccessControlEnabled) return false;
     if (item.roles.length === 0) return true;
     return item.roles.includes(user?.roleCode || '');
   };
