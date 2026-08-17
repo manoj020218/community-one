@@ -6,6 +6,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+.pio/
 *.tsbuildinfo
 
 # Environment files — never commit secrets
@@ -49,3 +50,11 @@ coverage/
 
 # Vite
 frontend/.vite/
+
+# Capacitor — generated native project, regenerable via `npx cap add android`
+frontend/android/
+frontend/ios/
+
+# Android signing — never commit keystores or their passwords
+*.keystore
+*.jks

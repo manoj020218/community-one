@@ -4,6 +4,7 @@ import { TopBar } from './TopBar';
 import { MobileNav } from './MobileNav';
 import { useEffect, useState } from 'react';
 import { registerPushNotifications } from '../../lib/firebase';
+import { useAndroidBackButton } from '../../lib/androidBackButton';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -11,6 +12,8 @@ export function AppLayout() {
   useEffect(() => {
     void registerPushNotifications();
   }, []);
+
+  useAndroidBackButton();
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
