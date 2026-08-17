@@ -9,6 +9,11 @@ import { terminologyFor } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+const LAST_SOCIETY_NAME_KEY = 'jenix-last-society-name';
+
+function rememberSocietyName(user: User) {
+  if (user.societyName) localStorage.setItem(LAST_SOCIETY_NAME_KEY, user.societyName);
+}
 
 export function LoginPage() {
   const location = useLocation();
@@ -21,6 +26,7 @@ export function LoginPage() {
   const [password, setPassword] = useState(prefill.prefillPassword ?? '');
   const [showPassword, setShowPassword] = useState(!!prefill.prefillPassword);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastSocietyName] = useState(() => localStorage.getItem(LAST_SOCIETY_NAME_KEY));
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
@@ -33,6 +39,7 @@ export function LoginPage() {
         api.post('/auth/login', { identifier, password })
       );
       setAuth(data.user, data.accessToken, data.refreshToken);
+      rememberSocietyName(data.user);
       toast.success(`Welcome back, ${data.user.name}!`);
       navigate('/dashboard');
     } catch {
@@ -50,6 +57,7 @@ export function LoginPage() {
           api.post('/auth/google', { idToken })
         );
         setAuth(data.user, data.accessToken, data.refreshToken);
+        rememberSocietyName(data.user);
         toast.success(`Welcome back, ${data.user.name}!`);
         navigate('/dashboard');
       } catch {
@@ -75,8 +83,8 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 border border-white/20">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">Jenix {terms.brandSubtitle}</h1>
-          <p className="text-primary-300 mt-2 text-sm">Modular {terms.org} Management Platform</p>
+          <h1 className="text-3xl font-bold text-white">{lastSocietyName || `Jenix ${terms.brandSubtitle}`}</h1>
+          <p className="text-primary-300 mt-2 text-sm">Smart {terms.org} Management Platform</p>
         </div>
 
         {/* Card */}
@@ -129,7 +137,7 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-primary-400 text-xs mt-6">
-          Jenix {terms.brandSubtitle} v1.0.0
+          Community v1.0.0
         </p>
       </div>
     </div>

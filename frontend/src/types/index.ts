@@ -21,6 +21,7 @@ export interface User {
   roleCode: string;
   permissions: string[];
   societyId?: string;
+  societyName?: string;
   flatId?: string;
   photoUrl?: string;
   isActive: boolean;

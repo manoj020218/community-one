@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from './store/authStore';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './modules/auth/LoginPage';
@@ -59,10 +60,13 @@ function DashboardRoute() {
   return <SocietyAdminDashboard />;
 }
 
-// Root: show landing for guests, redirect to dashboard for authenticated users
+// Root: show landing for web guests, redirect to dashboard for authenticated users.
+// Inside the native app shell there's no one to market to — the user already installed
+// it — so a logged-out guest goes straight to login instead of the marketing pitch.
 function SmartHome() {
   const { isAuthenticated } = useAuthStore();
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (Capacitor.isNativePlatform()) return <Navigate to="/login" replace />;
   return <LandingPage />;
 }
 

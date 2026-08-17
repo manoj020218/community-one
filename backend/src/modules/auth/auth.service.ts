@@ -7,6 +7,7 @@ import {
   LoginDto, LoginResponse, ChangePasswordDto, OnboardSocietyDto, OnboardSocietyResult, GoogleLoginDto,
 } from './auth.types';
 import { User, IUserDocument } from '../user/user.model';
+import { Society } from '../society/society.model';
 import { env } from '../../config/env';
 
 const googleClient = env.GOOGLE_CLIENT_ID ? new OAuth2Client(env.GOOGLE_CLIENT_ID) : null;
@@ -33,6 +34,8 @@ async function buildLoginResponse(user: IUserDocument): Promise<LoginResponse> {
   await userService.updateLastLogin(user._id!.toString());
   await userService.updateRefreshToken(user._id!.toString(), refreshToken);
 
+  const society = user.societyId ? await Society.findById(user.societyId).select('name') : null;
+
   return {
     accessToken,
     refreshToken,
@@ -44,6 +47,7 @@ async function buildLoginResponse(user: IUserDocument): Promise<LoginResponse> {
       roleCode: user.roleCode,
       permissions: user.permissions,
       societyId: user.societyId?.toString(),
+      societyName: society?.name,
       flatId: user.flatId?.toString(),
       photoUrl: user.photoUrl,
     },
@@ -96,10 +100,21 @@ export class AuthService {
   }
 
   // Thin proxy: the billing platform owns signup dedup + Client tracking and
-  // provisions the Society + admin user via this backend's /api/bridge/provision.
+  // provisions the Society + admin user via this backend's /api/bridge/provision — but
+  // that provisioning call can happen asynchronously after the billing platform already
+  // told the browser "queued", so a duplicate-email rejection there can be invisible to
+  // the user. Check our own User collection synchronously first so the common case
+  // (re-registering with an email already used on this platform) always surfaces
+  // immediately, regardless of the billing platform's own timing.
   async onboardSociety(dto: OnboardSocietyDto): Promise<OnboardSocietyResult> {
     if (!env.BILLING_API_BASE) {
       throw new AppError('Society registration is not configured', 503, 'BILLING_UNAVAILABLE');
+    }
+
+    const normalizedEmail = dto.email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      throw new ConflictError(`An account with email ${normalizedEmail} already exists. Please login instead, or use a different email.`);
     }
 
     let resp: globalThis.Response;
