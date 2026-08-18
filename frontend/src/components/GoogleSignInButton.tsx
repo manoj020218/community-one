@@ -63,12 +63,12 @@ export function GoogleSignInButton({ clientId, onCredential }: Props) {
           callback: (r) => onCredential(r.credential),
         });
         window.google.accounts.id.renderButton(ref.current, {
-          theme: 'outline',
+          theme: 'filled_black',
           size: 'large',
           text: 'signin_with',
           shape: 'rectangular',
           logo_alignment: 'center',
-          width: Math.min(ref.current.clientWidth || 300, 360),
+          width: ref.current.clientWidth || 300,
         });
       })
       .catch(() => {
