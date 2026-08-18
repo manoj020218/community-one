@@ -1,10 +1,17 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Building2, Users, Bell, MoreHorizontal, CreditCard, UserCheck, User } from 'lucide-react';
+import { Home, Building2, Users, Bell, MoreHorizontal, CreditCard, UserCheck, User, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { hasPermission } from '../../utils/permissions';
 import { cn } from '../../utils/cn';
 
 const RESIDENT_ROLES = ['OWNER', 'TENANT', 'FAMILY_MEMBER'];
+
+const parentNavItems = [
+  { to: '/dashboard', icon: Home, label: 'Home' },
+  { to: '/parent/access-logs', icon: ShieldCheck, label: 'Access' },
+  { to: '/notifications', icon: Bell, label: 'Alerts' },
+  { to: '/profile', icon: User, label: 'Profile' },
+];
 
 const adminNavItems = [
   { to: '/dashboard', icon: Home, label: 'Home' },
@@ -17,9 +24,12 @@ const adminNavItems = [
 export function MobileNav() {
   const { user } = useAuthStore();
   const isResident = !!user && RESIDENT_ROLES.includes(user.roleCode);
+  const isParent = user?.roleCode === 'PARENT';
   const canRespondVisitors = hasPermission(user, 'visitor.request.respond_own_flat');
 
-  const items = isResident
+  const items = isParent
+    ? parentNavItems
+    : isResident
     ? [
         { to: '/dashboard', icon: Home, label: 'Home' },
         { to: '/payments', icon: CreditCard, label: 'Payments' },

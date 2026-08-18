@@ -4,6 +4,7 @@ import { deviceService } from './device.service';
 import { firmwareReleaseService } from './firmwareRelease.service';
 import { sendSuccess, sendCreated } from '../../common/utils/response';
 import { auditService } from '../audit/audit.service';
+import { resolveActorSocietyId } from '../../common/utils/authScope';
 
 export class DeviceController {
   async create(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -62,6 +63,15 @@ export class DeviceController {
       const limit = Math.min(Number(req.query.limit) || 50, 200);
       const logs = await deviceService.listEventLogs(req.params.id, limit);
       sendSuccess(res, logs, 'Event logs retrieved');
+    } catch (error) { next(error); }
+  }
+
+  async myWardsAccessLogs(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const societyId = resolveActorSocietyId(req.user!, req.query.societyId as string);
+      const limit = Math.min(Number(req.query.limit) || 50, 200);
+      const logs = await deviceService.listAccessLogsForParent(societyId, req.user!.userId, limit);
+      sendSuccess(res, logs, 'Access logs retrieved');
     } catch (error) { next(error); }
   }
 

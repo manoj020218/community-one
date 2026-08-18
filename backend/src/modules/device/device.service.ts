@@ -10,6 +10,18 @@ import { AccessZoneCredential } from '../access-control/accessCredential.model';
 import { Resident } from '../resident/resident.model';
 import { whatsAppService } from '../communication/whatsapp.service';
 import { logger } from '../../common/utils/logger';
+import { parentWardLinkService } from '../parentWardLink/parentWardLink.service';
+import { notificationDeviceTokenService } from '../notification/notificationDeviceToken.service';
+import { pushProviderService } from '../notification/pushProvider.service';
+
+export interface WardAccessLogEntry {
+  residentId: string;
+  residentName: string;
+  deviceName: string;
+  gateName?: string;
+  method: string;
+  timestamp: Date;
+}
 
 export interface CreateDeviceDto {
   societyId: string;
@@ -125,9 +137,12 @@ export class DeviceService {
 
   /**
    * Best-effort: resolve each passed movement event to a resident (via their AccessZoneCredential
-   * on this device) and WhatsApp their guardian, if one is on file. Never lets a lookup/send failure
-   * — including WhatsApp simply not being connected for this society — affect the push response;
-   * the gateway must always get a clean 200 regardless of notification outcome.
+   * on this device) and alert their guardian — app push (FCM) to any linked Parent-role account is
+   * the primary channel, WhatsApp to Resident.guardianMobile is the fallback used only when no
+   * Parent account has an active push token or the push send doesn't succeed. WhatsApp here runs on
+   * an unofficial, session-based integration (Baileys) that can silently disconnect, so it's kept as
+   * a fallback rather than the primary channel. Never lets a lookup/send failure — including neither
+   * channel being configured — affect the push response; the gateway must always get a clean 200.
    */
   private async notifyGuardians(device: IDeviceDocument, events: NormalizedMovementEvent[]): Promise<void> {
     const passedEvents = events.filter((e) => e.passed);
@@ -143,12 +158,21 @@ export class DeviceService {
         if (!credential) continue;
 
         const resident = await Resident.findById(credential.residentId);
-        if (!resident?.guardianMobile) continue;
+        if (!resident) continue;
 
+        const societyId = String(device.societyId);
         const where = device.gateName || device.deviceName;
         const when = event.timestamp.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
-        const message = `Jenix Alert: ${resident.name} was seen at ${where} on ${when}.`;
-        await whatsAppService.sendMessage(String(device.societyId), resident.guardianMobile, message);
+        const body = `${resident.name} was seen at ${where} on ${when}.`;
+
+        const pushed = await this.tryPushGuardians(societyId, String(resident._id), 'Jenix Access Alert', body, {
+          type: 'GUARDIAN_ACCESS_ALERT',
+          residentId: String(resident._id),
+        });
+
+        if (!pushed && resident.guardianMobile) {
+          await whatsAppService.sendMessage(societyId, resident.guardianMobile, `Jenix Alert: ${body}`);
+        }
       } catch (err: any) {
         logger.warn('Guardian access-alert failed', {
           deviceId: device._id?.toString(),
@@ -157,6 +181,69 @@ export class DeviceService {
         });
       }
     }
+  }
+
+  /** Returns true only if the push was actually delivered to at least one linked Parent device. */
+  private async tryPushGuardians(societyId: string, residentId: string, title: string, body: string, data: Record<string, string>): Promise<boolean> {
+    const provider = pushProviderService.getProvider();
+    if (provider.getHealth().status !== 'configured') return false;
+
+    const parentUserIds = await parentWardLinkService.getParentUserIdsForResident(societyId, residentId);
+    if (!parentUserIds.length) return false;
+
+    const tokens = await notificationDeviceTokenService.getActiveTokensForUsers(parentUserIds);
+    if (!tokens.length) return false;
+
+    const results = await provider.send(tokens.map((t) => t.token), { title, body, data });
+    for (const result of results) {
+      if (!result.success && `${result.errorCode || ''}`.includes('registration-token')) {
+        await notificationDeviceTokenService.invalidateToken(result.token, result.errorMessage || 'Invalid token');
+      }
+    }
+    return results.some((r) => r.success);
+  }
+
+  /**
+   * Access history for a Parent user's linked ward(s) — flattens each ward's matching
+   * DeviceEventLog.parsedEvents entries (by AccessZoneCredential deviceId+deviceExternalUserId)
+   * into a single reverse-chronological feed. Read-only, no photo/rawBody exposure.
+   */
+  async listAccessLogsForParent(societyId: string, parentUserId: string, limit: number): Promise<WardAccessLogEntry[]> {
+    const residentIds = await parentWardLinkService.getWardResidentIdsForUser(societyId, parentUserId);
+    if (!residentIds.length) return [];
+
+    const credentials = await AccessZoneCredential.find({ residentId: { $in: residentIds }, status: 'ACTIVE' })
+      .populate<{ residentId: { _id: string; name: string } }>('residentId', 'name');
+    if (!credentials.length) return [];
+
+    const deviceIds = [...new Set(credentials.map((c) => String(c.deviceId)))];
+    const devices = await Device.find({ _id: { $in: deviceIds } });
+    const deviceById = new Map(devices.map((d) => [String(d._id), d]));
+
+    const logs = await DeviceEventLog.find({ deviceId: { $in: deviceIds } }).sort({ receivedAt: -1 }).limit(500);
+
+    const entries: WardAccessLogEntry[] = [];
+    for (const log of logs) {
+      const device = deviceById.get(String(log.deviceId));
+      if (!device) continue;
+      for (const event of log.parsedEvents) {
+        if (!event.passed) continue;
+        const credential = credentials.find(
+          (c) => String(c.deviceId) === String(log.deviceId) && c.deviceExternalUserId === event.deviceExternalUserId
+        );
+        if (!credential) continue;
+        entries.push({
+          residentId: String(credential.residentId._id || credential.residentId),
+          residentName: (credential.residentId as any).name || event.personName || 'Unknown',
+          deviceName: device.deviceName,
+          gateName: device.gateName,
+          method: event.method,
+          timestamp: event.timestamp,
+        });
+      }
+    }
+
+    return entries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, limit);
   }
 
   async listEventLogs(deviceId: string, limit: number): Promise<IDeviceEventLogDocument[]> {

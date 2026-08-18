@@ -23,6 +23,7 @@ router.post('/heartbeat/:apiKey', deviceController.heartbeatByApiKey.bind(device
 router.get('/firmware/:deviceModel/latest', deviceController.getLatestFirmware.bind(deviceController));
 
 router.use(authenticate);
+router.get('/access-logs/my-wards', requirePermission(PERMISSIONS.ACCESS_EVENT_VIEW_OWN_WARD), deviceController.myWardsAccessLogs.bind(deviceController));
 router.get('/society/:societyId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findBySociety.bind(deviceController));
 router.get('/:id/event-logs', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.listEventLogs.bind(deviceController));
 router.post('/:id/photo-requests', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.requestPhoto.bind(deviceController));

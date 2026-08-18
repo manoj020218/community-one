@@ -10,7 +10,8 @@ export type UserRoleCode =
   | 'TENANT'
   | 'FAMILY_MEMBER'
   | 'VENDOR'
-  | 'STAFF';
+  | 'STAFF'
+  | 'PARENT';
 
 export interface IUser {
   name: string;

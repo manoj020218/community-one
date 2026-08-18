@@ -6,6 +6,8 @@ import { LoginPage } from './modules/auth/LoginPage';
 import { SuperAdminDashboard } from './modules/dashboard/SuperAdminDashboard';
 import { SocietyAdminDashboard } from './modules/dashboard/SocietyAdminDashboard';
 import { ResidentDashboard } from './modules/dashboard/ResidentDashboard';
+import { ParentDashboard } from './modules/dashboard/ParentDashboard';
+import { ParentAccessLogPage } from './modules/parent/ParentAccessLogPage';
 import { SocietyListPage } from './modules/society/SocietyListPage';
 import { SocietyFormPage } from './modules/society/SocietyFormPage';
 import { OnboardingWizard } from './modules/onboarding/OnboardingWizard';
@@ -56,6 +58,7 @@ function DashboardRoute() {
   if (user.roleCode === 'SECURITY_GUARD') return <Navigate to="/guard-kiosk" replace />;
   if (hasPermission(user, 'visitor.request.create')) return <VisitorPage />;
   if (user.roleCode === 'JENIX_SUPER_ADMIN' || user.roleCode === 'JENIX_SUPPORT') return <SuperAdminDashboard />;
+  if (user.roleCode === 'PARENT') return <ParentDashboard />;
   if (['OWNER', 'TENANT', 'FAMILY_MEMBER'].includes(user.roleCode)) return <ResidentDashboard />;
   return <SocietyAdminDashboard />;
 }
@@ -120,6 +123,7 @@ export default function App() {
         <Route path="/health" element={<HealthPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/parent/access-logs" element={<ParentAccessLogPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

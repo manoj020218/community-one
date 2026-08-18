@@ -15,7 +15,7 @@ const UserSchema = new Schema(
       enum: [
         'JENIX_SUPER_ADMIN', 'JENIX_SUPPORT', 'SOCIETY_ADMIN', 'COMMITTEE_MEMBER',
         'ACCOUNTANT', 'SECURITY_GUARD', 'FACILITY_MANAGER', 'OWNER',
-        'TENANT', 'FAMILY_MEMBER', 'VENDOR', 'STAFF',
+        'TENANT', 'FAMILY_MEMBER', 'VENDOR', 'STAFF', 'PARENT',
       ],
     },
     permissions: [{ type: String }],
