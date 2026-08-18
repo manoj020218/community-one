@@ -5,6 +5,11 @@ import { getAdapter } from './adapters/registry';
 import { sanitizeRawBody } from './sanitizeRawBody';
 import { createPhotoRequest, getPendingRequestForDevice, fulfillPhotoRequest, consumePhotoRequest } from './photoRequest.store';
 import { NotFoundError, AuthenticationError } from '../../common/errors/AppError';
+import { NormalizedMovementEvent } from './adapters/deviceAdapter.types';
+import { AccessZoneCredential } from '../access-control/accessCredential.model';
+import { Resident } from '../resident/resident.model';
+import { whatsAppService } from '../communication/whatsapp.service';
+import { logger } from '../../common/utils/logger';
 
 export interface CreateDeviceDto {
   societyId: string;
@@ -87,9 +92,8 @@ export class DeviceService {
   /**
    * Device-brand-agnostic push ingestion. Identified purely by the apiKey in the URL (no IP/serial
    * guessing) — safe for firmware that can only be configured with a fixed push URL, no headers.
-   * Validation phase only: normalizes and logs every push so the adapter's field-name guesses can
-   * be checked against what a real device actually sends. Does not yet write to a movement/attendance
-   * ledger or trigger notifications — that's the next phase once the payload shape is confirmed.
+   * Normalizes and logs every push, then fires a best-effort guardian WhatsApp alert for any passed
+   * event that resolves to a resident with an access credential on this device (see notifyGuardians).
    */
   async pushEvent(apiKey: string, rawBody: unknown) {
     const device = await Device.findOne({ apiKey, isActive: true });
@@ -111,10 +115,48 @@ export class DeviceService {
       warning: parsed.warning,
     });
 
+    await this.notifyGuardians(device, parsed.events);
+
     // Surface at most one pending on-demand photo request per poll, so the gateway is never
     // asked to fetch more than one photo at a time. Never persisted — see photoRequest.store.ts.
     const photoRequest = getPendingRequestForDevice(apiKey);
     return { log, photoRequest };
+  }
+
+  /**
+   * Best-effort: resolve each passed movement event to a resident (via their AccessZoneCredential
+   * on this device) and WhatsApp their guardian, if one is on file. Never lets a lookup/send failure
+   * — including WhatsApp simply not being connected for this society — affect the push response;
+   * the gateway must always get a clean 200 regardless of notification outcome.
+   */
+  private async notifyGuardians(device: IDeviceDocument, events: NormalizedMovementEvent[]): Promise<void> {
+    const passedEvents = events.filter((e) => e.passed);
+    if (!passedEvents.length) return;
+
+    for (const event of passedEvents) {
+      try {
+        const credential = await AccessZoneCredential.findOne({
+          deviceId: device._id,
+          deviceExternalUserId: event.deviceExternalUserId,
+          status: 'ACTIVE',
+        });
+        if (!credential) continue;
+
+        const resident = await Resident.findById(credential.residentId);
+        if (!resident?.guardianMobile) continue;
+
+        const where = device.gateName || device.deviceName;
+        const when = event.timestamp.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' });
+        const message = `Jenix Alert: ${resident.name} was seen at ${where} on ${when}.`;
+        await whatsAppService.sendMessage(String(device.societyId), resident.guardianMobile, message);
+      } catch (err: any) {
+        logger.warn('Guardian access-alert failed', {
+          deviceId: device._id?.toString(),
+          deviceExternalUserId: event.deviceExternalUserId,
+          err: err?.message,
+        });
+      }
+    }
   }
 
   async listEventLogs(deviceId: string, limit: number): Promise<IDeviceEventLogDocument[]> {

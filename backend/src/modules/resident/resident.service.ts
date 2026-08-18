@@ -15,6 +15,7 @@ export interface CreateResidentDto {
   loginAllowed?: boolean;
   primaryContact?: boolean;
   emergencyContact?: string;
+  guardianMobile?: string;
   moveInDate?: string;
 }
 

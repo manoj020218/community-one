@@ -17,6 +17,9 @@ export interface IResidentDocument extends Document {
   loginAllowed: boolean;
   primaryContact: boolean;
   emergencyContact?: string;
+  /** Notified via WhatsApp on U5 access-control events for this resident (see AccessZoneCredential) —
+   * distinct from emergencyContact since the two aren't guaranteed to be the same person/number. */
+  guardianMobile?: string;
   moveInDate?: Date;
   moveOutDate?: Date;
   kycStatus: KycStatus;
@@ -45,6 +48,7 @@ const ResidentSchema = new Schema(
     loginAllowed: { type: Boolean, default: false },
     primaryContact: { type: Boolean, default: false },
     emergencyContact: { type: String },
+    guardianMobile: { type: String, trim: true },
     moveInDate: { type: Date },
     moveOutDate: { type: Date },
     kycStatus: { type: String, enum: ['PENDING','SUBMITTED','VERIFIED','REJECTED'], default: 'PENDING' },
