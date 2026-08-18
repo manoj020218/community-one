@@ -177,6 +177,7 @@ export const ROLE_RANK: Record<string, number> = {
   FAMILY_MEMBER: 50,
   VENDOR: 51,
   STAFF: 52,
+  PARENT: 53,
 };
 
 export const DEFAULT_PAGINATION = { page: 1, limit: 20 };
