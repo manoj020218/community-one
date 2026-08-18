@@ -30,6 +30,7 @@ function FieldStep(props: {
   onNext: () => void;
   onBack: () => void;
   onSkip?: () => void;
+  photoFile?: File;
 }) {
   const t = KIOSK_STRINGS[props.lang];
   const spokenRef = useRef(false);
@@ -41,11 +42,23 @@ function FieldStep(props: {
     }
   }, [props.prompt, props.lang]);
 
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!props.photoFile) { setPhotoUrl(null); return; }
+    const url = URL.createObjectURL(props.photoFile);
+    setPhotoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [props.photoFile]);
+
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 gap-8 animate-pop-in">
       <button onClick={props.onBack} className="absolute top-6 left-6 text-white/70 hover:text-white flex items-center gap-1 text-sm">
         <ChevronLeft className="w-5 h-5" /> {t.backToFlats}
       </button>
+
+      {photoUrl && (
+        <img src={photoUrl} alt="Visitor" className="w-20 h-20 rounded-2xl object-cover border-2 border-white/40 shadow-lg absolute top-6 right-6" />
+      )}
 
       <p className="text-white text-2xl font-bold text-center">{props.title}</p>
       <p className="text-white/70 text-sm text-center -mt-6">{props.prompt}</p>
@@ -181,12 +194,14 @@ export function TicketFlowOverlay({ ticket, lang, societyId, gateId, settings, e
 
           {ticket.stage === 'NAME_INPUT' && (
             <FieldStep title={t.guestName} prompt={t.guestNamePrompt} value={ticket.visitorName} onChange={patch('visitorName')} lang={lang} required
+              photoFile={ticket.photoFile}
               onNext={() => onUpdateTicket(ticket.ticketId, { stage: 'PURPOSE_INPUT' })} onBack={onClose} />
           )}
 
           {ticket.stage === 'PURPOSE_INPUT' && (
             <FieldStep title={t.purpose} prompt={t.purposePrompt} value={ticket.purpose} onChange={patch('purpose')} lang={lang}
               required={!!settings?.requirePurpose}
+              photoFile={ticket.photoFile}
               onSkip={settings?.requirePurpose ? undefined : () => onUpdateTicket(ticket.ticketId, { stage: 'MOBILE_INPUT' })}
               onNext={() => onUpdateTicket(ticket.ticketId, { stage: 'MOBILE_INPUT' })} onBack={() => onUpdateTicket(ticket.ticketId, { stage: 'NAME_INPUT' })} />
           )}
@@ -194,6 +209,7 @@ export function TicketFlowOverlay({ ticket, lang, societyId, gateId, settings, e
           {ticket.stage === 'MOBILE_INPUT' && (
             <FieldStep title={t.mobile} prompt={t.mobilePrompt} value={ticket.visitorMobile} onChange={patch('visitorMobile')} lang={lang} type="tel"
               required={!!settings?.requireVisitorMobile}
+              photoFile={ticket.photoFile}
               onSkip={settings?.requireVisitorMobile ? undefined : () => onUpdateTicket(ticket.ticketId, { stage: 'SUBMITTING' })}
               onNext={() => onUpdateTicket(ticket.ticketId, { stage: 'SUBMITTING' })} onBack={() => onUpdateTicket(ticket.ticketId, { stage: 'PURPOSE_INPUT' })} />
           )}

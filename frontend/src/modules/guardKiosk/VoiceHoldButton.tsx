@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Mic } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
-import { KioskLang } from './kioskStrings';
+import { KIOSK_STRINGS, KioskLang } from './kioskStrings';
 
 interface VoiceHoldButtonProps {
   lang: KioskLang;
@@ -30,7 +31,11 @@ export function VoiceHoldButton({ lang, onTranscript, label }: VoiceHoldButtonPr
       onTranscript(transcript);
     };
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (event: any) => {
+      setIsListening(false);
+      if (event?.error === 'no-speech' || event?.error === 'aborted') return;
+      toast.error(KIOSK_STRINGS[lang].voiceUnavailable);
+    };
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
