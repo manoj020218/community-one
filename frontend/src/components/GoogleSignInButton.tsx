@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface GoogleCredentialResponse {
   credential: string;
@@ -81,9 +82,15 @@ function NativeGoogleButton({ onCredential }: { onCredential: (idToken: string) 
       const result = await FirebaseAuthentication.signInWithGoogle();
       const idToken = result.credential?.idToken;
       if (idToken) onCredential(idToken);
-    } catch {
-      // User cancelled or sign-in failed — nothing to surface here, the
-      // caller's own request flow handles/toasts real backend errors.
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // The user closing the account picker themselves isn't an error worth a toast.
+      if (/cancel/i.test(message)) return;
+      if (/no credentials? available/i.test(message)) {
+        toast.error('No Google account available for sign-in. Add a Google account in your phone\'s Settings, or sign in with email/password below.');
+      } else {
+        toast.error('Google sign-in failed. Please try again or use email/password below.');
+      }
     } finally {
       setLoading(false);
     }
