@@ -118,7 +118,7 @@ export function GuardKioskPage() {
   const activeTicket = tickets.find((tk) => tk.ticketId === activeTicketId) || null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 overflow-hidden safe-area-top safe-area-bottom">
       <div className="flex items-center justify-between px-4 py-3 shrink-0">
         <div className="flex items-center gap-2 text-white font-bold">
           <ShieldCheck className="w-5 h-5" />
