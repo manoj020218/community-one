@@ -1,8 +1,18 @@
 /**
- * Firebase Cloud Messaging (web push). Best-effort: any failure (unsupported
- * browser, permission denied, network) is swallowed — push is a nice-to-have,
- * never a blocker for using the app.
+ * Firebase Cloud Messaging. Best-effort: any failure (unsupported browser,
+ * permission denied, network) is swallowed — push is a nice-to-have, never a
+ * blocker for using the app.
+ *
+ * Two independent code paths, chosen by Capacitor.isNativePlatform():
+ * - Native (Android APK): @capacitor-firebase/messaging, which talks to the
+ *   native FCM SDK directly — required because the app deliberately disables
+ *   its service worker on native (see pwaRegister.ts), so the web SDK's
+ *   getToken()/service-worker path below never fires inside the WebView.
+ * - Web (browser/PWA): the original firebase/messaging web-push path,
+ *   unchanged.
  */
+import { Capacitor } from '@capacitor/core';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getMessaging, getToken, type Messaging } from 'firebase/messaging';
 import { api } from '../services/api';
@@ -39,12 +49,45 @@ function getMessagingInstance(): Messaging | null {
 }
 
 /**
- * Requests notification permission (if not already decided), registers the
- * FCM service worker, retrieves a push token, and registers it with the
- * backend. Safe to call on every authenticated app load — it no-ops if
- * permission is denied, unsupported, or the token hasn't changed.
+ * Requests notification permission (if not already decided), retrieves a
+ * push token, and registers it with the backend. Safe to call on every
+ * authenticated app load — it no-ops if permission is denied, unsupported,
+ * or the token hasn't changed. Dispatches to the native or web path below.
  */
 export async function registerPushNotifications(): Promise<void> {
+  if (Capacitor.isNativePlatform()) {
+    await registerNativePushNotifications();
+    return;
+  }
+  await registerWebPushNotifications();
+}
+
+let nativeTokenListenerAdded = false;
+
+async function registerNativePushNotifications(): Promise<void> {
+  try {
+    let permission = await FirebaseMessaging.checkPermissions();
+    if (permission.receive === 'prompt' || permission.receive === 'prompt-with-rationale') {
+      permission = await FirebaseMessaging.requestPermissions();
+    }
+    if (permission.receive !== 'granted') return;
+
+    if (!nativeTokenListenerAdded) {
+      nativeTokenListenerAdded = true;
+      // Fires on initial registration and whenever FCM rotates the token — keep the backend in sync.
+      await FirebaseMessaging.addListener('tokenReceived', (event) => {
+        void submitToken(event.token, 'ANDROID');
+      });
+    }
+
+    const { token } = await FirebaseMessaging.getToken();
+    if (token) await submitToken(token, 'ANDROID');
+  } catch {
+    // Push registration is best-effort — never block the app on this.
+  }
+}
+
+async function registerWebPushNotifications(): Promise<void> {
   try {
     const msg = getMessagingInstance();
     if (!msg) return;
@@ -57,13 +100,14 @@ export async function registerPushNotifications(): Promise<void> {
 
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     const token = await getToken(msg, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
-    if (!token) return;
-
-    if (localStorage.getItem(STORAGE_KEY) === token) return;
-
-    await api.post('/notifications/device-tokens', { token, platform: 'WEB' });
-    localStorage.setItem(STORAGE_KEY, token);
+    if (token) await submitToken(token, 'WEB');
   } catch {
     // Push registration is best-effort — never block the app on this.
   }
+}
+
+async function submitToken(token: string, platform: 'ANDROID' | 'WEB'): Promise<void> {
+  if (localStorage.getItem(STORAGE_KEY) === token) return;
+  await api.post('/notifications/device-tokens', { token, platform });
+  localStorage.setItem(STORAGE_KEY, token);
 }
