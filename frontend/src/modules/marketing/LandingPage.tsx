@@ -4,7 +4,7 @@ import {
   CalendarDays, Megaphone, BarChart3, MessageSquare, UserCheck, Package,
   AlertTriangle, Vote, FileText, Cpu, Activity, CheckCircle2, Star, Zap, Globe,
   Lock, Headphones, LayoutGrid, PawPrint, ChevronRight, BadgeCheck,
-  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, UserCog, Bell,
+  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, UserCog, Bell, Download,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
@@ -93,6 +93,13 @@ function HeroSection() {
               </div>
             ))}
           </div>
+
+          <a
+            href="/downloads/jenix-community.apk"
+            className="inline-flex items-center gap-2 mt-6 text-sm text-white/50 hover:text-white/80 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Prefer Android? Download the app directly (APK)
+          </a>
         </div>
 
         {/* Hero visual — floating dashboard preview */}

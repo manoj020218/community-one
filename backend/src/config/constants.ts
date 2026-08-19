@@ -49,6 +49,7 @@ export const PERMISSIONS = {
   ACCESS_SYNC: 'access.sync',
   PARENT_WARD_LINK_MANAGE: 'parent.ward_link.manage',
   PARENT_WARD_LINK_VIEW_OWN: 'parent.ward_link.view_own',
+  BANNER_MANAGE: 'banner.manage',
   VEHICLE_CREATE: 'vehicle.create',
   VEHICLE_READ: 'vehicle.read',
   VEHICLE_UPDATE: 'vehicle.update',

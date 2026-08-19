@@ -24,6 +24,7 @@ const ROLE_RANK: Record<string, number> = {
   FAMILY_MEMBER: 50,
   VENDOR: 51,
   STAFF: 52,
+  PARENT: 53,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -39,6 +40,7 @@ const ROLE_LABELS: Record<string, string> = {
   FAMILY_MEMBER: 'Family Member',
   VENDOR: 'Vendor',
   STAFF: 'Staff',
+  PARENT: 'Parent',
 };
 
 const ROLE_BADGE: Record<string, string> = {
@@ -54,6 +56,7 @@ const ROLE_BADGE: Record<string, string> = {
   FAMILY_MEMBER: 'badge-gray',
   VENDOR: 'badge-gray',
   STAFF: 'badge-gray',
+  PARENT: 'badge-purple',
 };
 
 const ALL_ROLES = Object.keys(ROLE_RANK);

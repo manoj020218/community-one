@@ -38,6 +38,7 @@ import mcrRoutes from './modules/mcr/mcr.routes';
 import communicationRoutes from './modules/communication/communication.routes';
 import samaRoutes from './modules/sama/sama.routes';
 import parentWardLinkRoutes from './modules/parentWardLink/parentWardLink.routes';
+import bannerRoutes from './modules/banner/banner.routes';
 
 const app: express.Application = express();
 
@@ -90,6 +91,7 @@ app.use('/api/mcr', mcrRoutes);
 app.use('/api/sama', samaRoutes);
 app.use('/api/communication', communicationRoutes);
 app.use('/api/parent-ward-links', parentWardLinkRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // Error handlers
 app.use(notFoundHandler);

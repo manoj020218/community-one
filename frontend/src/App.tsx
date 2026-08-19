@@ -8,6 +8,8 @@ import { SocietyAdminDashboard } from './modules/dashboard/SocietyAdminDashboard
 import { ResidentDashboard } from './modules/dashboard/ResidentDashboard';
 import { ParentDashboard } from './modules/dashboard/ParentDashboard';
 import { ParentAccessLogPage } from './modules/parent/ParentAccessLogPage';
+import { ParentLinksAdminPage } from './modules/parent/ParentLinksAdminPage';
+import { BannerAdminPage } from './modules/banner/BannerAdminPage';
 import { SocietyListPage } from './modules/society/SocietyListPage';
 import { SocietyFormPage } from './modules/society/SocietyFormPage';
 import { OnboardingWizard } from './modules/onboarding/OnboardingWizard';
@@ -124,6 +126,8 @@ export default function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/parent/access-logs" element={<ParentAccessLogPage />} />
+        <Route path="/parent-links" element={<RequireSociety><ParentLinksAdminPage /></RequireSociety>} />
+        <Route path="/banners" element={<BannerAdminPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

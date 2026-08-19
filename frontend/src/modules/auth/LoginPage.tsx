@@ -6,6 +6,7 @@ import { api, extractData } from '../../services/api';
 import { User } from '../../types';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
 import { terminologyFor } from '../../utils/terminology';
+import { cn } from '../../utils/cn';
 import toast from 'react-hot-toast';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
@@ -17,9 +18,12 @@ function rememberSocietyName(user: User) {
 
 export function LoginPage() {
   const location = useLocation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // Cosmetic only, same convention as OnboardPage — ?type=hostel just swaps display copy.
-  const isHostel = searchParams.get('type') === 'hostel';
+  // Local state (not derived straight from the URL) so a visitor who landed on the wrong
+  // one can self-correct with the selector below instead of needing to know the URL param.
+  const [isHostel, setIsHostel] = useState(searchParams.get('type') === 'hostel');
+  const [manuallySwitched, setManuallySwitched] = useState(false);
   const terms = terminologyFor(isHostel ? 'HOSTEL' : 'COMMUNITY');
   const prefill = (location.state as { prefillEmail?: string; prefillPassword?: string } | null) ?? {};
   const [identifier, setIdentifier] = useState(prefill.prefillEmail ?? '');
@@ -29,6 +33,16 @@ export function LoginPage() {
   const [lastSocietyName] = useState(() => localStorage.getItem(LAST_SOCIETY_NAME_KEY));
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
+
+  const selectVertical = (hostel: boolean) => {
+    setIsHostel(hostel);
+    setManuallySwitched(true);
+    setSearchParams(hostel ? { type: 'hostel' } : {}, { replace: true });
+  };
+
+  // Once someone explicitly picks a vertical, stop showing a remembered society name from a
+  // previous login on the other vertical — it would contradict what they just selected.
+  const displayTitle = !manuallySwitched && lastSocietyName ? lastSocietyName : `Jenix ${terms.brandSubtitle}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +97,31 @@ export function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-sm rounded-2xl mb-4 border border-white/20">
             <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">{lastSocietyName || `Jenix ${terms.brandSubtitle}`}</h1>
+
+          <div className="inline-flex items-center gap-1 p-1 rounded-full bg-white/10 border border-white/20 mb-5">
+            <button
+              type="button"
+              onClick={() => selectVertical(false)}
+              className={cn(
+                'px-4 py-1.5 rounded-full text-xs font-semibold transition-colors',
+                !isHostel ? 'bg-white text-primary-900' : 'text-white/60 hover:text-white'
+              )}
+            >
+              Society
+            </button>
+            <button
+              type="button"
+              onClick={() => selectVertical(true)}
+              className={cn(
+                'px-4 py-1.5 rounded-full text-xs font-semibold transition-colors',
+                isHostel ? 'bg-white text-primary-900' : 'text-white/60 hover:text-white'
+              )}
+            >
+              Hostel
+            </button>
+          </div>
+
+          <h1 className="text-3xl font-bold text-white">{displayTitle}</h1>
           <p className="text-primary-300 mt-2 text-sm">Smart {terms.org} Management Platform</p>
         </div>
 

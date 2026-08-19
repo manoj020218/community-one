@@ -1,4 +1,4 @@
-import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound } from 'lucide-react';
+import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound, Link2, Megaphone } from 'lucide-react';
 import { MCR_ROUTE_PERMISSIONS } from '../../modules/mcr/mcr.permissions';
 import { SAMA_ROUTE_PERMISSIONS } from '../../modules/sama/sama.permissions';
 import { LEASE_ROUTE_PERMISSIONS } from '../../modules/lease/lease.permissions';
@@ -101,6 +101,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/roles', icon: Shield, label: 'Roles & Permissions', roles: ['JENIX_SUPER_ADMIN', 'SOCIETY_ADMIN'] },
       { to: '/users', icon: UserCog, label: 'Users', roles: ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT', 'SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'] },
+      { to: '/parent-links', icon: Link2, label: 'Parent Links', roles: [], permissions: ['parent.ward_link.manage'] },
     ],
   },
   {
@@ -115,6 +116,7 @@ export const navGroups: NavGroup[] = [
       { to: '/files', icon: FolderOpen, label: 'Files', roles: [] },
       { to: '/reports', icon: BarChart3, label: 'Reports', roles: [] },
       { to: '/devices', icon: Cpu, label: 'Devices', roles: [] },
+      { to: '/banners', icon: Megaphone, label: 'App Banners', roles: ['JENIX_SUPER_ADMIN'], permissions: ['banner.manage'] },
     ],
   },
 ];

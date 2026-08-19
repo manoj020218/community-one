@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, ChevronRight, CheckCircle2, Star, ScanLine, Bell, Wallet, FileText,
   Building2, ShieldCheck, Users, DoorOpen, Camera, Home, Layers3, Receipt,
-  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList,
+  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList, Download,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
@@ -120,6 +120,13 @@ function HeroSection() {
               </div>
             ))}
           </div>
+
+          <a
+            href="/downloads/jenix-community.apk"
+            className="inline-flex items-center gap-2 mt-6 text-sm text-white/50 hover:text-white/80 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Prefer Android? Download the app directly (APK)
+          </a>
         </div>
 
         {/* Hero visual — real Smart Gate terminal photo + live gate-event mockup card */}

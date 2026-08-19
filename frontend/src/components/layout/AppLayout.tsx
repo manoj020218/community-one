@@ -5,6 +5,7 @@ import { MobileNav } from './MobileNav';
 import { useEffect, useState } from 'react';
 import { registerPushNotifications } from '../../lib/firebase';
 import { useAndroidBackButton } from '../../lib/androidBackButton';
+import { BannerBar } from './BannerBar';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,6 +38,7 @@ export function AppLayout() {
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto px-4 py-6 lg:px-8 pb-20 lg:pb-6">
           <div className="max-w-7xl mx-auto animate-fade-in">
+            <BannerBar />
             <Outlet />
           </div>
         </main>
