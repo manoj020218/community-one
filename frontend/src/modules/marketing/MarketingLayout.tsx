@@ -8,9 +8,39 @@ const navLinks = [
   { label: 'Features', href: '/#features' },
   { label: 'Modules', href: '/#modules' },
   { label: 'How It Works', href: '/#how-it-works' },
-  { label: 'Hostel', href: '/hostel' },
   { label: 'About', href: '/about' },
 ];
+
+function VerticalSwitcher({ isHostel, scrolled, className }: { isHostel: boolean; scrolled: boolean; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center gap-1 p-1 rounded-full flex-shrink-0',
+        scrolled ? 'bg-slate-100' : 'bg-white/10 border border-white/20',
+        className
+      )}
+    >
+      <Link
+        to="/"
+        className={cn(
+          'px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
+          !isHostel ? 'bg-white text-primary-900 shadow-sm' : scrolled ? 'text-slate-500 hover:text-slate-800' : 'text-white/70 hover:text-white'
+        )}
+      >
+        Community
+      </Link>
+      <Link
+        to="/hostel"
+        className={cn(
+          'px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
+          isHostel ? 'bg-white text-primary-900 shadow-sm' : scrolled ? 'text-slate-500 hover:text-slate-800' : 'text-white/70 hover:text-white'
+        )}
+      >
+        Hostel
+      </Link>
+    </div>
+  );
+}
 
 export function MarketingLayout() {
   const { isAuthenticated } = useAuthStore();
@@ -63,6 +93,11 @@ export function MarketingLayout() {
               </div>
             </Link>
 
+            {/* Mobile-only vertical switcher, always visible without opening the menu */}
+            <div className="flex md:hidden flex-1 justify-center px-2">
+              <VerticalSwitcher isHostel={isHostel} scrolled={scrolled} />
+            </div>
+
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => (
@@ -82,6 +117,7 @@ export function MarketingLayout() {
 
             {/* CTAs */}
             <div className="hidden md:flex items-center gap-3">
+              <VerticalSwitcher isHostel={isHostel} scrolled={scrolled} />
               {isAuthenticated ? (
                 <Link to="/dashboard" className="flex items-center gap-1.5 text-sm font-medium bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
                   Go to Dashboard <ArrowRight className="w-3.5 h-3.5" />
