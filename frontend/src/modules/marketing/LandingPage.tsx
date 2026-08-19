@@ -4,7 +4,7 @@ import {
   CalendarDays, Megaphone, BarChart3, MessageSquare, UserCheck, Package,
   AlertTriangle, Vote, FileText, Cpu, Activity, CheckCircle2, Star, Zap, Globe,
   Lock, Headphones, LayoutGrid, PawPrint, ChevronRight, BadgeCheck,
-  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, Timer, UserCog,
+  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, UserCog, Bell,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
@@ -20,9 +20,10 @@ const MODULES = [
   { icon: CreditCard,   name: 'Payments',          desc: 'Maintenance dues, receipts, payment history per flat',    tag: 'Live',         color: 'bg-teal-100 text-teal-600'     },
   { icon: ShieldCheck,  name: 'Access Control',    desc: 'IoT gate management, RFID & QR-based entry passes',      tag: 'Live',         color: 'bg-red-100 text-red-600'       },
   { icon: ClipboardList,name: 'Audit Trail',       desc: 'Every action logged — who, what, when, from where',      tag: 'Live',         color: 'bg-purple-100 text-purple-600' },
-  { icon: UserCheck,    name: 'Visitor Management',desc: 'Guard-verified entry — photo, name & contact sent to the flat for instant approval', tag: 'Live', color: 'bg-cyan-100 text-cyan-600'     },
-  { icon: Banknote,     name: 'Maintenance & Receipts (MCR)', desc: 'Charge heads, billing plans, digital demands, verified payments & instant receipts', tag: 'Coming Soon', color: 'bg-orange-100 text-orange-600' },
-  { icon: UserCog,      name: 'Staff, Attendance & Access (SAMA)', desc: 'Manage guards, gardeners, drivers & household help — attendance, timings and access in one place', tag: 'Coming Soon', color: 'bg-fuchsia-100 text-fuchsia-700' },
+  { icon: UserCheck,    name: 'Visitor Management',desc: 'Guard-verified entry with a photo and voice-entered guest name — sent to the flat for instant approval', tag: 'Live', color: 'bg-cyan-100 text-cyan-600'     },
+  { icon: Banknote,     name: 'Maintenance & Receipts (MCR)', desc: 'Digital demands, WhatsApp payment reminders with a UPI link, verified payments & instant receipts', tag: 'Live', color: 'bg-orange-100 text-orange-600' },
+  { icon: UserCog,      name: 'Staff, Attendance & Access (SAMA)', desc: 'Manage guards, gardeners, drivers & household help — approved timings and gate access in one place', tag: 'Live', color: 'bg-fuchsia-100 text-fuchsia-700' },
+  { icon: Bell,         name: 'Family Safety Alerts', desc: 'Know the moment a family member badges in or out at the gate — instant alert to their phone, full history any time', tag: 'Live', color: 'bg-amber-100 text-amber-600' },
   { icon: CalendarDays, name: 'Amenity Booking',   desc: 'Clubhouse, gym, pool — online booking with time slots',  tag: 'Coming Soon',  color: 'bg-violet-100 text-violet-600' },
   { icon: Megaphone,    name: 'Announcements',     desc: 'Broadcast notices, events and emergency alerts to all',  tag: 'Coming Soon',  color: 'bg-rose-100 text-rose-600'     },
   { icon: MessageSquare,name: 'Complaints',        desc: 'Log complaints, track resolution, rate outcomes',        tag: 'Coming Soon',  color: 'bg-pink-100 text-pink-600'     },
@@ -249,10 +250,24 @@ function FeaturesSection() {
     },
     {
       icon: ShieldCheck,
-      title: 'IoT Access Control',
-      desc: 'Smart gate management powered by hardware. RFID, QR codes, boom barriers and mobile-based entry — built to integrate with your existing gate hardware and installers.',
+      title: 'Smart Access Control',
+      desc: 'Schedule-based gate access for residents and staff — RFID, QR codes, boom barriers and biometric terminals. Set who can enter, where, and during which hours.',
       color: 'bg-red-50',
       iconColor: 'text-red-600',
+    },
+    {
+      icon: Bell,
+      title: 'Family Safety Alerts',
+      desc: 'The moment a family member badges in or out at the gate, get an instant notification on your phone — with a full history you can check any time.',
+      color: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+    },
+    {
+      icon: UserCog,
+      title: 'Staff & Attendance',
+      desc: 'One place for every guard, gardener, driver and household help — attendance, approved timings, and gate access, whether on society payroll or hired directly.',
+      color: 'bg-fuchsia-50',
+      iconColor: 'text-fuchsia-600',
     },
     {
       icon: ClipboardList,
@@ -299,8 +314,15 @@ function WorkflowsSection() {
   const mcrSteps = [
     { icon: ClipboardCheck, title: 'Charges Configured Once', desc: 'Maintenance, sinking fund, parking & other charges set up society-wide.' },
     { icon: Banknote, title: 'Demand Raised Automatically', desc: 'Monthly or quarterly dues are generated and sent to every flat.' },
-    { icon: Timer, title: 'Payment Recorded & Verified', desc: 'Cash, cheque, UPI or bank transfer — checked by a second person for accuracy.' },
+    { icon: PhoneCall, title: 'WhatsApp Reminder with UPI Link', desc: 'Residents get a reminder on WhatsApp with a one-tap UPI payment link before the due date.' },
     { icon: FileText, title: 'Digital Receipt Issued', desc: 'An instant, shareable receipt with full payment history for every flat.' },
+  ];
+
+  const alertSteps = [
+    { icon: ScanLine, title: 'Family Member Badges at the Gate', desc: 'Any tap-in or tap-out at a smart access point is captured automatically.' },
+    { icon: Bell, title: 'Instant Alert Sent', desc: 'A notification reaches their phone the moment it happens — WhatsApp as backup if needed.' },
+    { icon: FileText, title: 'Full History, Any Time', desc: 'Every entry and exit is logged and searchable — not just the one-time alert.' },
+    { icon: CheckCircle2, title: 'Peace of Mind, Automatically', desc: 'No phone calls to ask "did they reach home?" — you already know.' },
   ];
 
   return (
@@ -312,7 +334,7 @@ function WorkflowsSection() {
           <p className="mt-4 text-lg text-slate-500 max-w-2xl mx-auto">Not just a records system — Jenix runs the day-to-day processes your gate, office and residents already follow.</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Visitor Management flow */}
           <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
             <div className="flex items-center justify-between mb-6">
@@ -339,7 +361,7 @@ function WorkflowsSection() {
           <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-900">Maintenance & Receipts (MCR)</h3>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">Coming Soon</span>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Live</span>
             </div>
             <div className="space-y-5">
               {mcrSteps.map(({ icon: Icon, title, desc }, i) => (
@@ -347,6 +369,28 @@ function WorkflowsSection() {
                   <div className="flex flex-col items-center flex-shrink-0">
                     <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center"><Icon className="w-5 h-5" /></div>
                     {i < mcrSteps.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
+                  </div>
+                  <div className="pb-1">
+                    <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+                    <p className="text-sm text-slate-500 mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Guardian Safety Alerts flow */}
+          <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900">Family Safety Alerts</h3>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">Live</span>
+            </div>
+            <div className="space-y-5">
+              {alertSteps.map(({ icon: Icon, title, desc }, i) => (
+                <div key={title} className="flex gap-4">
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center"><Icon className="w-5 h-5" /></div>
+                    {i < alertSteps.length - 1 && <div className="w-px flex-1 bg-slate-200 mt-2" />}
                   </div>
                   <div className="pb-1">
                     <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
@@ -364,9 +408,9 @@ function WorkflowsSection() {
             <UserCog className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-900">Coming Soon: SAMA — Staff, Attendance & Access</h4>
+            <h4 className="text-sm font-bold text-slate-900">Live: SAMA — Staff, Attendance & Access</h4>
             <p className="text-sm text-slate-600 mt-1">
-              One place to manage every guard, gardener, driver and household helper — attendance, approved entry timings, and gate access,
+              One place to manage every guard, gardener, driver and household helper — approved entry timings and gate access,
               whether they're on society payroll or hired directly by a household.
             </p>
           </div>
@@ -416,9 +460,9 @@ function ModulesSection() {
 
         <div className="mt-10 text-center">
           <p className="text-slate-400 text-sm">
-            <span className="text-emerald-400 font-semibold">● 12 modules live</span>
+            <span className="text-emerald-400 font-semibold">● 15 modules live</span>
             <span className="mx-3 text-slate-600">·</span>
-            <span className="text-white/50">9 coming in next releases</span>
+            <span className="text-white/50">7 coming in next releases</span>
           </p>
         </div>
       </div>
@@ -510,8 +554,8 @@ function ForEveryoneSection() {
       points: [
         'Know your flat\'s complete history',
         'View payment receipts any time',
+        'Get notified when family enters or exits',
         'Register vehicles, pets, family members',
-        'Receive society notices instantly',
       ],
       gradient: 'from-emerald-600 to-teal-700',
     },
@@ -647,7 +691,7 @@ export function LandingPage() {
     <div>
       <Seo
         title="Jenix Community One | Society Management Software for Gated Communities in India"
-        description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, maintenance billing, vehicle & parking control, and IoT gate access, all in one app. Free onboarding, no card needed."
+        description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, WhatsApp maintenance reminders, staff & attendance tracking, family safety alerts, vehicle & parking control, and smart IoT gate access, all in one app. Free onboarding, no card needed."
         keywords={LANDING_KEYWORDS}
         path="/"
         structuredData={LANDING_STRUCTURED_DATA}

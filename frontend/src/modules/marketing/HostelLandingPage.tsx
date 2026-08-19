@@ -18,8 +18,8 @@ const FEATURES = [
   { icon: Users, name: 'Digital Student Records', desc: 'Every student, every guardian, every document — searchable, never lost, available from anywhere', tag: 'Live', color: 'bg-purple-100 text-purple-600' },
   { icon: UserCheck, name: 'Visitor Management', desc: 'Guard-verified visitor entry with instant approval requests — know who is on your premises, always', tag: 'Live', color: 'bg-cyan-100 text-cyan-600' },
   { icon: ClipboardList, name: 'Audit Trail', desc: 'Every action logged — who changed what, when, from where. Full accountability by default', tag: 'Live', color: 'bg-slate-100 text-slate-600' },
-  { icon: Bell, name: 'Parent Entry/Exit Alerts', desc: 'Automatic notification to parents the moment their child enters or leaves the hostel', tag: 'Coming Soon', color: 'bg-amber-100 text-amber-600' },
-  { icon: Receipt, name: 'Automated Fee Reminders', desc: 'WhatsApp/SMS reminders before rent is due, so admins stop chasing payments manually', tag: 'Coming Soon', color: 'bg-orange-100 text-orange-600' },
+  { icon: Bell, name: 'Parent Entry/Exit Alerts', desc: 'The moment your child taps in or out at the gate, an alert reaches your phone — with a full history you can check any time in your own login', tag: 'Live', color: 'bg-amber-100 text-amber-600' },
+  { icon: Receipt, name: 'Automated Fee Reminders', desc: 'WhatsApp reminders before rent is due, with a UPI payment link — so admins stop chasing payments by phone call', tag: 'Live', color: 'bg-orange-100 text-orange-600' },
   { icon: ShieldCheck, name: 'Curfew & Late-Return Alerts', desc: 'Set allowed hours; anything outside that window flags the warden automatically', tag: 'Coming Soon', color: 'bg-rose-100 text-rose-600' },
   { icon: Sparkles, name: 'Mess & Housekeeping', desc: 'Meal planning, attendance, and housekeeping task tracking', tag: 'Coming Soon', color: 'bg-fuchsia-100 text-fuchsia-600' },
 ];
@@ -35,7 +35,11 @@ const FAQS = [
   },
   {
     q: 'Will parents be notified when their child enters or leaves?',
-    a: 'This is on our near-term roadmap, not live yet today. The underlying gate-tracking data already works — parent notifications are the next layer we\'re building on top of it. We\'d rather tell you honestly where we are than oversell.',
+    a: 'Yes — this is live. The moment a gate event is logged, we send an alert straight to the linked parent\'s phone. Parents also get their own login to check the full entry/exit history any time, not just react to the alert. If the app notification can\'t be delivered for some reason, it falls back to a WhatsApp message so the alert still reaches you.',
+  },
+  {
+    q: 'Does a parent need to install a separate app?',
+    a: 'No — the same Jenix app, just a different login. The hostel admin links a parent to their child\'s profile once; after that, the parent signs in and only ever sees their own child\'s information — never other students\' data.',
   },
   {
     q: 'I own hostels in more than one city — can I manage them all from one account?',
@@ -88,8 +92,8 @@ function HeroSection() {
 
           <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
             The hostel management platform that replaces the paper register with a Smart Gate —
-            every entry and exit logged automatically, rooms and rent managed digitally, and one dashboard
-            for every hostel you run.
+            every entry and exit logged automatically, with an instant alert straight to a parent's phone,
+            rooms and rent managed digitally, and one dashboard for every hostel you run.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
@@ -109,7 +113,7 @@ function HeroSection() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-white/60">
-            {['Free trial, no card needed', 'Works with your gate hardware', 'Multi-hostel ready', 'Paperless from day one'].map((item) => (
+            {['Free trial, no card needed', 'Works with your gate hardware', 'Instant parent alerts', 'Multi-hostel ready'].map((item) => (
               <div key={item} className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 <span>{item}</span>
@@ -152,6 +156,10 @@ function HeroSection() {
                 <p className="text-white/50 text-xs">Room B-204 · Verified by face match</p>
               </div>
               <p className="text-white/70 text-sm font-mono">8:42 PM</p>
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-xs text-emerald-300">
+              <Bell className="w-3.5 h-3.5" />
+              <span>Parent notified on their phone — instantly</span>
             </div>
           </div>
         </div>
@@ -209,7 +217,7 @@ function HowItWorksSection() {
     { icon: ScanLine, title: 'Student taps in or scans their face', desc: 'At the Smart Gate terminal installed at your entrance — takes under two seconds' },
     { icon: DoorOpen, title: 'Entry or exit is logged automatically', desc: 'No register, no guard writing names — the moment is captured with a timestamp' },
     { icon: FileText, title: 'The record is instantly available', desc: 'Warden and admin can see it right away; searchable history, nothing gets lost' },
-    { icon: Bell, title: 'Parents stay informed (on our roadmap)', desc: 'Automatic entry/exit alerts to parents — the next layer we\'re building on this foundation' },
+    { icon: Bell, title: 'Parents stay informed, instantly', desc: 'An alert reaches the parent\'s phone the moment it happens — with a searchable history always available in their own login' },
   ];
   return (
     <section id="how-it-works" className="py-20 bg-slate-50">
@@ -339,8 +347,8 @@ export function HostelLandingPage() {
   return (
     <div>
       <Seo
-        title="Hostel Management Software India | Smart Gate, Rent & Records | Jenix"
-        description="Hostel and PG management software with smart gate entry/exit tracking, digital student records, rent management and multi-hostel support. Built for hostel owners and worried parents alike. Free trial."
+        title="Hostel Management Software India | Smart Gate & Parent Alerts | Jenix"
+        description="Hostel and PG management software with smart gate entry/exit tracking, instant parent safety alerts, digital student records, rent management and multi-hostel support. Built for hostel owners and worried parents alike. Free trial."
         keywords={HOSTEL_KEYWORDS}
         structuredData={HOSTEL_STRUCTURED_DATA}
         path="/hostel"

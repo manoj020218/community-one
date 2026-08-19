@@ -1,10 +1,14 @@
 User-agent: *
 Allow: /
 Allow: /about
+Allow: /hostel
 Allow: /onboard
 Allow: /privacy
 Allow: /terms
 Disallow: /dashboard
+Disallow: /access
+Disallow: /lease
+Disallow: /parent
 Disallow: /societies
 Disallow: /towers
 Disallow: /floors
