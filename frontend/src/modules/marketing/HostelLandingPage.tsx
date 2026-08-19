@@ -77,10 +77,10 @@ function HeroSection() {
       <div className="absolute top-32 left-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-3xl -translate-x-1/2" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-purple-700/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-32">
         <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-medium text-white/90 mb-8 backdrop-blur-sm">
-            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-xs font-medium text-white/90 mb-6 sm:mb-8 backdrop-blur-sm whitespace-nowrap">
+            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
             <span>Built for Hostels, PGs & Student Housing in India</span>
           </div>
 
