@@ -39,6 +39,8 @@ const config: Config = {
         'slide-in-right': 'slideInRight 0.25s ease-out',
         'blink-ring': 'blinkRing 1.6s ease-in-out infinite',
         'pop-in': 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        shine: 'shine 3.5s ease-in-out infinite',
+        'glow-pulse': 'glowPulse 2.5s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
@@ -49,6 +51,14 @@ const config: Config = {
           '50%': { boxShadow: '0 0 0 14px rgb(245 158 11 / 0)' },
         },
         popIn: { '0%': { transform: 'scale(0.85)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } },
+        shine: {
+          '0%': { transform: 'translateX(-120%) skewX(-20deg)' },
+          '45%, 100%': { transform: 'translateX(220%) skewX(-20deg)' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 16px 2px rgb(129 140 248 / 0.35)' },
+          '50%': { boxShadow: '0 0 26px 6px rgb(129 140 248 / 0.55)' },
+        },
       },
     },
   },

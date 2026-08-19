@@ -2,11 +2,12 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, ChevronRight, CheckCircle2, Star, ScanLine, Bell, Wallet, FileText,
   Building2, ShieldCheck, Users, DoorOpen, Camera, Home, Layers3, Receipt,
-  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList, Download,
+  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
 import { HOSTEL_KEYWORDS, HOSTEL_STRUCTURED_DATA } from '../../components/seo/seoContent';
+import { ApkDownloadButton } from './ApkDownloadButton';
 
 // ─── Feature grid — tagged honestly, same convention as the main landing page ──
 const FEATURES = [
@@ -121,12 +122,9 @@ function HeroSection() {
             ))}
           </div>
 
-          <a
-            href="/downloads/jenix-community.apk"
-            className="inline-flex items-center gap-2 mt-6 text-sm text-white/50 hover:text-white/80 transition-colors"
-          >
-            <Download className="w-4 h-4" /> Prefer Android? Download the app directly (APK)
-          </a>
+          <div className="flex justify-center mt-8">
+            <ApkDownloadButton />
+          </div>
         </div>
 
         {/* Hero visual — real Smart Gate terminal photo + live gate-event mockup card */}

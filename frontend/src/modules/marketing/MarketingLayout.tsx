@@ -3,6 +3,7 @@ import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-do
 import { Building2, Menu, X, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../utils/cn';
+import { ApkDownloadButton } from './ApkDownloadButton';
 
 const navLinks = [
   { label: 'Features', href: '/#features' },
@@ -167,6 +168,15 @@ export function MarketingLayout() {
 
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-5 pb-10 border-b border-white/10">
+            <div className="text-center sm:text-left">
+              <p className="text-white font-semibold text-sm">Prefer the Android app?</p>
+              <p className="text-slate-500 text-xs mt-0.5">Not on the Play Store yet — grab it directly, install in seconds.</p>
+            </div>
+            <ApkDownloadButton compact />
+          </div>
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
             {/* Brand */}
