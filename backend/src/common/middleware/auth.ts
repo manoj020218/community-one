@@ -77,6 +77,12 @@ export function requireRole(...roles: string[]) {
   };
 }
 
+// Blocks a non-super user from reading or writing another society's data by supplying a
+// different societyId — checks the URL (:societyId), the request body, and the query string,
+// since different endpoints put it in different places (list/read endpoints often use the
+// path or a query param, create/update endpoints send it in the body). A super role
+// (JENIX_SUPER_ADMIN/JENIX_SUPPORT) is exempt since they manage every society and are
+// expected to target one explicitly.
 export function requireSocietyAccess(
   req: AuthenticatedRequest,
   _res: Response,
@@ -84,11 +90,10 @@ export function requireSocietyAccess(
 ): void {
   if (!req.user) return next(new AuthenticationError());
 
-  const { societyId } = req.params;
   const superRoles = ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'];
-
   if (superRoles.includes(req.user.roleCode)) return next();
 
+  const societyId = req.params.societyId || req.body?.societyId || (req.query?.societyId as string | undefined);
   if (societyId && req.user.societyId !== societyId) {
     return next(new AuthorizationError('Access denied to this society'));
   }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../types';
+import { useSocietyStore } from './societyStore';
 
 interface AuthState {
   user: User | null;
@@ -21,8 +22,14 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) =>
-        set({ user, accessToken, refreshToken, isAuthenticated: true }),
+      // currentSociety (the "society switcher" selection) is a SEPARATE persisted store, keyed
+      // by browser/device rather than by user. Without clearing it here, a new login on the
+      // same device inherits whatever society the PREVIOUS session had selected — silently
+      // scoping every society-scoped API call to someone else's society.
+      setAuth: (user, accessToken, refreshToken) => {
+        useSocietyStore.getState().clearSociety();
+        set({ user, accessToken, refreshToken, isAuthenticated: true });
+      },
 
       setTokens: (accessToken, refreshToken) =>
         set({ accessToken, refreshToken }),
@@ -30,8 +37,10 @@ export const useAuthStore = create<AuthState>()(
       updateUser: (updates) =>
         set((state) => ({ user: state.user ? { ...state.user, ...updates } : null })),
 
-      logout: () =>
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
+      logout: () => {
+        useSocietyStore.getState().clearSociety();
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'jenix-auth',
