@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Save, Settings2, Bell } from 'lucide-react';
+import { Save, Settings2, Bell, MessageCircle, Mail, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { cn } from '../../utils/cn';
 import { McrSettings } from './mcr.types';
+import { CommunicationSettings } from '../settings/communicationTypes';
 
 const BLANK: McrSettings = {
   financialYearStartMonth: 4, defaultCurrency: 'INR', societyTimezone: 'Asia/Kolkata',
@@ -22,11 +25,21 @@ export function McrSettingsTab() {
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [form, setForm] = useState<McrSettings>(BLANK);
 
   const { data: settings } = useQuery({
     queryKey: ['mcr-settings', societyId],
     queryFn: () => extractData<McrSettings>(api.get('/mcr/settings', { params: { societyId } })),
+    enabled: !!societyId,
+  });
+
+  // Reminders send over these — surfaced here (read-only, managed on the Settings page) so an
+  // admin turning on reminder automation immediately sees whether WhatsApp/email will actually
+  // deliver, instead of only finding out when reminders silently fail to send.
+  const { data: commSettings } = useQuery({
+    queryKey: ['communication-settings', societyId],
+    queryFn: () => extractData<CommunicationSettings>(api.get('/communication/settings', { params: { societyId } })),
     enabled: !!societyId,
   });
 
@@ -103,6 +116,25 @@ export function McrSettingsTab() {
 
       <div className="card p-6">
         <div className="flex items-center gap-2 mb-5"><Bell className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">Automated Reminders</h3></div>
+
+        <button onClick={() => navigate('/settings')} className="w-full flex items-center gap-4 p-3 mb-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
+          <div className="flex items-center gap-2 text-xs">
+            <MessageCircle className={cn('w-3.5 h-3.5', commSettings?.whatsapp.status === 'CONNECTED' ? 'text-emerald-600' : 'text-red-500')} />
+            <span className={commSettings?.whatsapp.status === 'CONNECTED' ? 'text-emerald-700' : 'text-red-600'}>
+              WhatsApp {commSettings?.whatsapp.status === 'CONNECTED' ? 'connected' : 'not connected'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <Mail className={cn('w-3.5 h-3.5', commSettings?.smtp.enabled ? 'text-emerald-600' : 'text-slate-400')} />
+            <span className={commSettings?.smtp.enabled ? 'text-emerald-700' : 'text-slate-500'}>
+              Email {commSettings?.smtp.enabled ? 'configured' : 'not configured'}
+            </span>
+          </div>
+          <span className="ml-auto flex items-center gap-1 text-xs text-primary-600 font-medium flex-shrink-0">
+            Manage in Settings <ArrowRight className="w-3 h-3" />
+          </span>
+        </button>
+
         <label className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 cursor-pointer mb-1">
           <div>
             <p className="text-sm font-medium text-slate-700">Send reminders automatically</p>

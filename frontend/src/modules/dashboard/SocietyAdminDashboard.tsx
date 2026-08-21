@@ -1,17 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle, UserCheck } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle, UserCheck, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { StatCard } from '../../components/common/StatCard';
 import { CardSkeleton } from '../../components/common/LoadingSkeleton';
+import { Modal } from '../../components/common/Modal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { cn } from '../../utils/cn';
+import { WhatsAppStatus } from '../settings/communicationTypes';
 
 export function SocietyAdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId;
+  const queryClient = useQueryClient();
+  const [showWaModal, setShowWaModal] = useState(false);
 
   const { data: flatStats } = useQuery({
     queryKey: ['flat-stats', societyId],
@@ -35,6 +41,21 @@ export function SocietyAdminDashboard() {
     queryKey: ['modules', societyId],
     queryFn: () => societyId ? extractData<any[]>(api.get(`/modules/society/${societyId}`)) : [],
     enabled: !!societyId,
+  });
+
+  // The WhatsApp session (used for reminders/receipts) tends to get logged out on its own —
+  // surfaced here so a disconnect is noticed on the dashboard instead of silently breaking
+  // outbound messages, with a one-click way to reconnect right from this card.
+  const { data: waStatus } = useQuery({
+    queryKey: ['whatsapp-status', societyId],
+    queryFn: () => extractData<WhatsAppStatus>(api.get('/communication/whatsapp/status', { params: { societyId } })),
+    enabled: !!societyId,
+    refetchInterval: (query) => (query.state.data?.status === 'CONNECTING' ? 3000 : 60000),
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: () => api.post('/communication/whatsapp/connect', { societyId }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['whatsapp-status'] }),
   });
 
   if (!societyId) {
@@ -72,6 +93,26 @@ export function SocietyAdminDashboard() {
         <StatCard title="Residents" value={residents?.total || 0} icon={Users} color="green" />
         <StatCard title="Vehicles" value={vehicles?.total || 0} icon={Car} color="amber" />
         <StatCard title="Active Modules" value={enabledModules.length} icon={Puzzle} color="purple" />
+        <button
+          onClick={() => waStatus?.status !== 'CONNECTED' && setShowWaModal(true)}
+          className={cn(
+            'card p-5 text-left transition-all duration-200',
+            waStatus?.status === 'CONNECTED' ? 'cursor-default' : 'hover:shadow-card-hover cursor-pointer'
+          )}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-500">WhatsApp</p>
+              <p className={cn('text-lg font-bold mt-1', waStatus?.status === 'CONNECTED' ? 'text-emerald-600' : 'text-red-600')}>
+                {waStatus?.status === 'CONNECTED' ? 'Connected' : waStatus?.status === 'CONNECTING' ? 'Connecting…' : 'Disconnected'}
+              </p>
+              {waStatus?.status !== 'CONNECTED' && <p className="text-xs text-primary-600 font-medium mt-1">Tap to reconnect</p>}
+            </div>
+            <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0', waStatus?.status === 'CONNECTED' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600')}>
+              <MessageCircle className="w-6 h-6" />
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* Modules Grid */}
@@ -117,6 +158,32 @@ export function SocietyAdminDashboard() {
           </button>
         ))}
       </div>
+
+      <Modal isOpen={showWaModal} onClose={() => setShowWaModal(false)} title="Reconnect WhatsApp">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            The linked number's WhatsApp session has disconnected — this usually happens on its own after a while.
+            Reconnect the same way you'd link WhatsApp Web: scan the QR with that phone's WhatsApp app.
+          </p>
+
+          {waStatus?.status === 'CONNECTING' && waStatus.qrDataUrl && (
+            <div className="flex flex-col items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <img src={waStatus.qrDataUrl} alt="WhatsApp QR code" className="w-48 h-48" />
+              <p className="text-xs text-slate-500 text-center">Open WhatsApp on the phone you want to link → Settings → Linked Devices → Link a Device, then scan this code.</p>
+            </div>
+          )}
+
+          {(!waStatus || waStatus.status === 'DISCONNECTED') && (
+            <button onClick={() => connectMutation.mutate()} disabled={connectMutation.isPending} className="btn-primary w-full">
+              {connectMutation.isPending ? 'Starting…' : 'Connect WhatsApp'}
+            </button>
+          )}
+
+          <button onClick={() => navigate('/settings')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+            Manage full communication settings <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
