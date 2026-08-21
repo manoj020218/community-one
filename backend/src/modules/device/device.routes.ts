@@ -1,6 +1,7 @@
 ﻿import { Router } from 'express';
-import { authenticate, requirePermission } from '../../common/middleware/auth';
+import { authenticate, requirePermission, requireSocietyAccess, requireResourceSocietyAccess } from '../../common/middleware/auth';
 import { deviceController } from './device.controller';
+import { Device } from './device.model';
 import { PERMISSIONS } from '../../config/constants';
 
 const router: Router = Router();
@@ -24,14 +25,14 @@ router.get('/firmware/:deviceModel/latest', deviceController.getLatestFirmware.b
 
 router.use(authenticate);
 router.get('/access-logs/my-wards', requirePermission(PERMISSIONS.ACCESS_EVENT_VIEW_OWN_WARD), deviceController.myWardsAccessLogs.bind(deviceController));
-router.get('/society/:societyId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findBySociety.bind(deviceController));
-router.get('/:id/event-logs', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.listEventLogs.bind(deviceController));
-router.post('/:id/photo-requests', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.requestPhoto.bind(deviceController));
+router.get('/society/:societyId', requirePermission(PERMISSIONS.DEVICE_READ), requireSocietyAccess, deviceController.findBySociety.bind(deviceController));
+router.get('/:id/event-logs', requirePermission(PERMISSIONS.DEVICE_READ), requireResourceSocietyAccess(Device), deviceController.listEventLogs.bind(deviceController));
+router.post('/:id/photo-requests', requirePermission(PERMISSIONS.DEVICE_READ), requireResourceSocietyAccess(Device), deviceController.requestPhoto.bind(deviceController));
 router.get('/photo-requests/:requestId', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.getPhotoRequestStatus.bind(deviceController));
 router.post('/firmware', requirePermission(PERMISSIONS.FIRMWARE_MANAGE), deviceController.registerFirmwareRelease.bind(deviceController));
-router.post('/', requirePermission(PERMISSIONS.DEVICE_CREATE), deviceController.create.bind(deviceController));
-router.get('/:id', requirePermission(PERMISSIONS.DEVICE_READ), deviceController.findById.bind(deviceController));
-router.patch('/:id', requirePermission(PERMISSIONS.DEVICE_UPDATE), deviceController.update.bind(deviceController));
-router.patch('/:id/disable', requirePermission(PERMISSIONS.DEVICE_DISABLE), deviceController.disable.bind(deviceController));
+router.post('/', requirePermission(PERMISSIONS.DEVICE_CREATE), requireSocietyAccess, deviceController.create.bind(deviceController));
+router.get('/:id', requirePermission(PERMISSIONS.DEVICE_READ), requireResourceSocietyAccess(Device), deviceController.findById.bind(deviceController));
+router.patch('/:id', requirePermission(PERMISSIONS.DEVICE_UPDATE), requireResourceSocietyAccess(Device), deviceController.update.bind(deviceController));
+router.patch('/:id/disable', requirePermission(PERMISSIONS.DEVICE_DISABLE), requireResourceSocietyAccess(Device), deviceController.disable.bind(deviceController));
 
 export default router;

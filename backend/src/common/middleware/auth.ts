@@ -1,7 +1,10 @@
 import { Response, NextFunction } from 'express';
+import { Model } from 'mongoose';
 import { verifyAccessToken } from '../utils/jwt';
 import { AuthenticatedRequest } from '../types';
 import { AuthenticationError, AuthorizationError } from '../errors/AppError';
+
+const SUPER_ROLES = ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'];
 
 export function authenticate(
   req: AuthenticatedRequest,
@@ -89,9 +92,7 @@ export function requireSocietyAccess(
   next: NextFunction
 ): void {
   if (!req.user) return next(new AuthenticationError());
-
-  const superRoles = ['JENIX_SUPER_ADMIN', 'JENIX_SUPPORT'];
-  if (superRoles.includes(req.user.roleCode)) return next();
+  if (SUPER_ROLES.includes(req.user.roleCode)) return next();
 
   const societyId = req.params.societyId || req.body?.societyId || (req.query?.societyId as string | undefined);
   if (societyId && req.user.societyId !== societyId) {
@@ -99,4 +100,27 @@ export function requireSocietyAccess(
   }
 
   next();
+}
+
+// Covers single-resource routes (GET/PATCH/DELETE /flats/:id, /residents/:id, ...) that
+// requireSocietyAccess can't — there's no societyId in the URL/body to compare, only a
+// resource id. Looks up just that document's societyId and blocks a non-super user whose own
+// society doesn't match, so a caller can't read or write another society's record by ID even
+// though the id itself gives no clue which society it belongs to. A missing document is left
+// for the controller's own NotFoundError to report, so 404 vs 403 stays accurate.
+export function requireResourceSocietyAccess(model: Model<any>, paramName: string = 'id') {
+  return async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) return next(new AuthenticationError());
+    if (SUPER_ROLES.includes(req.user.roleCode)) return next();
+
+    try {
+      const doc = await model.findById(req.params[paramName]).select('societyId').lean();
+      if (doc && String((doc as any).societyId) !== req.user.societyId) {
+        return next(new AuthorizationError('Access denied to this society'));
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 }
