@@ -18,7 +18,11 @@ export class McrReportService {
     const now = new Date();
     const [demandAgg, paymentAgg, receiptCount, advanceBalancePaise] = await Promise.all([
       MaintenanceDemand.aggregate([
-        { $match: { ...scope, status: { $ne: 'DRAFT' } } },
+        // CANCELLED demands (e.g. one generated for a flat that was later deleted) don't
+        // represent a real bill and shouldn't count toward Total Billed or anything derived
+        // from it — only DRAFT was excluded before, so a cancelled demand kept inflating the
+        // total forever.
+        { $match: { ...scope, status: { $nin: ['DRAFT', 'CANCELLED'] } } },
         {
           $group: {
             _id: null,
