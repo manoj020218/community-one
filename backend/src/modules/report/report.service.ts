@@ -8,15 +8,24 @@ import { Pet } from '../pet/pet.model';
 import { PaymentRecord } from '../payment/payment.model';
 import { Receipt } from '../receipt/receipt.model';
 
+// Platform-wide reports that list data across every society — only meaningful (and safe) for
+// a Jenix Super Admin/Support user managing the whole platform, never for a single society's
+// own admin, who has no business seeing other societies at all.
+const PLATFORM_WIDE_REPORT_CODES = ['SOCIETY_LIST'];
+
 export class ReportService {
-  async getAllDefinitions(): Promise<IReportDefinitionDocument[]> {
-    return ReportDefinition.find({ isActive: true });
+  async getAllDefinitions(isSuper: boolean): Promise<IReportDefinitionDocument[]> {
+    const query: Record<string, unknown> = { isActive: true };
+    if (!isSuper) query.code = { $nin: PLATFORM_WIDE_REPORT_CODES };
+    return ReportDefinition.find(query);
   }
 
-  async runReport(code: string, societyId: string, filters: Record<string, any> = {}): Promise<any> {
+  async runReport(code: string, societyId: string, filters: Record<string, any> = {}, isSuper = false): Promise<any> {
     switch (code) {
       case 'SOCIETY_LIST':
-        return Society.find({ isActive: true }).sort({ name: 1 });
+        // Defense in depth: even if a non-super caller somehow invokes this code directly, it
+        // never leaks other societies — it can only ever return their own.
+        return isSuper ? Society.find({ isActive: true }).sort({ name: 1 }) : Society.find({ _id: societyId, isActive: true });
       case 'TOWER_LIST':
         return Tower.find({ societyId, isActive: true }).sort({ name: 1 });
       case 'FLAT_LIST':
