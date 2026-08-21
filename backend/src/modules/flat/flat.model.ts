@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type FlatType = '1BHK'|'2BHK'|'3BHK'|'4BHK'|'PENTHOUSE'|'VILLA'|'SHOP'|'OFFICE'|'OTHER';
+export type FlatType = '1BHK'|'2BHK'|'3BHK'|'4BHK'|'PENTHOUSE'|'VILLA'|'SHOP'|'OFFICE'|'PARKING'|'STAFF_QUARTERS'|'OTHER';
 export type OccupancyStatus = 'OWNER_OCCUPIED'|'TENANT_OCCUPIED'|'VACANT'|'LOCKED'|'UNDER_RENOVATION';
 
 export interface IFlatDocument extends Document {
@@ -28,7 +28,7 @@ const FlatSchema = new Schema(
     flatNo: { type: String, required: true, trim: true },
     flatType: {
       type: String,
-      enum: ['1BHK','2BHK','3BHK','4BHK','PENTHOUSE','VILLA','SHOP','OFFICE','OTHER'],
+      enum: ['1BHK','2BHK','3BHK','4BHK','PENTHOUSE','VILLA','SHOP','OFFICE','PARKING','STAFF_QUARTERS','OTHER'],
       default: '2BHK',
     },
     areaSqFt: { type: Number },

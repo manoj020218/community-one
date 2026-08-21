@@ -1,4 +1,5 @@
 import { Flat, IFlatDocument } from './flat.model';
+import { Floor } from '../floor/floor.model';
 import { NotFoundError } from '../../common/errors/AppError';
 import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
@@ -19,8 +20,7 @@ export interface GenerateFlatsDto {
   societyId: string;
   towerId: string;
   floorId: string;
-  floorNumber: number;
-  towerCode: string;
+  towerCode?: string;
   flatsPerFloor: number;
   flatType?: string;
   startUnit?: number;
@@ -32,11 +32,19 @@ export class FlatService {
   }
 
   async generateFlats(dto: GenerateFlatsDto, createdBy: string): Promise<IFlatDocument[]> {
+    const floor = await Floor.findById(dto.floorId);
+    if (!floor) throw new NotFoundError('Floor');
+
+    // Prefer the floor's own prefix (set at floor-generation time, e.g. "G", "B1", "1", "2")
+    // so flat numbers follow the real Indian convention (G01, 101, 201...). Fall back to the
+    // legacy tower-code + floor-number format for floors created before this field existed.
+    const prefix = floor.flatNumberPrefix || `${dto.towerCode || ''}-${floor.floorNumber}`;
+
     const flats = [];
     const startUnit = dto.startUnit || 1;
     for (let i = 0; i < dto.flatsPerFloor; i++) {
       const unit = String(startUnit + i).padStart(2, '0');
-      const flatNo = `${dto.towerCode}-${dto.floorNumber}${unit}`;
+      const flatNo = `${prefix}${unit}`;
       const exists = await Flat.findOne({ societyId: dto.societyId, flatNo });
       if (!exists) {
         flats.push({

@@ -6,6 +6,8 @@ export interface ITower {
   code: string;
   type: TowerType;
   numberOfFloors: number;
+  hasGroundFloor: boolean;
+  basementCount: number;
   totalFlats: number;
   hasLift: boolean;
   status: 'ACTIVE' | 'INACTIVE';
@@ -21,6 +23,8 @@ export interface CreateTowerDto {
   code?: string;
   type?: TowerType;
   numberOfFloors: number;
+  hasGroundFloor?: boolean;
+  basementCount?: number;
   totalFlats?: number;
   hasLift?: boolean;
 }
@@ -29,6 +33,8 @@ export interface UpdateTowerDto {
   name?: string;
   type?: TowerType;
   numberOfFloors?: number;
+  hasGroundFloor?: boolean;
+  basementCount?: number;
   totalFlats?: number;
   hasLift?: boolean;
   status?: 'ACTIVE' | 'INACTIVE';

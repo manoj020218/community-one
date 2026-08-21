@@ -53,12 +53,14 @@ export interface Society {
 
 export interface Tower {
   _id: string; societyId: string; name: string; code: string; type: string;
-  numberOfFloors: number; totalFlats: number; hasLift: boolean; status: string;
+  numberOfFloors: number; hasGroundFloor?: boolean; basementCount?: number;
+  totalFlats: number; hasLift: boolean; status: string;
 }
 
 export interface Floor {
   _id: string; societyId: string; towerId: string; floorNumber: number;
-  floorName: string; totalFlats: number; status: string;
+  floorName: string; floorType?: 'BASEMENT' | 'GROUND' | 'TYPICAL' | 'TERRACE' | 'OTHER';
+  flatNumberPrefix?: string; totalFlats: number; status: string;
 }
 
 export interface Flat {

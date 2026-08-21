@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn } from '../../utils/cn';
 import { Resident, User } from '../../types';
+import { useTerminology } from '../../utils/terminology';
 
 interface ParentWardLink {
   _id: string;
@@ -26,6 +27,7 @@ export function ParentLinksAdminPage() {
   const { currentSociety } = useSocietyStore();
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
+  const terms = useTerminology();
 
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState<'new' | 'existing'>('new');
@@ -109,11 +111,11 @@ export function ParentLinksAdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Parent Links"
-        subtitle="Link a parent/guardian login to their ward — they'll get access-log visibility and safety alerts for that resident"
+        title={terms.parentLinkTitle}
+        subtitle={terms.parentLinkSubtitle}
         action={
           <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Add Parent Link
+            <Plus className="w-4 h-4" /> Add {terms.parentLinkTitle.replace(/s$/, '')}
           </button>
         }
       />
@@ -123,9 +125,9 @@ export function ParentLinksAdminPage() {
       ) : !links?.length ? (
         <EmptyState
           icon={Users}
-          title="No parent links yet"
-          description="Link a parent's login to a resident so they can receive gate-entry alerts and view access history for their child."
-          action={<button onClick={() => setShowModal(true)} className="btn-primary">Add Parent Link</button>}
+          title={`No ${terms.parentLinkTitle.toLowerCase()} yet`}
+          description={`Link a parent's login to a ${terms.ward.toLowerCase()} so they can receive gate-entry alerts and view access history for them.`}
+          action={<button onClick={() => setShowModal(true)} className="btn-primary">Add {terms.parentLinkTitle.replace(/s$/, '')}</button>}
         />
       ) : (
         <div className="card overflow-hidden">
@@ -134,7 +136,7 @@ export function ParentLinksAdminPage() {
               <thead>
                 <tr>
                   <th className="table-header text-left">Parent</th>
-                  <th className="table-header text-left">Ward(s)</th>
+                  <th className="table-header text-left">{terms.ward}(s)</th>
                   <th className="table-header text-left">Status</th>
                   <th className="table-header text-left">Linked</th>
                   <th className="table-header text-left">Action</th>
@@ -180,7 +182,7 @@ export function ParentLinksAdminPage() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm(); }} title="Add Parent Link">
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); resetForm(); }} title={`Add ${terms.parentLinkTitle.replace(/s$/, '')}`}>
         <div className="space-y-4">
           <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
             <button
@@ -236,11 +238,11 @@ export function ParentLinksAdminPage() {
           )}
 
           <div>
-            <label className="label flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Ward(s) <span className="text-red-500">*</span></label>
+            <label className="label flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> {terms.ward}(s) <span className="text-red-500">*</span></label>
             <input
               value={residentSearch}
               onChange={(e) => setResidentSearch(e.target.value)}
-              placeholder="Search resident by name..."
+              placeholder={`Search ${terms.ward.toLowerCase()} by name...`}
               className="input mb-2"
             />
             <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">

@@ -12,7 +12,8 @@ import { Tower, Floor } from '../../types';
 import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
-const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
+const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office', 'Parking', 'Staff Quarters'];
+const FLOOR_TYPE_LABEL: Record<string, string> = { GROUND: 'Ground', BASEMENT: 'Basement', TERRACE: 'Terrace', OTHER: 'Other' };
 
 export function FloorPage() {
   const { user } = useAuthStore();
@@ -159,14 +160,16 @@ export function FloorPage() {
               return (
                 <div key={floor._id} className="flex items-center gap-4 px-6 py-3 hover:bg-slate-50 transition-colors group">
                   {/* Floor badge */}
-                  <div className="w-9 h-9 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    {floor.floorNumber}
+                  <div className="w-9 h-9 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {floor.flatNumberPrefix || floor.floorNumber}
                   </div>
 
                   {/* Floor name */}
                   <div className="flex-1">
                     <p className="font-medium text-slate-700 text-sm">{floor.floorName}</p>
-                    <p className="text-xs text-slate-400">Floor {floor.floorNumber}</p>
+                    <p className="text-xs text-slate-400">
+                      {floor.floorType && floor.floorType !== 'TYPICAL' ? FLOOR_TYPE_LABEL[floor.floorType] || floor.floorType : `Floor ${floor.floorNumber}`}
+                    </p>
                   </div>
 
                   {/* Flat count or generate button */}
@@ -220,6 +223,7 @@ export function FloorPage() {
           setFC={setFC}
           flatTypes={FLAT_TYPES}
           previewLabel={`${flatConfig.flatsPerFloor} flats on ${flatGenTarget?.floor.floorName}`}
+          flatNumberPrefix={flatGenTarget?.floor.flatNumberPrefix || `${(flatGenTarget?.tower.name || '').split(' ').pop()}-${flatGenTarget?.floor.floorNumber}`}
           isPending={genFlatsFloor.isPending}
           onGenerate={() => flatGenTarget && genFlatsFloor.mutate(flatGenTarget)}
           onCancel={() => setFlatGenTarget(null)}
@@ -233,6 +237,8 @@ export function FloorPage() {
           setFC={setFC}
           flatTypes={FLAT_TYPES}
           previewLabel={`${totalFlats} flats total (${flatConfig.flatsPerFloor} × ${floors.length} floors)`}
+          flatNumberPrefix={floors[0]?.flatNumberPrefix || String(floors[0]?.floorNumber ?? '')}
+          multiFloor
           isPending={genFlatsAll.isPending}
           onGenerate={() => genAllTarget && genFlatsAll.mutate(genAllTarget)}
           onCancel={() => setGenAllTarget(null)}
@@ -247,12 +253,14 @@ interface FlatConfigFormProps {
   setFC: (k: string) => (v: any) => void;
   flatTypes: string[];
   previewLabel: string;
+  flatNumberPrefix: string;
+  multiFloor?: boolean;
   isPending: boolean;
   onGenerate: () => void;
   onCancel: () => void;
 }
 
-function FlatConfigForm({ config, setFC, flatTypes, previewLabel, isPending, onGenerate, onCancel }: FlatConfigFormProps) {
+function FlatConfigForm({ config, setFC, flatTypes, previewLabel, flatNumberPrefix, multiFloor, isPending, onGenerate, onCancel }: FlatConfigFormProps) {
   return (
     <div className="space-y-4">
       <div className="p-3 bg-primary-50 rounded-xl text-sm text-primary-700">
@@ -278,7 +286,10 @@ function FlatConfigForm({ config, setFC, flatTypes, previewLabel, isPending, onG
           <input type="number" value={config.areaSqFt} onChange={(e) => setFC('areaSqFt')(+e.target.value)} className="input" min={100} />
         </div>
       </div>
-      <p className="text-xs text-slate-400 font-mono">Format: [TowerCode]-[Floor][Unit] e.g. A-101, A-102</p>
+      <p className="text-xs text-slate-400 font-mono">
+        Flat numbers: {flatNumberPrefix}{config.startUnit.toString().padStart(2, '0')}, {flatNumberPrefix}{(config.startUnit + 1).toString().padStart(2, '0')} ...
+        {multiFloor && ' (prefix changes per floor — G/B1 for ground/basement, 1/2/3... for typical floors)'}
+      </p>
       <div className="flex gap-3 pt-1">
         <button onClick={onGenerate} disabled={isPending} className="btn-primary flex-1 flex items-center justify-center gap-2">
           {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Zap className="w-4 h-4" /> Generate Flats</>}

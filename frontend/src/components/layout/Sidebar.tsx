@@ -29,6 +29,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
     '/towers': terms.buildingPlural,
     '/flats': terms.unitPlural,
     '/residents': terms.personPlural,
+    '/parent-links': terms.parentLinkTitle,
   };
   const groupLabelOverrides: Record<string, string> = {
     society: terms.setupGroupLabel,

@@ -14,10 +14,27 @@ import { cn } from '../../utils/cn';
 import { useTerminology } from '../../utils/terminology';
 
 const TOWER_TYPES = ['TOWER', 'BLOCK', 'VILLA_ROW', 'SHOP_BLOCK', 'OTHER'];
-const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
+const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office', 'Parking', 'Staff Quarters'];
 
-async function autoGenerateFloors(societyId: string, towerId: string, count: number) {
-  await api.post('/floors/generate', { societyId, towerId, count });
+const FLOOR_TYPE_LABEL: Record<string, string> = { GROUND: 'Ground', BASEMENT: 'Basement', TERRACE: 'Terrace', OTHER: 'Other' };
+
+interface FloorGenConfig {
+  count: number;
+  hasGroundFloor: boolean;
+  groundFloorFlats: number;
+  basementCount: number;
+  basementPrefix: string;
+}
+
+async function autoGenerateFloors(societyId: string, towerId: string, cfg: FloorGenConfig) {
+  await api.post('/floors/generate', {
+    societyId, towerId,
+    count: cfg.count,
+    hasGroundFloor: cfg.hasGroundFloor,
+    groundFloorFlats: cfg.groundFloorFlats,
+    basementCount: cfg.basementCount,
+    basementPrefix: cfg.basementPrefix,
+  });
 }
 
 export function TowerPage() {
@@ -28,7 +45,10 @@ export function TowerPage() {
   const terms = useTerminology();
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false });
+  const [form, setForm] = useState({
+    name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false,
+    hasGroundFloor: true, groundFloorFlats: 0, basementCount: 0, basementPrefix: 'B',
+  });
   const [genCount, setGenCount] = useState(3);
   const [expandedTower, setExpandedTower] = useState<Tower | null>(null);
 
@@ -53,14 +73,20 @@ export function TowerPage() {
     mutationFn: async (data: typeof form) => {
       const res = await api.post('/towers', { ...data, societyId });
       const tower = res.data.data;
-      await autoGenerateFloors(societyId, tower._id, data.numberOfFloors);
+      await autoGenerateFloors(societyId, tower._id, {
+        count: data.numberOfFloors,
+        hasGroundFloor: data.hasGroundFloor,
+        groundFloorFlats: data.groundFloorFlats,
+        basementCount: data.basementCount,
+        basementPrefix: data.basementPrefix,
+      });
       return tower;
     },
     onSuccess: (tower) => {
       queryClient.invalidateQueries({ queryKey: ['towers'] });
       queryClient.invalidateQueries({ queryKey: ['floors'] });
       setShowAddModal(false);
-      setForm({ name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false });
+      setForm({ name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false, hasGroundFloor: true, groundFloorFlats: 0, basementCount: 0, basementPrefix: 'B' });
       toast.success(`Tower created with ${tower.numberOfFloors} floors!`);
       setExpandedTower(tower);
     },
@@ -70,7 +96,9 @@ export function TowerPage() {
     mutationFn: async () => {
       const res = await api.post('/towers/generate', { societyId, count: genCount });
       const generated: Tower[] = res.data.data;
-      await Promise.all(generated.map((t) => autoGenerateFloors(societyId, t._id, t.numberOfFloors)));
+      await Promise.all(generated.map((t) => autoGenerateFloors(societyId, t._id, {
+        count: t.numberOfFloors, hasGroundFloor: true, groundFloorFlats: 0, basementCount: 0, basementPrefix: 'B',
+      })));
       return generated;
     },
     onSuccess: (generated) => {
@@ -217,8 +245,8 @@ export function TowerPage() {
                       ) : (
                         expandedFloors.map((floor) => (
                           <div key={floor._id} className="flex items-center gap-3 px-5 py-2.5" onClick={(e) => e.stopPropagation()}>
-                            <div className="w-7 h-7 bg-primary-50 text-primary-600 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
-                              {floor.floorNumber}
+                            <div className="w-7 h-7 bg-primary-50 text-primary-600 rounded-lg flex items-center justify-center text-[11px] font-bold flex-shrink-0" title={floor.floorType ? FLOOR_TYPE_LABEL[floor.floorType] || floor.floorType : undefined}>
+                              {floor.flatNumberPrefix || floor.floorNumber}
                             </div>
                             <span className="text-sm text-slate-700 flex-1">{floor.floorName}</span>
                             {(floor as any).totalFlats > 0 ? (
@@ -259,7 +287,36 @@ export function TowerPage() {
           <div>
             <label className="label">Number of Floors</label>
             <input type="number" value={form.numberOfFloors} onChange={(e) => setF('numberOfFloors')(+e.target.value)} className="input" min={1} max={99} />
-            <p className="text-xs text-slate-400 mt-1">Floors 1–{form.numberOfFloors} will be auto-created</p>
+            <p className="text-xs text-slate-400 mt-1">Typical floors only (1–{form.numberOfFloors}) — Ground floor and basements are separate below, so a plain "{form.numberOfFloors} floors" never silently drops them</p>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl space-y-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.hasGroundFloor} onChange={(e) => setF('hasGroundFloor')(e.target.checked)} className="w-4 h-4 text-primary-600 rounded" />
+              Has Ground Floor
+            </label>
+            {form.hasGroundFloor && (
+              <div>
+                <label className="label text-xs">Ground Floor Flats</label>
+                <input type="number" value={form.groundFloorFlats} onChange={(e) => setF('groundFloorFlats')(+e.target.value)} className="input" min={0} max={50} />
+                <p className="text-xs text-slate-400 mt-1">Set to 0 if the ground floor is lobby/reception only, no residential flats</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label text-xs">Basement Levels</label>
+                <input type="number" value={form.basementCount} onChange={(e) => setF('basementCount')(+e.target.value)} className="input" min={0} max={5} />
+              </div>
+              {form.basementCount > 0 && (
+                <div>
+                  <label className="label text-xs">Basement Prefix</label>
+                  <select value={form.basementPrefix} onChange={(e) => setF('basementPrefix')(e.target.value)} className="input">
+                    <option value="B">B (Basement — B1, B2...)</option>
+                    <option value="P">P (Parking — P1, P2...)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+            {form.basementCount > 0 && <p className="text-xs text-slate-400">Basements default to 0 flats — generate parking/driver-quarters units on them from the Floors page</p>}
           </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={form.hasLift} onChange={(e) => setF('hasLift')(e.target.checked)} className="w-4 h-4 text-primary-600 rounded" />
@@ -282,6 +339,7 @@ export function TowerPage() {
           flatTypes={FLAT_TYPES}
           scope={`Floor ${flatGenFloor?.floorNumber}`}
           preview={`${flatConfig.flatsPerFloor} flats`}
+          flatNumberPrefix={flatGenFloor?.flatNumberPrefix || `${(expandedTower?.name || '').split(' ').pop()}-${flatGenFloor?.floorNumber}`}
           isPending={genFlatsForFloor.isPending}
           onGenerate={() => expandedTower && flatGenFloor && genFlatsForFloor.mutate({ floor: flatGenFloor, tower: expandedTower })}
           onCancel={() => setFlatGenFloor(null)}
@@ -296,6 +354,8 @@ export function TowerPage() {
           flatTypes={FLAT_TYPES}
           scope={`All ${expandedFloors.length} floors`}
           preview={`${totalExpectedFlats} flats total (${flatConfig.flatsPerFloor} × ${expandedFloors.length} floors)`}
+          flatNumberPrefix={expandedFloors[0]?.flatNumberPrefix || String(expandedFloors[0]?.floorNumber ?? '')}
+          multiFloor
           isPending={genFlatsAllFloors.isPending}
           onGenerate={() => flatGenAllTower && genFlatsAllFloors.mutate(flatGenAllTower)}
           onCancel={() => setFlatGenAllTower(null)}
@@ -311,12 +371,14 @@ interface FlatGenFormProps {
   flatTypes: string[];
   scope: string;
   preview: string;
+  flatNumberPrefix: string;
+  multiFloor?: boolean;
   isPending: boolean;
   onGenerate: () => void;
   onCancel: () => void;
 }
 
-function FlatGenForm({ config, setFC, flatTypes, scope, preview, isPending, onGenerate, onCancel }: FlatGenFormProps) {
+function FlatGenForm({ config, setFC, flatTypes, scope, preview, flatNumberPrefix, multiFloor, isPending, onGenerate, onCancel }: FlatGenFormProps) {
   return (
     <div className="space-y-4">
       <div className="p-3 bg-primary-50 rounded-xl text-sm text-primary-700 font-medium">
@@ -343,7 +405,8 @@ function FlatGenForm({ config, setFC, flatTypes, scope, preview, isPending, onGe
         </div>
       </div>
       <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-500 font-mono">
-        Flat numbers: A-101, A-102 ... A-{config.flatsPerFloor.toString().padStart(2, '0')} (tower code + floor + unit)
+        Flat numbers: {flatNumberPrefix}{config.startUnit.toString().padStart(2, '0')}, {flatNumberPrefix}{(config.startUnit + 1).toString().padStart(2, '0')} ... {flatNumberPrefix}{(config.startUnit + config.flatsPerFloor - 1).toString().padStart(2, '0')}
+        {multiFloor && ' (prefix changes per floor — G/B1 for ground/basement, 1/2/3... for typical floors)'}
       </div>
       <div className="flex gap-3 pt-1">
         <button onClick={onGenerate} disabled={isPending} className="btn-primary flex-1 flex items-center justify-center gap-2">

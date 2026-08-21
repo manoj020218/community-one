@@ -13,7 +13,11 @@ const TowerSchema = new Schema(
       enum: ['TOWER', 'BLOCK', 'VILLA_ROW', 'SHOP_BLOCK', 'OTHER'],
       default: 'TOWER',
     },
+    // Typical/residential floors only (the "10" in a G+10 building) — Ground floor and
+    // basements are tracked separately below so they never get silently folded into this count.
     numberOfFloors: { type: Number, required: true, min: 1 },
+    hasGroundFloor: { type: Boolean, default: true },
+    basementCount: { type: Number, default: 0 },
     totalFlats: { type: Number, default: 0 },
     hasLift: { type: Boolean, default: false },
     status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
