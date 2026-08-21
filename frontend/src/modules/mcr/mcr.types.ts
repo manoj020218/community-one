@@ -121,7 +121,7 @@ export interface MaintenanceDemand {
 export interface McrPaymentRecord {
   _id: string;
   paymentNumber: string;
-  flatId: { _id: string; flatNo?: string } | string;
+  flatId: { _id: string; flatNo?: string; towerId?: { _id: string; name: string } } | string;
   payerName: string;
   payerMobile?: string;
   amountPaise: number;

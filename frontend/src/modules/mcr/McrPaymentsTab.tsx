@@ -6,8 +6,10 @@ import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import { TowerTabBar } from '../../components/common/TowerTabBar';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { Tower } from '../../types';
 import { cn, formatDate } from '../../utils/cn';
 import { hasMcrVerifyAccess } from './mcr.permissions';
 import { formatPaise, McrPaymentRecord, MCR_PAYMENT_METHODS, MCR_PAYMENT_STATUSES, PAYMENT_STATUS_BADGE } from './mcr.types';
@@ -26,10 +28,17 @@ export function McrPaymentsTab() {
   const canVerify = hasMcrVerifyAccess(user?.permissions || []);
 
   const [statusFilter, setStatusFilter] = useState('');
+  const [towerFilter, setTowerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(BLANK_FORM);
   const [reasonPrompt, setReasonPrompt] = useState<{ paymentId: string; action: 'reject' | 'cancel' | 'bounce' } | null>(null);
   const [reason, setReason] = useState('');
+
+  const { data: towers } = useQuery({
+    queryKey: ['towers', societyId],
+    queryFn: () => extractData<Tower[]>(api.get(`/towers/society/${societyId}`)),
+    enabled: !!societyId,
+  });
 
   const { data: flats } = useQuery({
     queryKey: ['flats-list', societyId],
@@ -53,8 +62,8 @@ export function McrPaymentsTab() {
   }, [residentsForFlat]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['mcr-payments', societyId, statusFilter],
-    queryFn: () => extractData<McrPaymentRecord[]>(api.get('/mcr/payments', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}) } })),
+    queryKey: ['mcr-payments', societyId, statusFilter, towerFilter],
+    queryFn: () => extractData<McrPaymentRecord[]>(api.get('/mcr/payments', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}), ...(towerFilter ? { towerId: towerFilter } : {}) } })),
     enabled: !!societyId,
   });
 
@@ -97,6 +106,8 @@ export function McrPaymentsTab() {
 
   return (
     <div className="space-y-6">
+      <TowerTabBar towers={towers || []} selected={towerFilter} onSelect={setTowerFilter} allLabel="All Blocks" />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
           <option value="">All statuses</option>
@@ -116,6 +127,8 @@ export function McrPaymentsTab() {
             <thead><tr>
               <th className="table-header text-left">Payment #</th>
               <th className="table-header text-left">Payer</th>
+              <th className="table-header text-left">Flat</th>
+              {(towers?.length || 0) > 1 && <th className="table-header text-left">Block</th>}
               <th className="table-header text-left">Amount</th>
               <th className="table-header text-left">Method</th>
               <th className="table-header text-left">Date</th>
@@ -132,6 +145,10 @@ export function McrPaymentsTab() {
                     {payment.source === 'WHATSAPP_INBOUND' && <span className="badge badge-green text-[10px] ml-2">Via WhatsApp</span>}
                   </td>
                   <td className="table-cell text-sm text-slate-700">{payment.payerName}</td>
+                  <td className="table-cell text-xs text-slate-600">{typeof payment.flatId === 'object' ? payment.flatId.flatNo || '—' : '—'}</td>
+                  {(towers?.length || 0) > 1 && (
+                    <td className="table-cell text-xs text-slate-500">{(typeof payment.flatId === 'object' && payment.flatId.towerId?.name) || '—'}</td>
+                  )}
                   <td className="table-cell font-semibold">{formatPaise(payment.amountPaise)}</td>
                   <td className="table-cell"><span className="badge badge-gray text-xs">{payment.paymentMethod.replace('_', ' ')}</span></td>
                   <td className="table-cell text-xs text-slate-500">{formatDate(payment.paymentDate)}</td>

@@ -35,10 +35,17 @@ interface PaymentInsertInput {
 }
 
 export class McrPaymentService {
-  async listBySociety(societyId: string, status?: string): Promise<IMcrPaymentRecordDocument[]> {
+  async listBySociety(societyId: string, status?: string, towerId?: string): Promise<IMcrPaymentRecordDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
-    return McrPaymentRecord.find(query).sort({ receivedDate: -1, createdAt: -1 }).populate('proofFileIds', 'url originalName mimeType');
+    if (towerId) {
+      const towerFlats = await Flat.find({ towerId }).select('_id');
+      query.flatId = { $in: towerFlats.map((f) => f._id) };
+    }
+    return McrPaymentRecord.find(query)
+      .sort({ receivedDate: -1, createdAt: -1 })
+      .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name' } })
+      .populate('proofFileIds', 'url originalName mimeType');
   }
 
   async findById(societyId: string, paymentId: string): Promise<IMcrPaymentRecordDocument> {

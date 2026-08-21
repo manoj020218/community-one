@@ -19,7 +19,11 @@ export class DemandController {
   async list(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);
-      const items = await demandDraftService.listBySociety(context.societyId, req.query.status as string | undefined);
+      const items = await demandDraftService.listBySociety(
+        context.societyId,
+        req.query.status as string | undefined,
+        req.query.towerId as string | undefined
+      );
       sendSuccess(res, items, 'MCR demands retrieved');
     } catch (error) {
       next(error);

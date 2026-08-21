@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { Flat } from '../flat/flat.model';
 import { Resident } from '../resident/resident.model';
 import { BillingPlan, IBillingPlanDocument } from './billingPlan.model';
@@ -10,9 +11,12 @@ import { parseOrThrow } from './mcr.validation';
 import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 
 export class DemandDraftService {
-  async listBySociety(societyId: string, status?: string): Promise<IMaintenanceDemandDocument[]> {
+  async listBySociety(societyId: string, status?: string, towerId?: string): Promise<IMaintenanceDemandDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
+    // towerId lives on the flat, not the demand — flatSnapshot.towerId was captured at draft
+    // time specifically so filters like this don't need a join back to Flat.
+    if (towerId) query['flatSnapshot.towerId'] = new Types.ObjectId(towerId);
     return MaintenanceDemand.find(query).sort({ createdAt: -1 });
   }
 
@@ -44,7 +48,14 @@ export class DemandDraftService {
       issueDate,
       dueDate: mcrBillingCycleService.buildDueDate(issueDate, billingPlan.dueDay),
     };
-    return this.createForPlan(context.societyId, billingPlan, cycle, context.user.userId, dto.flatIds);
+    // towerId scopes generation to one block's flats when no explicit flatIds list was given —
+    // lets an admin plan a billing cycle for just one tower instead of always society-wide.
+    let flatIds = dto.flatIds;
+    if (dto.towerId && !flatIds?.length) {
+      const towerFlats = await Flat.find({ societyId: context.societyId, towerId: dto.towerId, isActive: true }).select('_id');
+      flatIds = towerFlats.map((f) => f._id.toString());
+    }
+    return this.createForPlan(context.societyId, billingPlan, cycle, context.user.userId, flatIds);
   }
 
   async createScheduledDrafts(societyId: string, billingPlanId: string, cycle: McrBillingCycle, actorUserId: string) {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -8,6 +8,7 @@ import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { VoiceInputField } from '../../components/common/VoiceInputField';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import { TowerTabBar } from '../../components/common/TowerTabBar';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Resident, Tower, Floor } from '../../types';
@@ -669,56 +670,6 @@ export function ResidentPage() {
           </div>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-interface TowerTabBarProps {
-  towers: Tower[];
-  selected: string;
-  onSelect: (towerId: string) => void;
-  allLabel: string;
-}
-
-// Segmented tower/block filter — up to 3 shown as tabs, the rest collapse into an overflow
-// menu (still showing the selected tower's name on the trigger if it's in the overflow) so
-// this doesn't blow out horizontally for a society with many towers.
-function TowerTabBar({ towers, selected, onSelect, allLabel }: TowerTabBarProps) {
-  const [showMenu, setShowMenu] = useState(false);
-  if (towers.length < 2) return null;
-  const visible = towers.slice(0, 3);
-  const overflow = towers.slice(3);
-  const selectedOverflow = overflow.find((t) => t._id === selected);
-  const tabClass = (active: boolean) =>
-    `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
-
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <button onClick={() => onSelect('')} className={tabClass(selected === '')}>{allLabel}</button>
-      {visible.map((t) => <button key={t._id} onClick={() => onSelect(t._id)} className={tabClass(selected === t._id)}>{t.name}</button>)}
-      {overflow.length > 0 && (
-        <div className="relative">
-          <button onClick={() => setShowMenu((s) => !s)} className={tabClass(!!selectedOverflow)}>
-            {selectedOverflow ? selectedOverflow.name : <MoreHorizontal className="w-4 h-4" />}
-          </button>
-          {showMenu && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-              <div className="absolute z-20 mt-1 bg-white shadow-lg rounded-xl border border-slate-100 p-1 min-w-[160px] max-h-64 overflow-y-auto">
-                {overflow.map((t) => (
-                  <button
-                    key={t._id}
-                    onClick={() => { onSelect(t._id); setShowMenu(false); }}
-                    className={`block w-full text-left px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 ${selected === t._id ? 'text-primary-600 font-medium' : 'text-slate-700'}`}
-                  >
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

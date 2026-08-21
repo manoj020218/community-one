@@ -6,6 +6,7 @@ export const demandDraftCreateSchema = z.object({
   billingPeriodKey: z.string().trim().min(4).max(16),
   billingPeriodLabel: z.string().trim().min(4).max(40).optional(),
   flatIds: z.array(objectIdSchema).optional(),
+  towerId: objectIdSchema.optional(),
   issueDate: z.coerce.date().optional(),
 });
 

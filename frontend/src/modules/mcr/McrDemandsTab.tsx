@@ -6,8 +6,10 @@ import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import { TowerTabBar } from '../../components/common/TowerTabBar';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { Tower } from '../../types';
 import { cn, formatDate } from '../../utils/cn';
 import { BillingPlan, DEMAND_STATUS_BADGE, formatPaise, MaintenanceDemand, MCR_DEMAND_STATUSES } from './mcr.types';
 
@@ -19,14 +21,21 @@ export function McrDemandsTab() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
+  const [towerFilter, setTowerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '' });
+  const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '', towerId: '' });
   const [cancelTarget, setCancelTarget] = useState<MaintenanceDemand | null>(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  const { data: towers } = useQuery({
+    queryKey: ['towers', societyId],
+    queryFn: () => extractData<Tower[]>(api.get(`/towers/society/${societyId}`)),
+    enabled: !!societyId,
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ['mcr-demands', societyId, statusFilter],
-    queryFn: () => extractData<MaintenanceDemand[]>(api.get('/mcr/demands', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}) } })),
+    queryKey: ['mcr-demands', societyId, statusFilter, towerFilter],
+    queryFn: () => extractData<MaintenanceDemand[]>(api.get('/mcr/demands', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}), ...(towerFilter ? { towerId: towerFilter } : {}) } })),
     enabled: !!societyId,
   });
 
@@ -39,10 +48,11 @@ export function McrDemandsTab() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mcr-demands'] });
 
   const draftMutation = useMutation({
-    mutationFn: () => api.post('/mcr/demands/drafts', { societyId, ...form }),
+    mutationFn: () => api.post('/mcr/demands/drafts', { societyId, ...form, towerId: form.towerId || undefined }),
     onSuccess: (res: any) => {
       invalidate();
       setShowModal(false);
+      setForm((f) => ({ ...f, towerId: '' }));
       toast.success(`Generated ${res.data?.data?.createdCount ?? 'new'} draft demand(s)`);
     },
   });
@@ -77,8 +87,12 @@ export function McrDemandsTab() {
     onSuccess: () => { invalidate(); toast.success('Demand cancelled'); setCancelTarget(null); setCancelReason(''); },
   });
 
+  const towerNameById = new Map((towers || []).map((t) => [t._id, t.name]));
+
   return (
     <div className="space-y-6">
+      <TowerTabBar towers={towers || []} selected={towerFilter} onSelect={setTowerFilter} allLabel="All Blocks" />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
           <option value="">All statuses</option>
@@ -94,7 +108,7 @@ export function McrDemandsTab() {
           <button onClick={() => remindersRunMutation.mutate()} disabled={remindersRunMutation.isPending} className="btn-secondary flex items-center gap-2 text-sm">
             <BellRing className="w-4 h-4" /> Send Reminders
           </button>
-          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2 text-sm">
+          <button onClick={() => { setForm((f) => ({ ...f, towerId: towerFilter })); setShowModal(true); }} className="btn-primary flex items-center gap-2 text-sm">
             <Plus className="w-4 h-4" /> Generate Drafts
           </button>
         </div>
@@ -109,6 +123,7 @@ export function McrDemandsTab() {
             <thead><tr>
               <th className="table-header text-left">Demand #</th>
               <th className="table-header text-left">Flat</th>
+              {(towers?.length || 0) > 1 && <th className="table-header text-left">Block</th>}
               <th className="table-header text-left">Period</th>
               <th className="table-header text-left">Due Date</th>
               <th className="table-header text-left">Total</th>
@@ -121,6 +136,9 @@ export function McrDemandsTab() {
                 <tr key={demand._id} className="table-row">
                   <td className="table-cell font-mono text-xs">{demand.demandNumber || '—'}</td>
                   <td className="table-cell text-xs text-slate-600">{demand.flatSnapshot?.flatNo || (typeof demand.flatId === 'object' ? demand.flatId.flatNo : null) || '—'}</td>
+                  {(towers?.length || 0) > 1 && (
+                    <td className="table-cell text-xs text-slate-500">{(demand.flatSnapshot?.towerId && towerNameById.get(demand.flatSnapshot.towerId)) || '—'}</td>
+                  )}
                   <td className="table-cell text-xs text-slate-500">{demand.billingPeriodLabel}</td>
                   <td className="table-cell text-xs text-slate-500">{formatDate(demand.dueDate)}</td>
                   <td className="table-cell">{formatPaise(demand.totalDemandPaise)}</td>
@@ -163,7 +181,17 @@ export function McrDemandsTab() {
             <input value={form.billingPeriodKey} onChange={(e) => setForm((f) => ({ ...f, billingPeriodKey: e.target.value }))} className="input" placeholder="2026-07" /></div>
           <div><label className="label">Billing Period Label</label>
             <input value={form.billingPeriodLabel} onChange={(e) => setForm((f) => ({ ...f, billingPeriodLabel: e.target.value }))} className="input" placeholder="July 2026" /></div>
-          <p className="text-xs text-slate-500">Leaving flats unspecified will generate drafts for all eligible flats in the society.</p>
+          {(towers?.length || 0) > 1 && (
+            <div><label className="label">Block / Tower</label>
+              <select value={form.towerId} onChange={(e) => setForm((f) => ({ ...f, towerId: e.target.value }))} className="input">
+                <option value="">All blocks</option>
+                {towers?.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            </div>
+          )}
+          <p className="text-xs text-slate-500">
+            {form.towerId ? 'Generates drafts only for eligible flats in the selected block.' : 'Leaving the block unspecified generates drafts for all eligible flats in the society.'}
+          </p>
           <div className="flex gap-3 pt-2">
             <button onClick={() => draftMutation.mutate()} disabled={draftMutation.isPending || !form.billingPlanId || !form.billingPeriodKey} className="btn-primary flex-1">
               {draftMutation.isPending ? 'Generating...' : 'Generate'}
