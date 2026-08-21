@@ -61,9 +61,15 @@ export function buildPaginatedResult<T>(
   };
 }
 
+// Cap raised from 100 to 500: real paginated table views (Residents, Flats, ...) pass small
+// explicit limits (20-30) and are unaffected, but ~15 dropdown-population calls across the
+// frontend ask for `?limit=200` to list "every flat/resident for this society" in one shot —
+// the old cap silently truncated those to 100 regardless of what was requested, so any society
+// with 100+ flats had residents/flats past the 100th (in whichever sort order) simply missing
+// from Add Resident / Record Payment / lease / SAMA flat and resident pickers, with no error.
 export function parsePagination(query: any): { page: number; limit: number; skip: number } {
   const page = Math.max(1, parseInt(query.page) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 20));
+  const limit = Math.min(500, Math.max(1, parseInt(query.limit) || 20));
   const skip = (page - 1) * limit;
   return { page, limit, skip };
 }

@@ -99,6 +99,10 @@ export interface MaintenanceDemand {
   billingPlanId: string;
   demandNumber?: string;
   flatId: { _id: string; flatNo?: string } | string;
+  // flatId is never populated by the list endpoint — this denormalized snapshot (taken at
+  // demand-creation time, so it stays accurate even if the flat is later renamed/moved) is
+  // the actual source for display.
+  flatSnapshot?: { flatNo?: string; towerId?: string; floorId?: string; areaSqFt?: number };
   demandType: 'REGULAR' | 'LATE_FEE';
   billingPeriodKey: string;
   billingPeriodLabel: string;

@@ -113,7 +113,7 @@ export function McrDemandsTab() {
               {data.map((demand) => (
                 <tr key={demand._id} className="table-row">
                   <td className="table-cell font-mono text-xs">{demand.demandNumber || '—'}</td>
-                  <td className="table-cell text-xs text-slate-600">{typeof demand.flatId === 'object' ? demand.flatId.flatNo : demand.flatId}</td>
+                  <td className="table-cell text-xs text-slate-600">{demand.flatSnapshot?.flatNo || (typeof demand.flatId === 'object' ? demand.flatId.flatNo : null) || '—'}</td>
                   <td className="table-cell text-xs text-slate-500">{demand.billingPeriodLabel}</td>
                   <td className="table-cell text-xs text-slate-500">{formatDate(demand.dueDate)}</td>
                   <td className="table-cell">{formatPaise(demand.totalDemandPaise)}</td>
