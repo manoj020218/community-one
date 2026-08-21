@@ -23,7 +23,11 @@ const envSchema = z.object({
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_FILE_SIZE: z.string().default('10485760').transform(Number),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000').transform(Number),
-  RATE_LIMIT_MAX: z.string().default('100').transform(Number),
+  // 100/15min (the old default) is per-IP across the WHOLE authenticated app — a single admin
+  // doing legitimate bulk work (deleting many wrongly-created flats one by one, since there's
+  // no bulk-delete) blows through it in under a minute, then everyone on that IP/NAT is locked
+  // out of every endpoint, including simple page loads, until the window resets.
+  RATE_LIMIT_MAX: z.string().default('3000').transform(Number),
   SUPER_ADMIN_EMAIL: z.string().email().default('admin@jenix.in'),
   SUPER_ADMIN_MOBILE: z.string().default('9999999999'),
   SUPER_ADMIN_PASSWORD: z.string().default('Admin@123'),
@@ -78,7 +82,7 @@ export const env = parsed.success
       UPLOAD_DIR: 'uploads',
       MAX_FILE_SIZE: 10485760,
       RATE_LIMIT_WINDOW_MS: 900000,
-      RATE_LIMIT_MAX: 100,
+      RATE_LIMIT_MAX: 3000,
       SUPER_ADMIN_EMAIL: 'admin@jenix.in',
       SUPER_ADMIN_MOBILE: '9999999999',
       SUPER_ADMIN_PASSWORD: 'Admin@123',

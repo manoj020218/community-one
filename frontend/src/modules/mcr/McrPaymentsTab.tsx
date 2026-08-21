@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, CreditCard, CheckCircle2, XCircle, Ban, AlertOctagon, Paperclip } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -36,6 +36,21 @@ export function McrPaymentsTab() {
     queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)),
     enabled: !!societyId && showModal,
   });
+
+  // Residents are sorted primary-contact-first by the backend, so [0] is the right default payer.
+  const { data: residentsForFlat } = useQuery({
+    queryKey: ['residents-for-flat', form.flatId],
+    queryFn: () => extractData<any[]>(api.get(`/residents/flat/${form.flatId}`)),
+    enabled: !!form.flatId && showModal,
+  });
+
+  // Prefills payer name/mobile when a flat is picked — the fields stay plain inputs, so the
+  // admin can still overwrite them (e.g. someone other than the resident is paying).
+  useEffect(() => {
+    if (!residentsForFlat?.length) return;
+    const primary = residentsForFlat[0];
+    setForm((f) => ({ ...f, payerName: primary.name, payerMobile: primary.mobile || '' }));
+  }, [residentsForFlat]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mcr-payments', societyId, statusFilter],

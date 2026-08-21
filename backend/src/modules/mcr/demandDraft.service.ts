@@ -40,7 +40,10 @@ export class DemandDraftService {
     actorUserId: string,
     flatIds?: string[]
   ) {
-    const flatQuery: Record<string, unknown> = { societyId, status: 'ACTIVE' };
+    // isActive, not status — Flat.delete() only flips isActive (status is a separate, unused
+    // field nothing in the flat module ever updates), so filtering on status here silently
+    // kept billing deleted flats forever.
+    const flatQuery: Record<string, unknown> = { societyId, isActive: true };
     if (flatIds?.length) flatQuery._id = { $in: flatIds };
     const flats = await Flat.find(flatQuery).sort({ flatNo: 1 });
     const chargeHeadIds = [...new Set(billingPlan.chargeLines.map((line) => line.chargeHeadId.toString()))];

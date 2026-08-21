@@ -32,3 +32,18 @@ export const chargeHeadCreateSchema = z.object({
   effectiveFrom: z.coerce.date().optional(),
   effectiveTo: z.coerce.date().optional(),
 });
+
+// code is intentionally omitted — changing it after billing plans/demands already reference
+// this charge head would desync historical records, so it's fixed at creation.
+export const chargeHeadUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(240).optional(),
+  category: chargeHeadCategorySchema.optional(),
+  isRecurring: z.boolean().optional(),
+  defaultAmountPaise: paiseSchema.optional(),
+  calculationMethod: chargeHeadCalculationSchema.optional(),
+  isActive: z.boolean().optional(),
+  displayOrder: z.coerce.number().int().min(0).optional(),
+  effectiveFrom: z.coerce.date().optional(),
+  effectiveTo: z.coerce.date().optional(),
+});

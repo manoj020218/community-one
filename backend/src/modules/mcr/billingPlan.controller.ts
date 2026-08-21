@@ -38,6 +38,28 @@ export class BillingPlanController {
       next(error);
     }
   }
+
+  async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const societyId = typeof req.body.societyId === 'string' ? req.body.societyId : undefined;
+      const context = await mcrAccessService.getActorContext(req.user!, societyId);
+      const billingPlan = await billingPlanService.update(context, req.params.id, req.body);
+      await auditService.log({
+        societyId: context.societyId,
+        actorUserId: context.user.userId,
+        actorRole: context.user.roleCode,
+        moduleCode: 'MCR',
+        action: 'MCR_BILLING_PLAN_UPDATED',
+        entityType: 'BillingPlan',
+        entityId: billingPlan._id!.toString(),
+        newValue: req.body,
+        ipAddress: req.ip,
+      });
+      sendSuccess(res, billingPlan, 'MCR billing plan updated');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const billingPlanController = new BillingPlanController();

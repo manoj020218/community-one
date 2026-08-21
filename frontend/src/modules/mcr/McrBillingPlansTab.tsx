@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, CalendarClock } from 'lucide-react';
+import { Plus, Trash2, CalendarClock, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -16,6 +16,12 @@ const BLANK_FORM = {
   name: '', frequency: 'MONTHLY', billingDay: '1', dueDay: '10',
   effectiveFrom: new Date().toISOString().slice(0, 10), autoGenerate: false, autoPublish: false,
 };
+const formFromPlan = (p: BillingPlan) => ({
+  name: p.name, frequency: p.frequency, billingDay: String(p.billingDay), dueDay: String(p.dueDay),
+  effectiveFrom: p.effectiveFrom.slice(0, 10), autoGenerate: p.autoGenerate, autoPublish: p.autoPublish,
+});
+const linesFromPlan = (p: BillingPlan) =>
+  p.chargeLines.map((l) => ({ chargeHeadId: l.chargeHeadId, amountPaise: String(l.amountPaise / 100) }));
 
 export function McrBillingPlansTab() {
   const { user } = useAuthStore();
@@ -23,6 +29,7 @@ export function McrBillingPlansTab() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [editTarget, setEditTarget] = useState<BillingPlan | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
   const [lines, setLines] = useState([{ ...BLANK_LINE }]);
 
@@ -38,36 +45,50 @@ export function McrBillingPlansTab() {
     enabled: !!societyId && showModal,
   });
 
+  const closeModal = () => { setShowModal(false); setEditTarget(null); setForm(BLANK_FORM); setLines([{ ...BLANK_LINE }]); };
+
+  const bodyFromForm = () => ({
+    societyId,
+    name: form.name,
+    frequency: form.frequency,
+    billingDay: Number(form.billingDay),
+    dueDay: Number(form.dueDay),
+    effectiveFrom: form.effectiveFrom,
+    autoGenerate: form.autoGenerate,
+    autoPublish: form.autoPublish,
+    chargeLines: lines.filter((l) => l.chargeHeadId).map((l) => ({
+      chargeHeadId: l.chargeHeadId,
+      amountPaise: Math.round(Number(l.amountPaise || 0) * 100),
+      calculationMethod: 'FIXED_FLAT',
+    })),
+  });
+
   const mutation = useMutation({
-    mutationFn: () => api.post('/mcr/billing-plans', {
-      societyId,
-      name: form.name,
-      frequency: form.frequency,
-      billingDay: Number(form.billingDay),
-      dueDay: Number(form.dueDay),
-      effectiveFrom: form.effectiveFrom,
-      autoGenerate: form.autoGenerate,
-      autoPublish: form.autoPublish,
-      chargeLines: lines.filter((l) => l.chargeHeadId).map((l) => ({
-        chargeHeadId: l.chargeHeadId,
-        amountPaise: Math.round(Number(l.amountPaise || 0) * 100),
-        calculationMethod: 'FIXED_FLAT',
-      })),
-    }),
+    mutationFn: () => editTarget
+      ? api.patch(`/mcr/billing-plans/${editTarget._id}`, bodyFromForm())
+      : api.post('/mcr/billing-plans', bodyFromForm()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mcr-billing-plans'] });
-      setShowModal(false);
-      setForm(BLANK_FORM);
-      setLines([{ ...BLANK_LINE }]);
-      toast.success('Billing plan created!');
+      toast.success(editTarget ? 'Billing plan updated!' : 'Billing plan created!');
+      closeModal();
     },
   });
 
   const set = (k: keyof typeof BLANK_FORM) => (v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
   const setLine = (i: number, k: keyof typeof BLANK_LINE) => (v: string) =>
-    setLines((rows) => rows.map((row, idx) => (idx === i ? { ...row, [k]: v } : row)));
+    setLines((rows) => rows.map((row, idx) => {
+      if (idx !== i) return row;
+      // Picking a charge head prefills its default amount — the amount is still a plain
+      // input, so the admin can override it for this plan without touching the charge head.
+      if (k === 'chargeHeadId') {
+        const defaultAmount = chargeHeads?.find((c) => c._id === v)?.defaultAmountPaise;
+        return { chargeHeadId: v, amountPaise: defaultAmount != null ? String(defaultAmount / 100) : row.amountPaise };
+      }
+      return { ...row, [k]: v };
+    }));
 
   const chargeHeadName = (id: string) => chargeHeads?.find((c) => c._id === id)?.name || id;
+  const openEdit = (p: BillingPlan) => { setEditTarget(p); setForm(formFromPlan(p)); setLines(linesFromPlan(p)); setShowModal(true); };
 
   return (
     <div className="space-y-6">
@@ -89,10 +110,11 @@ export function McrBillingPlansTab() {
               <th className="table-header text-left">Billing / Due Day</th>
               <th className="table-header text-left">Automation</th>
               <th className="table-header text-left">Status</th>
+              <th className="table-header text-left">Actions</th>
             </tr></thead>
             <tbody>
               {data.map((plan) => (
-                <tr key={plan._id} className="table-row">
+                <tr key={plan._id} className="table-row group">
                   <td className="table-cell font-medium text-slate-800">{plan.name}</td>
                   <td className="table-cell text-xs text-slate-500">{plan.frequency.replace('_', ' ')}</td>
                   <td className="table-cell text-xs text-slate-500">{plan.billingDay} / {plan.dueDay}</td>
@@ -100,6 +122,11 @@ export function McrBillingPlansTab() {
                     {plan.autoGenerate ? 'Auto-generate' : 'Manual'}{plan.autoPublish ? ' + Auto-publish' : ''}
                   </td>
                   <td className="table-cell"><span className={cn('badge', plan.isActive ? 'badge-green' : 'badge-gray')}>{plan.isActive ? 'Active' : 'Inactive'}</span></td>
+                  <td className="table-cell">
+                    <button onClick={() => openEdit(plan)} title="Edit" className="p-1.5 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-primary-50 hover:text-primary-600 transition-all">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -107,7 +134,7 @@ export function McrBillingPlansTab() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Billing Plan" size="lg">
+      <Modal isOpen={showModal} onClose={closeModal} title={editTarget ? 'Edit Billing Plan' : 'Add Billing Plan'} size="lg">
         <div className="space-y-4">
           <div><label className="label">Name <span className="text-red-500">*</span></label>
             <input value={form.name} onChange={(e) => set('name')(e.target.value)} className="input" placeholder="Monthly Maintenance Plan" /></div>
@@ -170,9 +197,9 @@ export function McrBillingPlansTab() {
               disabled={mutation.isPending || !form.name || !lines.some((l) => l.chargeHeadId)}
               className="btn-primary flex-1"
             >
-              {mutation.isPending ? 'Creating...' : 'Create Billing Plan'}
+              {mutation.isPending ? 'Saving...' : editTarget ? 'Save Changes' : 'Create Billing Plan'}
             </button>
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+            <button onClick={closeModal} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

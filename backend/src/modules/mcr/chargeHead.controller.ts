@@ -38,6 +38,28 @@ export class ChargeHeadController {
       next(error);
     }
   }
+
+  async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const societyId = typeof req.body.societyId === 'string' ? req.body.societyId : undefined;
+      const context = await mcrAccessService.getActorContext(req.user!, societyId);
+      const chargeHead = await chargeHeadService.update(context, req.params.id, req.body);
+      await auditService.log({
+        societyId: context.societyId,
+        actorUserId: context.user.userId,
+        actorRole: context.user.roleCode,
+        moduleCode: 'MCR',
+        action: 'MCR_CHARGE_HEAD_UPDATED',
+        entityType: 'ChargeHead',
+        entityId: chargeHead._id!.toString(),
+        newValue: req.body,
+        ipAddress: req.ip,
+      });
+      sendSuccess(res, chargeHead, 'MCR charge head updated');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const chargeHeadController = new ChargeHeadController();

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, ListTree } from 'lucide-react';
+import { Plus, ListTree, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -15,6 +15,11 @@ const BLANK_FORM = {
   code: '', name: '', description: '', category: 'MAINTENANCE', isRecurring: true,
   defaultAmountPaise: '', calculationMethod: 'FIXED_FLAT', displayOrder: '0',
 };
+const formFromChargeHead = (ch: ChargeHead) => ({
+  code: ch.code, name: ch.name, description: ch.description || '', category: ch.category,
+  isRecurring: ch.isRecurring, defaultAmountPaise: String(ch.defaultAmountPaise / 100),
+  calculationMethod: ch.calculationMethod, displayOrder: String(ch.displayOrder),
+});
 
 export function McrChargeHeadsTab() {
   const { user } = useAuthStore();
@@ -22,6 +27,7 @@ export function McrChargeHeadsTab() {
   const societyId = currentSociety?._id || user?.societyId || '';
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
+  const [editTarget, setEditTarget] = useState<ChargeHead | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
 
   const { data, isLoading } = useQuery({
@@ -30,27 +36,33 @@ export function McrChargeHeadsTab() {
     enabled: !!societyId,
   });
 
+  const closeModal = () => { setShowModal(false); setEditTarget(null); setForm(BLANK_FORM); };
+
+  const bodyFromForm = () => ({
+    societyId,
+    code: form.code,
+    name: form.name,
+    description: form.description || undefined,
+    category: form.category,
+    isRecurring: form.isRecurring,
+    defaultAmountPaise: Math.round(Number(form.defaultAmountPaise || 0) * 100),
+    calculationMethod: form.calculationMethod,
+    displayOrder: Number(form.displayOrder || 0),
+  });
+
   const mutation = useMutation({
-    mutationFn: () => api.post('/mcr/charge-heads', {
-      societyId,
-      code: form.code,
-      name: form.name,
-      description: form.description || undefined,
-      category: form.category,
-      isRecurring: form.isRecurring,
-      defaultAmountPaise: Math.round(Number(form.defaultAmountPaise || 0) * 100),
-      calculationMethod: form.calculationMethod,
-      displayOrder: Number(form.displayOrder || 0),
-    }),
+    mutationFn: () => editTarget
+      ? api.patch(`/mcr/charge-heads/${editTarget._id}`, bodyFromForm())
+      : api.post('/mcr/charge-heads', bodyFromForm()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mcr-charge-heads'] });
-      setShowModal(false);
-      setForm(BLANK_FORM);
-      toast.success('Charge head created!');
+      toast.success(editTarget ? 'Charge head updated!' : 'Charge head created!');
+      closeModal();
     },
   });
 
   const set = (k: keyof typeof BLANK_FORM) => (v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+  const openEdit = (ch: ChargeHead) => { setEditTarget(ch); setForm(formFromChargeHead(ch)); setShowModal(true); };
 
   return (
     <div className="space-y-6">
@@ -72,15 +84,21 @@ export function McrChargeHeadsTab() {
               <th className="table-header text-left">Category</th>
               <th className="table-header text-left">Default Amount</th>
               <th className="table-header text-left">Status</th>
+              <th className="table-header text-left">Actions</th>
             </tr></thead>
             <tbody>
               {data.map((ch) => (
-                <tr key={ch._id} className="table-row">
+                <tr key={ch._id} className="table-row group">
                   <td className="table-cell font-mono text-xs">{ch.code}</td>
                   <td className="table-cell font-medium text-slate-800">{ch.name}</td>
                   <td className="table-cell text-xs text-slate-500">{ch.category.replace('_', ' ')}</td>
                   <td className="table-cell">{formatPaise(ch.defaultAmountPaise)}</td>
                   <td className="table-cell"><span className={cn('badge', ch.isActive ? 'badge-green' : 'badge-gray')}>{ch.isActive ? 'Active' : 'Inactive'}</span></td>
+                  <td className="table-cell">
+                    <button onClick={() => openEdit(ch)} title="Edit" className="p-1.5 rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-primary-50 hover:text-primary-600 transition-all">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -88,11 +106,12 @@ export function McrChargeHeadsTab() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add Charge Head">
+      <Modal isOpen={showModal} onClose={closeModal} title={editTarget ? 'Edit Charge Head' : 'Add Charge Head'}>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">Code <span className="text-red-500">*</span></label>
-              <input value={form.code} onChange={(e) => set('code')(e.target.value)} className="input" placeholder="MAINT" /></div>
+              <input value={form.code} onChange={(e) => set('code')(e.target.value)} className="input disabled:bg-slate-50 disabled:text-slate-400" placeholder="MAINT" disabled={!!editTarget} />
+              {editTarget && <p className="mt-1 text-xs text-slate-400">Code can't be changed after creation</p>}</div>
             <div><label className="label">Name <span className="text-red-500">*</span></label>
               <input value={form.name} onChange={(e) => set('name')(e.target.value)} className="input" placeholder="Monthly Maintenance" /></div>
           </div>
@@ -120,9 +139,9 @@ export function McrChargeHeadsTab() {
           </label>
           <div className="flex gap-3 pt-2">
             <button onClick={() => mutation.mutate()} disabled={mutation.isPending || !form.code || !form.name} className="btn-primary flex-1">
-              {mutation.isPending ? 'Creating...' : 'Create'}
+              {mutation.isPending ? 'Saving...' : editTarget ? 'Save Changes' : 'Create'}
             </button>
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+            <button onClick={closeModal} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

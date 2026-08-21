@@ -1,6 +1,7 @@
+import { NotFoundError } from '../../common/errors/AppError';
 import { ChargeHead, IChargeHeadDocument } from './chargeHead.model';
 import { McrActorContext } from './mcr.access.service';
-import { chargeHeadCreateSchema } from './chargeHead.schemas';
+import { chargeHeadCreateSchema, chargeHeadUpdateSchema } from './chargeHead.schemas';
 import { parseOrThrow } from './mcr.validation';
 
 export class ChargeHeadService {
@@ -16,6 +17,17 @@ export class ChargeHeadService {
       createdBy: context.user.userId,
       updatedBy: context.user.userId,
     });
+  }
+
+  async update(context: McrActorContext, id: string, input: unknown): Promise<IChargeHeadDocument> {
+    const dto = parseOrThrow(chargeHeadUpdateSchema, input);
+    const updated = await ChargeHead.findOneAndUpdate(
+      { _id: id, societyId: context.societyId },
+      { ...dto, updatedBy: context.user.userId },
+      { new: true }
+    );
+    if (!updated) throw new NotFoundError('ChargeHead');
+    return updated;
   }
 
   async countByIds(societyId: string, ids: string[]): Promise<number> {

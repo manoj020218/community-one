@@ -1,12 +1,35 @@
 import rateLimit from 'express-rate-limit';
 import { env } from '../../config/env';
+import { verifyAccessToken } from '../utils/jwt';
 import { AuthenticatedRequest } from '../types';
 
+// apiRateLimiter runs before `authenticate` (auth is wired per-router, after this global
+// middleware), so req.user is never populated here — decode the bearer token directly just to
+// get a stable key. An invalid/forged token still falls through to IP, and the real auth
+// middleware downstream rejects it regardless; this decode only affects which rate-limit
+// bucket a request counts against, not whether it's authenticated.
+function rateLimitKey(req: { headers: { authorization?: string }; ip?: string }): string {
+  const token = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined;
+  if (token) {
+    try {
+      return verifyAccessToken(token).userId;
+    } catch {
+      // fall through to IP
+    }
+  }
+  return req.ip || 'unknown';
+}
+
+// Keyed by user ID once authenticated (falls back to IP before auth runs, e.g. login), so one
+// admin doing legitimate bulk work — deleting many wrongly-created flats one by one, since
+// there's no bulk-delete — can't exhaust the budget for every other admin, resident, or guard
+// sharing the same office/NAT IP.
 export const apiRateLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKey,
   message: {
     success: false,
     error: {

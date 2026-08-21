@@ -28,8 +28,10 @@ router.get('/settings', requireAnyPermission(...MCR_ROUTE_PERMISSIONS), mcrSetti
 router.patch('/settings', requirePermission(PERMISSIONS.MCR_CONFIGURE), mcrSettingsController.update.bind(mcrSettingsController));
 router.get('/charge-heads', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_CONFIGURE, PERMISSIONS.MCR_GENERATE_DEMAND), chargeHeadController.list.bind(chargeHeadController));
 router.post('/charge-heads', requirePermission(PERMISSIONS.MCR_CONFIGURE), chargeHeadController.create.bind(chargeHeadController));
+router.patch('/charge-heads/:id', requirePermission(PERMISSIONS.MCR_CONFIGURE), chargeHeadController.update.bind(chargeHeadController));
 router.get('/billing-plans', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_CONFIGURE, PERMISSIONS.MCR_GENERATE_DEMAND), billingPlanController.list.bind(billingPlanController));
 router.post('/billing-plans', requirePermission(PERMISSIONS.MCR_CONFIGURE), billingPlanController.create.bind(billingPlanController));
+router.patch('/billing-plans/:id', requirePermission(PERMISSIONS.MCR_CONFIGURE), billingPlanController.update.bind(billingPlanController));
 router.get('/demands', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_GENERATE_DEMAND, PERMISSIONS.MCR_PUBLISH_DEMAND), demandController.list.bind(demandController));
 router.post('/demands/drafts', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), demandController.createDrafts.bind(demandController));
 router.post('/demands/automation/run', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), requirePermission(PERMISSIONS.MCR_PUBLISH_DEMAND), mcrDemandAutomationController.run.bind(mcrDemandAutomationController));
