@@ -50,22 +50,33 @@ export class ResidentService {
     limit: number,
     search?: string,
     sortBy: ResidentSortField = 'flatNo',
-    sortDir: 1 | -1 = 1
+    sortDir: 1 | -1 = 1,
+    towerId?: string
   ): Promise<PaginatedResult<IResidentDocument>> {
     const skip = (page - 1) * limit;
     const match: Record<string, unknown> = { societyId: new Types.ObjectId(societyId), isActive: true };
+    if (towerId) {
+      const towerFlats = await Flat.find({ towerId }).select('_id');
+      match.flatId = { $in: towerFlats.map((f) => f._id) };
+    }
     if (search) {
+      // flatNo lives on Flat, not Resident — resolve matching flats first (scoped to this
+      // society) so "G01" or a tower name finds the right residents without restructuring
+      // the aggregation below into a search-after-join.
+      const matchingFlats = await Flat.find({ societyId, flatNo: { $regex: search, $options: 'i' } }).select('_id');
       match.$or = [
         { name: { $regex: search, $options: 'i' } },
         { mobile: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
+        { memberType: { $regex: search, $options: 'i' } },
+        ...(matchingFlats.length ? [{ flatId: { $in: matchingFlats.map((f) => f._id) } }] : []),
       ];
     }
 
     if (sortBy !== 'flatNo') {
       const [items, total] = await Promise.all([
         Resident.find(match)
-          .populate('flatId', 'flatNo')
+          .populate({ path: 'flatId', select: 'flatNo towerId floorId', populate: { path: 'towerId', select: 'name' } })
           .populate('kycVerifiedBy', 'name')
           .sort({ [sortBy]: sortDir })
           .skip(skip)
@@ -98,7 +109,9 @@ export class ResidentService {
 
     const shaped = items.map((r: any) => ({
       ...r,
-      flatId: r.flat ? { _id: r.flat._id, flatNo: r.flat.flatNo } : r.flatId,
+      flatId: r.flat
+        ? { _id: r.flat._id, flatNo: r.flat.flatNo, floorId: r.flat.floorId, towerId: r.tower ? { _id: r.tower._id, name: r.tower.name } : undefined }
+        : r.flatId,
       kycVerifiedBy: r.kycVerifier ? { _id: r.kycVerifier._id, name: r.kycVerifier.name } : r.kycVerifiedBy,
     }));
 
@@ -120,8 +133,29 @@ export class ResidentService {
   }
 
   async update(id: string, dto: Partial<CreateResidentDto>): Promise<IResidentDocument> {
+    const before = await Resident.findById(id);
+    if (!before) throw new NotFoundError('Resident');
+
     const resident = await Resident.findByIdAndUpdate(id, dto, { new: true });
     if (!resident) throw new NotFoundError('Resident');
+
+    // Reassigning to a different flat: same occupancy sync as create()/disable() — occupy the
+    // new flat, and revert the old one to Vacant if this was its last resident.
+    const oldFlatId = before.flatId.toString();
+    const newFlatId = dto.flatId ? dto.flatId.toString() : oldFlatId;
+    if (dto.flatId && newFlatId !== oldFlatId) {
+      const occupiedStatus = resident.memberType === 'OWNER' ? 'OWNER_OCCUPIED' : 'TENANT_OCCUPIED';
+      await Flat.updateOne({ _id: newFlatId, occupancyStatus: 'VACANT' }, { occupancyStatus: occupiedStatus });
+
+      const remaining = await Resident.countDocuments({ flatId: oldFlatId, isActive: true });
+      if (remaining === 0) {
+        await Flat.updateOne(
+          { _id: oldFlatId, occupancyStatus: { $in: ['OWNER_OCCUPIED', 'TENANT_OCCUPIED'] } },
+          { occupancyStatus: 'VACANT' }
+        );
+      }
+    }
+
     return resident;
   }
 

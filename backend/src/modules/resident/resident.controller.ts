@@ -23,7 +23,8 @@ export class ResidentController {
       const validSorts: ResidentSortField[] = ['flatNo', 'name', 'memberType', 'kycStatus'];
       const sortBy = validSorts.includes(req.query.sortBy as ResidentSortField) ? (req.query.sortBy as ResidentSortField) : 'flatNo';
       const sortDir = req.query.sortDir === 'desc' ? -1 : 1;
-      const result = await residentService.findBySociety(req.params.societyId, page, limit, req.query.search as string, sortBy, sortDir);
+      const towerId = typeof req.query.towerId === 'string' ? req.query.towerId : undefined;
+      const result = await residentService.findBySociety(req.params.societyId, page, limit, req.query.search as string, sortBy, sortDir, towerId);
       sendPaginated(res, result, 'Residents retrieved');
     } catch (error) { next(error); }
   }

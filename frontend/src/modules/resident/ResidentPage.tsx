@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -36,14 +36,19 @@ export function ResidentPage() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<'flatNo' | 'name' | 'memberType' | 'kycStatus'>('flatNo');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [tableTowerFilter, setTableTowerFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ societyId, flatId: '', name: '', mobile: '', email: '', memberType: 'OWNER', primaryContact: true, loginAllowed: false });
+  const [addTowerId, setAddTowerId] = useState('');
+  const [addFloorId, setAddFloorId] = useState('');
 
   const [kycTarget, setKycTarget] = useState<Resident | null>(null);
   const [kycForm, setKycForm] = useState({ physicalLocation: '', notes: '' });
 
   const [editTarget, setEditTarget] = useState<Resident | null>(null);
   const [editForm, setEditForm] = useState({ flatId: '', name: '', mobile: '', email: '', memberType: 'OWNER', primaryContact: true, loginAllowed: false });
+  const [editTowerId, setEditTowerId] = useState('');
+  const [editFloorId, setEditFloorId] = useState('');
   const [removeTarget, setRemoveTarget] = useState<Resident | null>(null);
 
   // Reverse flow: an admin picking "Add Resident" first often hasn't set up towers/floors/flats
@@ -57,10 +62,13 @@ export function ResidentPage() {
 
   const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)), enabled: !!societyId });
 
+  // Always enabled (not just while the quick-add-tower flow is open) — the Tower/Floor
+  // cascade on the main Add/Edit Resident flat pickers needs this too, so a big society
+  // isn't stuck scrolling one flat list with every tower's flats mixed together.
   const { data: towers } = useQuery({
     queryKey: ['towers', societyId],
     queryFn: () => extractData<Tower[]>(api.get(`/towers/society/${societyId}`)),
-    enabled: !!societyId && showQuickFlatModal,
+    enabled: !!societyId,
   });
 
   const { data: quickFloors } = useQuery({
@@ -70,10 +78,23 @@ export function ResidentPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['residents', societyId, page, search, sortBy, sortDir],
-    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?page=${page}&limit=20&sortBy=${sortBy}&sortDir=${sortDir}${search ? `&search=${search}` : ''}`)),
+    queryKey: ['residents', societyId, page, search, sortBy, sortDir, tableTowerFilter],
+    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?page=${page}&limit=20&sortBy=${sortBy}&sortDir=${sortDir}${search ? `&search=${search}` : ''}${tableTowerFilter ? `&towerId=${tableTowerFilter}` : ''}`)),
     enabled: !!societyId,
   });
+
+  // Floor options for a Tower/Floor cascade, derived from the already-loaded flats list (no
+  // extra request) — flatId.floorId comes back populated with {floorNumber, floorName} on the
+  // flats list, so this just dedupes and sorts into real building order.
+  const floorOptionsForTower = (towerId: string) => {
+    const seen = new Map<string, { _id: string; floorName: string; floorNumber: number }>();
+    (flats?.items || []).forEach((f: any) => {
+      if (f.towerId?._id === towerId && f.floorId?._id && !seen.has(f.floorId._id)) {
+        seen.set(f.floorId._id, { _id: f.floorId._id, floorName: f.floorId.floorName, floorNumber: f.floorId.floorNumber });
+      }
+    });
+    return [...seen.values()].sort((a, b) => a.floorNumber - b.floorNumber);
+  };
 
   const toggleSort = (field: typeof sortBy) => {
     setPage(1);
@@ -84,7 +105,14 @@ export function ResidentPage() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/residents', data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['residents'] }); setShowModal(false); toast.success('Resident added!'); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      // Adding a resident flips the flat's occupancy on the backend (Vacant -> Occupied) —
+      // without this, the Flats page keeps showing the pre-add cached state until reloaded.
+      queryClient.invalidateQueries({ queryKey: ['flats'] });
+      setShowModal(false);
+      toast.success('Resident added!');
+    },
   });
 
   const kycMutation = useMutation({
@@ -101,6 +129,9 @@ export function ResidentPage() {
     mutationFn: ({ id, body }: { id: string; body: any }) => api.patch(`/residents/${id}`, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residents'] });
+      // Editing can reassign a resident to a different flat, which flips occupancy on both
+      // the old and new flat — see the comment on the add-resident mutation above.
+      queryClient.invalidateQueries({ queryKey: ['flats'] });
       setEditTarget(null);
       toast.success('Resident updated!');
     },
@@ -110,6 +141,8 @@ export function ResidentPage() {
     mutationFn: (id: string) => api.patch(`/residents/${id}/disable`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['residents'] });
+      // Removing the last resident on a flat flips it back to Vacant on the backend.
+      queryClient.invalidateQueries({ queryKey: ['flats'] });
       setRemoveTarget(null);
       toast.success('Resident removed');
     },
@@ -190,12 +223,17 @@ export function ResidentPage() {
   };
 
   const openEdit = (r: Resident) => {
+    const flatObj = typeof r.flatId === 'object' ? (r.flatId as any) : null;
     setEditTarget(r);
     setEditForm({
-      flatId: typeof r.flatId === 'object' ? (r.flatId as any)._id : r.flatId,
+      flatId: flatObj?._id || r.flatId,
       name: r.name, mobile: r.mobile, email: r.email || '',
       memberType: r.memberType, primaryContact: r.primaryContact, loginAllowed: r.loginAllowed,
     });
+    // Pre-seed the Tower/Floor cascade to the resident's current flat, so editing someone
+    // doesn't dump the admin back into the full unfiltered flat list.
+    setEditTowerId(flatObj?.towerId?._id || '');
+    setEditFloorId(typeof flatObj?.floorId === 'string' ? flatObj.floorId : flatObj?.floorId?._id || '');
   };
 
   return (
@@ -203,11 +241,17 @@ export function ResidentPage() {
       <PageHeader title={terms.personPlural} subtitle={`Manage all ${terms.person.toLowerCase()}s, owners, and tenants`}
         action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Add {terms.person}</button>} />
 
-      <div className="card p-4">
+      <div className="card p-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input placeholder="Search by name, mobile, email..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="input pl-10" />
+          <input placeholder="Search by name, mobile, email, flat no, type..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="input pl-10" />
         </div>
+        <TowerTabBar
+          towers={towers || []}
+          selected={tableTowerFilter}
+          onSelect={(id) => { setTableTowerFilter(id); setPage(1); }}
+          allLabel={`All ${terms.buildingPlural}`}
+        />
       </div>
 
       {isLoading ? <TableSkeleton rows={6} cols={5} /> : (
@@ -223,6 +267,7 @@ export function ResidentPage() {
                     <SortableHeader label="Resident" field="name" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <th className="table-header text-left">Contact</th>
                     <SortableHeader label={terms.unit} field="flatNo" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    {(towers?.length || 0) > 1 && <th className="table-header text-left">{terms.building}</th>}
                     <SortableHeader label="Type" field="memberType" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <SortableHeader label="KYC" field="kycStatus" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <th className="table-header text-left">Actions</th>
@@ -238,6 +283,9 @@ export function ResidentPage() {
                         </td>
                         <td className="table-cell"><div className="flex items-center gap-1 text-xs text-slate-600"><Phone className="w-3 h-3 text-slate-400" />{r.mobile}</div></td>
                         <td className="table-cell"><div className="flex items-center gap-1 text-xs"><Home className="w-3 h-3 text-slate-400" />{(r.flatId as any)?.flatNo || 'N/A'}</div></td>
+                        {(towers?.length || 0) > 1 && (
+                          <td className="table-cell"><span className="text-xs text-slate-500">{(r.flatId as any)?.towerId?.name || '—'}</span></td>
+                        )}
                         <td className="table-cell"><span className={`badge ${r.memberType === 'OWNER' ? 'badge-blue' : r.memberType === 'TENANT' ? 'badge-purple' : 'badge-gray'}`}>{r.memberType}</span></td>
                         <td className="table-cell">
                           {r.kycStatus === 'VERIFIED' ? (
@@ -299,7 +347,31 @@ export function ResidentPage() {
           <VoiceInputField label="Full Name" value={form.name} onChange={(v) => set('name')(v)} placeholder="Raj Sharma" required />
           <VoiceInputField label="Mobile" value={form.mobile} onChange={(v) => set('mobile')(v)} placeholder="9876543210" required type="tel" />
           <VoiceInputField label="Email" value={form.email} onChange={(v) => set('email')(v)} placeholder="raj@example.com" type="email" />
-          <div><label className="label">Flat <span className="text-red-500">*</span></label>
+          {(towers?.length || 0) > 1 && (
+            <div><label className="label">{terms.building}</label>
+              <select
+                value={addTowerId}
+                onChange={(e) => { setAddTowerId(e.target.value); setAddFloorId(''); set('flatId')(''); }}
+                className="input"
+              >
+                <option value="">All {terms.buildingPlural.toLowerCase()}...</option>
+                {towers?.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            </div>
+          )}
+          {addTowerId && (
+            <div><label className="label">Floor</label>
+              <select
+                value={addFloorId}
+                onChange={(e) => { setAddFloorId(e.target.value); set('flatId')(''); }}
+                className="input"
+              >
+                <option value="">All floors...</option>
+                {floorOptionsForTower(addTowerId).map((fl) => <option key={fl._id} value={fl._id}>{fl.floorName}</option>)}
+              </select>
+            </div>
+          )}
+          <div><label className="label">{terms.unit} <span className="text-red-500">*</span></label>
             <select
               value={form.flatId}
               onChange={(e) => {
@@ -308,8 +380,10 @@ export function ResidentPage() {
               }}
               className="input" required
             >
-              <option value="">Select flat...</option>
-              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
+              <option value="">Select {terms.unit.toLowerCase()}...</option>
+              {flats?.items
+                ?.filter((f: any) => (!addTowerId || f.towerId?._id === addTowerId) && (!addFloorId || f.floorId?._id === addFloorId))
+                .map((f: any) => <option key={f._id} value={f._id}>{addTowerId ? f.flatNo : (f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo)}</option>)}
               <option value={CREATE_NEW_FLAT}>+ Create New {terms.unit}...</option>
             </select>
             {!flats?.items?.length && (
@@ -331,8 +405,8 @@ export function ResidentPage() {
             </label>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending || !form.flatId} className="btn-primary flex-1">{mutation.isPending ? 'Adding...' : 'Add Resident'}</button>
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+            <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending || !form.flatId} className="btn-primary flex-1">{mutation.isPending ? 'Adding...' : `Add ${terms.person}`}</button>
+            <button onClick={() => { setShowModal(false); setAddTowerId(''); setAddFloorId(''); }} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>
@@ -343,10 +417,36 @@ export function ResidentPage() {
           <VoiceInputField label="Full Name" value={editForm.name} onChange={(v) => setEditForm((f) => ({ ...f, name: v }))} placeholder="Raj Sharma" required />
           <VoiceInputField label="Mobile" value={editForm.mobile} onChange={(v) => setEditForm((f) => ({ ...f, mobile: v }))} placeholder="9876543210" required type="tel" />
           <VoiceInputField label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} placeholder="raj@example.com" type="email" />
-          <div><label className="label">Flat <span className="text-red-500">*</span></label>
+          {(towers?.length || 0) > 1 && (
+            <div><label className="label">{terms.building}</label>
+              <select
+                value={editTowerId}
+                onChange={(e) => { setEditTowerId(e.target.value); setEditFloorId(''); setEditForm((f) => ({ ...f, flatId: '' })); }}
+                className="input"
+              >
+                <option value="">All {terms.buildingPlural.toLowerCase()}...</option>
+                {towers?.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
+            </div>
+          )}
+          {editTowerId && (
+            <div><label className="label">Floor</label>
+              <select
+                value={editFloorId}
+                onChange={(e) => { setEditFloorId(e.target.value); setEditForm((f) => ({ ...f, flatId: '' })); }}
+                className="input"
+              >
+                <option value="">All floors...</option>
+                {floorOptionsForTower(editTowerId).map((fl) => <option key={fl._id} value={fl._id}>{fl.floorName}</option>)}
+              </select>
+            </div>
+          )}
+          <div><label className="label">{terms.unit} <span className="text-red-500">*</span></label>
             <select value={editForm.flatId} onChange={(e) => setEditForm((f) => ({ ...f, flatId: e.target.value }))} className="input" required>
-              <option value="">Select flat...</option>
-              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
+              <option value="">Select {terms.unit.toLowerCase()}...</option>
+              {flats?.items
+                ?.filter((f: any) => (!editTowerId || f.towerId?._id === editTowerId) && (!editFloorId || f.floorId?._id === editFloorId))
+                .map((f: any) => <option key={f._id} value={f._id}>{editTowerId ? f.flatNo : (f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo)}</option>)}
             </select>
           </div>
           <div><label className="label">Member Type</label>
@@ -569,6 +669,56 @@ export function ResidentPage() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+interface TowerTabBarProps {
+  towers: Tower[];
+  selected: string;
+  onSelect: (towerId: string) => void;
+  allLabel: string;
+}
+
+// Segmented tower/block filter — up to 3 shown as tabs, the rest collapse into an overflow
+// menu (still showing the selected tower's name on the trigger if it's in the overflow) so
+// this doesn't blow out horizontally for a society with many towers.
+function TowerTabBar({ towers, selected, onSelect, allLabel }: TowerTabBarProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  if (towers.length < 2) return null;
+  const visible = towers.slice(0, 3);
+  const overflow = towers.slice(3);
+  const selectedOverflow = overflow.find((t) => t._id === selected);
+  const tabClass = (active: boolean) =>
+    `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button onClick={() => onSelect('')} className={tabClass(selected === '')}>{allLabel}</button>
+      {visible.map((t) => <button key={t._id} onClick={() => onSelect(t._id)} className={tabClass(selected === t._id)}>{t.name}</button>)}
+      {overflow.length > 0 && (
+        <div className="relative">
+          <button onClick={() => setShowMenu((s) => !s)} className={tabClass(!!selectedOverflow)}>
+            {selectedOverflow ? selectedOverflow.name : <MoreHorizontal className="w-4 h-4" />}
+          </button>
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+              <div className="absolute z-20 mt-1 bg-white shadow-lg rounded-xl border border-slate-100 p-1 min-w-[160px] max-h-64 overflow-y-auto">
+                {overflow.map((t) => (
+                  <button
+                    key={t._id}
+                    onClick={() => { onSelect(t._id); setShowMenu(false); }}
+                    className={`block w-full text-left px-3 py-1.5 text-sm rounded-lg hover:bg-slate-50 ${selected === t._id ? 'text-primary-600 font-medium' : 'text-slate-700'}`}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
