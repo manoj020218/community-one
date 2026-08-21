@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Send, Zap, AlarmClock, BellRing } from 'lucide-react';
+import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -21,6 +21,8 @@ export function McrDemandsTab() {
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '' });
+  const [cancelTarget, setCancelTarget] = useState<MaintenanceDemand | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['mcr-demands', societyId, statusFilter],
@@ -68,6 +70,11 @@ export function McrDemandsTab() {
   const remindersRunMutation = useMutation({
     mutationFn: () => api.post('/mcr/reminders/run', { societyId, limit: 50, channels: ['IN_APP'] }),
     onSuccess: () => toast.success('Reminders dispatched'),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.post(`/mcr/demands/${cancelTarget!._id}/cancel`, { societyId, reason: cancelReason }),
+    onSuccess: () => { invalidate(); toast.success('Demand cancelled'); setCancelTarget(null); setCancelReason(''); },
   });
 
   return (
@@ -126,9 +133,14 @@ export function McrDemandsTab() {
                           <Send className="w-3.5 h-3.5" /> Publish
                         </button>
                       )}
-                      {demand.status !== 'DRAFT' && (
+                      {demand.status !== 'DRAFT' && demand.status !== 'CANCELLED' && (
                         <button onClick={() => reminderMutation.mutate(demand._id)} disabled={reminderMutation.isPending} className="text-slate-500 hover:text-slate-700 text-xs font-medium flex items-center gap-1">
                           <BellRing className="w-3.5 h-3.5" /> Remind
+                        </button>
+                      )}
+                      {['DRAFT', 'PUBLISHED', 'OVERDUE'].includes(demand.status) && (
+                        <button onClick={() => setCancelTarget(demand)} className="text-red-600 hover:text-red-700 text-xs font-medium flex items-center gap-1" title="Cancel this demand — e.g. it was generated for a flat that no longer exists">
+                          <Ban className="w-3.5 h-3.5" /> Cancel
                         </button>
                       )}
                     </div>
@@ -157,6 +169,23 @@ export function McrDemandsTab() {
               {draftMutation.isPending ? 'Generating...' : 'Generate'}
             </button>
             <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!cancelTarget} onClose={() => { setCancelTarget(null); setCancelReason(''); }} title={`Cancel Demand ${cancelTarget?.demandNumber || ''}`}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            This marks the demand as cancelled and zeroes its outstanding balance — use this when a demand no longer applies,
+            e.g. it was generated for a flat that's since been deleted. Not available once any payment has been recorded against it.
+          </p>
+          <div><label className="label">Reason <span className="text-red-500">*</span></label>
+            <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="input resize-none" rows={3} placeholder="Required — minimum 3 characters" /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => cancelMutation.mutate()} disabled={cancelMutation.isPending || cancelReason.trim().length < 3} className="btn-danger flex-1">
+              {cancelMutation.isPending ? 'Cancelling...' : 'Confirm Cancel'}
+            </button>
+            <button onClick={() => { setCancelTarget(null); setCancelReason(''); }} className="btn-secondary">Back</button>
           </div>
         </div>
       </Modal>

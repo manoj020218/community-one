@@ -36,6 +36,7 @@ router.get('/demands', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSION
 router.post('/demands/drafts', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), demandController.createDrafts.bind(demandController));
 router.post('/demands/automation/run', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), requirePermission(PERMISSIONS.MCR_PUBLISH_DEMAND), mcrDemandAutomationController.run.bind(mcrDemandAutomationController));
 router.post('/demands/:demandId/publish', requirePermission(PERMISSIONS.MCR_PUBLISH_DEMAND), demandController.publish.bind(demandController));
+router.post('/demands/:demandId/cancel', requirePermission(PERMISSIONS.MCR_PUBLISH_DEMAND), demandController.cancel.bind(demandController));
 router.post('/demands/:demandId/reminders', requirePermission(PERMISSIONS.MCR_SEND_REMINDER), mcrReminderController.sendForDemand.bind(mcrReminderController));
 router.post('/late-fees/run', requirePermission(PERMISSIONS.MCR_GENERATE_DEMAND), mcrLateFeeController.run.bind(mcrLateFeeController));
 router.get('/payments', requireAnyPermission(PERMISSIONS.MCR_VIEW_ALL, PERMISSIONS.MCR_RECORD_PAYMENT, PERMISSIONS.MCR_VERIFY_PAYMENT), mcrPaymentController.list.bind(mcrPaymentController));

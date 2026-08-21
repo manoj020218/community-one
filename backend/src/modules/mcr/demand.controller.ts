@@ -66,6 +66,27 @@ export class DemandController {
       next(error);
     }
   }
+
+  async cancel(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const demand = await demandDraftService.cancel(context, req.params.demandId);
+      await auditService.log({
+        societyId: context.societyId,
+        actorUserId: context.user.userId,
+        actorRole: context.user.roleCode,
+        moduleCode: 'MCR',
+        action: 'MCR_DEMAND_CANCELLED',
+        entityType: 'MaintenanceDemand',
+        entityId: demand._id!.toString(),
+        newValue: { demandNumber: demand.demandNumber, reason: req.body.reason },
+        ipAddress: req.ip,
+      });
+      sendSuccess(res, demand, 'MCR demand cancelled');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const demandController = new DemandController();

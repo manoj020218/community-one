@@ -7,12 +7,31 @@ import { MaintenanceDemand, IMaintenanceDemandDocument } from './demand.model';
 import { demandDraftCreateSchema } from './demand.schemas';
 import { McrBillingCycle, mcrBillingCycleService } from './mcrBillingCycle.service';
 import { parseOrThrow } from './mcr.validation';
+import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 
 export class DemandDraftService {
   async listBySociety(societyId: string, status?: string): Promise<IMaintenanceDemandDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
     return MaintenanceDemand.find(query).sort({ createdAt: -1 });
+  }
+
+  // No refund flow exists yet, so a demand with any payment already recorded against it can't
+  // be cancelled here — only DRAFT/PUBLISHED/OVERDUE demands with zero paidPaise (e.g. one
+  // generated for a flat that was later deleted, per the case this was added for).
+  async cancel(context: McrActorContext, demandId: string): Promise<IMaintenanceDemandDocument> {
+    const demand = await MaintenanceDemand.findOne({ _id: demandId, societyId: context.societyId });
+    if (!demand) throw new NotFoundError('MaintenanceDemand');
+    if (demand.status === 'CANCELLED') return demand;
+    if (demand.status === 'PAID' || demand.paidPaise > 0) {
+      throw new ConflictError('Cannot cancel a demand with payments already recorded against it.');
+    }
+
+    demand.status = 'CANCELLED';
+    demand.outstandingPaise = 0;
+    demand.updatedBy = context.user.userId;
+    await demand.save();
+    return demand;
   }
 
   async createDrafts(context: McrActorContext, input: unknown) {

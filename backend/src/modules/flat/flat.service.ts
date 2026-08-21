@@ -5,6 +5,7 @@ import { Resident } from '../resident/resident.model';
 import { Vehicle } from '../vehicle/vehicle.model';
 import { Pet } from '../pet/pet.model';
 import { Lease } from '../lease/lease.model';
+import { MaintenanceDemand } from '../mcr/demand.model';
 import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
@@ -118,17 +119,23 @@ export class FlatService {
     const flat = await Flat.findById(id);
     if (!flat || !flat.isActive) throw new NotFoundError('Flat');
 
-    const [residentCount, vehicleCount, petCount, leaseCount] = await Promise.all([
+    const [residentCount, vehicleCount, petCount, leaseCount, demandCount] = await Promise.all([
       Resident.countDocuments({ flatId: id, isActive: true }),
       Vehicle.countDocuments({ flatId: id, isActive: true }),
       Pet.countDocuments({ flatId: id, isActive: true }),
       Lease.countDocuments({ flatId: id, isActive: true, status: 'ACTIVE' }),
+      // PAID/CANCELLED are resolved and don't block — DRAFT/PUBLISHED/PARTIALLY_PAID/OVERDUE
+      // still owe money against this flat, so deleting it would orphan a live bill (found via
+      // a real case: a demand for a since-deleted flat kept showing OVERDUE with no way to
+      // trace it back to a real unit).
+      MaintenanceDemand.countDocuments({ flatId: id, status: { $nin: ['PAID', 'CANCELLED'] } }),
     ]);
     const blockers: string[] = [];
     if (residentCount) blockers.push(`${residentCount} resident(s)`);
     if (vehicleCount) blockers.push(`${vehicleCount} vehicle(s)`);
     if (petCount) blockers.push(`${petCount} pet(s)`);
     if (leaseCount) blockers.push(`${leaseCount} active lease(s)`);
+    if (demandCount) blockers.push(`${demandCount} unpaid maintenance demand(s)`);
     if (blockers.length) {
       throw new ConflictError(`Cannot delete flat "${flat.flatNo}" — it still has ${blockers.join(', ')}. Remove or reassign them first.`);
     }
