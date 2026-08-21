@@ -1,5 +1,6 @@
 import { Floor, IFloorDocument, FloorType } from './floor.model';
-import { NotFoundError } from '../../common/errors/AppError';
+import { Flat } from '../flat/flat.model';
+import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 
 export interface CreateFloorDto {
   societyId: string;
@@ -103,6 +104,14 @@ export class FloorService {
   }
 
   async delete(id: string): Promise<void> {
+    const floor = await Floor.findById(id);
+    if (!floor || !floor.isActive) throw new NotFoundError('Floor');
+
+    const flatCount = await Flat.countDocuments({ floorId: id, isActive: true });
+    if (flatCount) {
+      throw new ConflictError(`Cannot delete "${floor.floorName}" — it still has ${flatCount} flat(s). Delete its flats first.`);
+    }
+
     await Floor.findByIdAndUpdate(id, { isActive: false });
   }
 }

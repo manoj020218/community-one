@@ -1,4 +1,5 @@
 import { Tower, ITowerDocument } from './tower.model';
+import { Floor } from '../floor/floor.model';
 import { CreateTowerDto, UpdateTowerDto, GenerateTowersDto } from './tower.types';
 import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 
@@ -54,6 +55,14 @@ export class TowerService {
   }
 
   async delete(id: string): Promise<void> {
+    const tower = await Tower.findById(id);
+    if (!tower || !tower.isActive) throw new NotFoundError('Tower');
+
+    const floorCount = await Floor.countDocuments({ towerId: id, isActive: true });
+    if (floorCount) {
+      throw new ConflictError(`Cannot delete "${tower.name}" — it still has ${floorCount} floor(s). Delete its floors first.`);
+    }
+
     await Tower.findByIdAndUpdate(id, { isActive: false });
   }
 }

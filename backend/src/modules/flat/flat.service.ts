@@ -1,6 +1,10 @@
 import { Flat, IFlatDocument } from './flat.model';
 import { Floor } from '../floor/floor.model';
-import { NotFoundError } from '../../common/errors/AppError';
+import { Resident } from '../resident/resident.model';
+import { Vehicle } from '../vehicle/vehicle.model';
+import { Pet } from '../pet/pet.model';
+import { Lease } from '../lease/lease.model';
+import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
 
@@ -87,6 +91,24 @@ export class FlatService {
   }
 
   async delete(id: string): Promise<void> {
+    const flat = await Flat.findById(id);
+    if (!flat || !flat.isActive) throw new NotFoundError('Flat');
+
+    const [residentCount, vehicleCount, petCount, leaseCount] = await Promise.all([
+      Resident.countDocuments({ flatId: id, isActive: true }),
+      Vehicle.countDocuments({ flatId: id, isActive: true }),
+      Pet.countDocuments({ flatId: id, isActive: true }),
+      Lease.countDocuments({ flatId: id, isActive: true, status: 'ACTIVE' }),
+    ]);
+    const blockers: string[] = [];
+    if (residentCount) blockers.push(`${residentCount} resident(s)`);
+    if (vehicleCount) blockers.push(`${vehicleCount} vehicle(s)`);
+    if (petCount) blockers.push(`${petCount} pet(s)`);
+    if (leaseCount) blockers.push(`${leaseCount} active lease(s)`);
+    if (blockers.length) {
+      throw new ConflictError(`Cannot delete flat "${flat.flatNo}" — it still has ${blockers.join(', ')}. Remove or reassign them first.`);
+    }
+
     await Flat.findByIdAndUpdate(id, { isActive: false });
   }
 

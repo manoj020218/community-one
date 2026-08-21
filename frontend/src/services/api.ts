@@ -36,8 +36,11 @@ api.interceptors.response.use(
       }
     }
 
+    // A request can opt out (config: { skipErrorToast: true }) when the caller wants to show
+    // its own, more specific message instead of this generic one — e.g. turning a raw
+    // "Duplicate entry already exists" into "Flat number G01 already exists".
     const message = error.response?.data?.error?.message || 'An error occurred';
-    if (error.response?.status !== 401) toast.error(message);
+    if (error.response?.status !== 401 && !original?.skipErrorToast) toast.error(message);
 
     return Promise.reject(error);
   }

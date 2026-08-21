@@ -1,12 +1,13 @@
 import { Fragment, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Zap, Filter, Users, Car, PawPrint, Loader2, ChevronRight, ChevronDown, BedDouble, Wrench, UserX } from 'lucide-react';
+import { LayoutGrid, Zap, Filter, Users, Car, PawPrint, Loader2, ChevronRight, ChevronDown, BedDouble, Wrench, UserX, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BedAssignModal } from './BedAssignModal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
@@ -15,7 +16,12 @@ import { cn } from '../../utils/cn';
 import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
-const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office'];
+// value must match the backend Flat.flatType enum exactly — label is just display text.
+const FLAT_TYPE_OPTIONS = [
+  { value: '1BHK', label: '1 BHK' }, { value: '2BHK', label: '2 BHK' }, { value: '3BHK', label: '3 BHK' }, { value: '4BHK', label: '4 BHK' },
+  { value: 'PENTHOUSE', label: 'Penthouse' }, { value: 'VILLA', label: 'Villa' }, { value: 'SHOP', label: 'Shop' }, { value: 'OFFICE', label: 'Office' },
+  { value: 'PARKING', label: 'Parking' }, { value: 'STAFF_QUARTERS', label: 'Staff Quarters' }, { value: 'OTHER', label: 'Other' },
+];
 
 const occupancyColors: Record<string, string> = {
   OWNER_OCCUPIED: 'badge-green',
@@ -48,6 +54,10 @@ export function FlatPage() {
   const [flatConfig, setFlatConfig] = useState({ flatsPerFloor: 4, flatType: '2BHK', areaSqFt: 850, startUnit: 1 });
   const [expandedFlatId, setExpandedFlatId] = useState<string | null>(null);
   const isHostel = terms.unit === 'Room';
+
+  const [editTarget, setEditTarget] = useState<Flat | null>(null);
+  const [editForm, setEditForm] = useState({ flatNo: '', flatType: '2BHK', areaSqFt: '' as number | '', occupancyStatus: 'VACANT' });
+  const [deleteTarget, setDeleteTarget] = useState<Flat | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['flats', societyId, page, filterTower],
@@ -93,6 +103,29 @@ export function FlatPage() {
       queryClient.invalidateQueries({ queryKey: ['towers'] });
       toast.success('Flats generated!');
       setShowGenModal(false);
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: any }) => api.patch(`/flats/${id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flats'] });
+      setEditTarget(null);
+      toast.success(`${terms.unit} updated!`);
+    },
+  });
+
+  // Backend blocks this with a 409 + clear message ("still has N resident(s)/vehicle(s)/...")
+  // whenever the flat isn't empty — the global axios interceptor surfaces that as a toast, so
+  // no local error handling is needed here.
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/flats/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flats'] });
+      queryClient.invalidateQueries({ queryKey: ['floors'] });
+      queryClient.invalidateQueries({ queryKey: ['towers'] });
+      setDeleteTarget(null);
+      toast.success(`${terms.unit} deleted`);
     },
   });
 
@@ -148,6 +181,7 @@ export function FlatPage() {
                       <th className="table-header text-left">Area</th>
                       <th className="table-header text-left">Occupancy</th>
                       <th className="table-header text-left">Mapping</th>
+                      <th className="table-header text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -201,10 +235,28 @@ export function FlatPage() {
                                 </button>
                               </div>
                             </td>
+                            <td className="table-cell">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={() => { setEditTarget(f); setEditForm({ flatNo: f.flatNo, flatType: f.flatType, areaSqFt: f.areaSqFt ?? '', occupancyStatus: f.occupancyStatus }); }}
+                                  title={`Edit ${terms.unit.toLowerCase()}`}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteTarget(f)}
+                                  title={`Delete ${terms.unit.toLowerCase()}`}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                           {isHostel && isExpanded && (
                             <tr>
-                              <td colSpan={7} className="p-0 bg-slate-50 border-b border-slate-100">
+                              <td colSpan={8} className="p-0 bg-slate-50 border-b border-slate-100">
                                 <BedsPanel flatId={f._id} societyId={societyId} />
                               </td>
                             </tr>
@@ -275,7 +327,7 @@ export function FlatPage() {
             <div>
               <label className="label">Flat Type</label>
               <select value={flatConfig.flatType} onChange={(e) => setFC('flatType')(e.target.value)} className="input">
-                {FLAT_TYPES.map((t) => <option key={t}>{t}</option>)}
+                {FLAT_TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
@@ -297,6 +349,63 @@ export function FlatPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Edit Flat Modal */}
+      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title={`Edit ${terms.unit}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="label">{terms.unit} No</label>
+            <input value={editForm.flatNo} onChange={(e) => setEditForm((f) => ({ ...f, flatNo: e.target.value }))} className="input" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="label">Type</label>
+              <select value={editForm.flatType} onChange={(e) => setEditForm((f) => ({ ...f, flatType: e.target.value }))} className="input">
+                {FLAT_TYPE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">Area (sq ft)</label>
+              <input type="number" value={editForm.areaSqFt} onChange={(e) => setEditForm((f) => ({ ...f, areaSqFt: e.target.value === '' ? '' : +e.target.value }))} className="input" min={0} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Occupancy Status</label>
+            <select value={editForm.occupancyStatus} onChange={(e) => setEditForm((f) => ({ ...f, occupancyStatus: e.target.value }))} className="input">
+              {Object.keys(occupancyColors).map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => editTarget && editMutation.mutate({
+                id: editTarget._id,
+                body: { flatNo: editForm.flatNo.trim(), flatType: editForm.flatType, occupancyStatus: editForm.occupancyStatus, ...(editForm.areaSqFt !== '' && { areaSqFt: Number(editForm.areaSqFt) }) },
+              })}
+              disabled={editMutation.isPending || !editForm.flatNo.trim()}
+              className="btn-primary flex-1"
+            >
+              {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={() => setEditTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Flat Confirm */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title={`Delete ${deleteTarget?.flatNo}?`}
+        message={
+          <>
+            This permanently removes <strong>{deleteTarget?.flatNo}</strong>. If it still has {terms.person.toLowerCase()}s, vehicles, pets,
+            or an active lease, deletion will be blocked — remove or reassign those first.
+          </>
+        }
+        confirmLabel={`Delete ${terms.unit}`}
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget._id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

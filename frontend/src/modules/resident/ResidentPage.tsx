@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3 } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { VoiceInputField } from '../../components/common/VoiceInputField';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
@@ -39,6 +40,10 @@ export function ResidentPage() {
   const [kycTarget, setKycTarget] = useState<Resident | null>(null);
   const [kycForm, setKycForm] = useState({ physicalLocation: '', notes: '' });
 
+  const [editTarget, setEditTarget] = useState<Resident | null>(null);
+  const [editForm, setEditForm] = useState({ flatId: '', name: '', mobile: '', email: '', memberType: 'OWNER', primaryContact: true, loginAllowed: false });
+  const [removeTarget, setRemoveTarget] = useState<Resident | null>(null);
+
   // Reverse flow: an admin picking "Add Resident" first often hasn't set up towers/floors/flats
   // yet. These let them create a flat (and a tower, if needed) inline instead of bailing out to
   // the Towers page and losing their place.
@@ -71,7 +76,6 @@ export function ResidentPage() {
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/residents', data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['residents'] }); setShowModal(false); toast.success('Resident added!'); },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to add resident'),
   });
 
   const kycMutation = useMutation({
@@ -81,6 +85,24 @@ export function ResidentPage() {
       setKycTarget(null);
       setKycForm({ physicalLocation: '', notes: '' });
       toast.success('KYC marked as verified!');
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: any }) => api.patch(`/residents/${id}`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      setEditTarget(null);
+      toast.success('Resident updated!');
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/residents/${id}/disable`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      setRemoveTarget(null);
+      toast.success('Resident removed');
     },
   });
 
@@ -106,7 +128,6 @@ export function ResidentPage() {
       setQuickTowerForm(BLANK_QUICK_TOWER);
       toast.success(`${terms.building} "${tower.name}" created — now pick a floor`);
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error?.message || `Failed to create ${terms.building.toLowerCase()}`),
   });
 
   const createFlatMutation = useMutation({
@@ -115,7 +136,7 @@ export function ResidentPage() {
         societyId, towerId: f.towerId, floorId: f.floorId,
         flatNo: f.flatNo.trim(), flatType: f.flatType,
         ...(f.areaSqFt !== '' && { areaSqFt: Number(f.areaSqFt) }),
-      });
+      }, { skipErrorToast: true } as any);
       return res.data.data;
     },
     onSuccess: (newFlat) => {
@@ -159,6 +180,15 @@ export function ResidentPage() {
     }
   };
 
+  const openEdit = (r: Resident) => {
+    setEditTarget(r);
+    setEditForm({
+      flatId: typeof r.flatId === 'object' ? (r.flatId as any)._id : r.flatId,
+      name: r.name, mobile: r.mobile, email: r.email || '',
+      memberType: r.memberType, primaryContact: r.primaryContact, loginAllowed: r.loginAllowed,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={terms.personPlural} subtitle={`Manage all ${terms.person.toLowerCase()}s, owners, and tenants`}
@@ -186,10 +216,11 @@ export function ResidentPage() {
                     <th className="table-header text-left">Flat</th>
                     <th className="table-header text-left">Type</th>
                     <th className="table-header text-left">KYC</th>
+                    <th className="table-header text-left">Actions</th>
                   </tr></thead>
                   <tbody className="divide-y divide-slate-50">
                     {data.items.map((r: Resident) => (
-                      <tr key={r._id} className="table-row">
+                      <tr key={r._id} className="table-row group">
                         <td className="table-cell">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center text-white text-sm font-bold">{r.name[0]}</div>
@@ -222,6 +253,16 @@ export function ResidentPage() {
                               <ClipboardCheck className="w-3.5 h-3.5" /> Mark KYC Done
                             </button>
                           )}
+                        </td>
+                        <td className="table-cell">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEdit(r)} title="Edit" className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => setRemoveTarget(r)} title="Remove" className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+                              <UserX className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -286,6 +327,61 @@ export function ResidentPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Edit Resident Modal */}
+      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Resident">
+        <div className="space-y-4">
+          <VoiceInputField label="Full Name" value={editForm.name} onChange={(v) => setEditForm((f) => ({ ...f, name: v }))} placeholder="Raj Sharma" required />
+          <VoiceInputField label="Mobile" value={editForm.mobile} onChange={(v) => setEditForm((f) => ({ ...f, mobile: v }))} placeholder="9876543210" required type="tel" />
+          <VoiceInputField label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} placeholder="raj@example.com" type="email" />
+          <div><label className="label">Flat <span className="text-red-500">*</span></label>
+            <select value={editForm.flatId} onChange={(e) => setEditForm((f) => ({ ...f, flatId: e.target.value }))} className="input" required>
+              <option value="">Select flat...</option>
+              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+            </select>
+          </div>
+          <div><label className="label">Member Type</label>
+            <select value={editForm.memberType} onChange={(e) => setEditForm((f) => ({ ...f, memberType: e.target.value }))} className="input">
+              {MEMBER_TYPES.map((t) => <option key={t}>{t}</option>)}
+            </select></div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={editForm.primaryContact} onChange={(e) => setEditForm((f) => ({ ...f, primaryContact: e.target.checked }))} className="w-4 h-4 text-primary-600" />
+              Primary Contact
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="checkbox" checked={editForm.loginAllowed} onChange={(e) => setEditForm((f) => ({ ...f, loginAllowed: e.target.checked }))} className="w-4 h-4 text-primary-600" />
+              Allow Resident App Login by Same Mobile Number
+            </label>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => editTarget && editMutation.mutate({ id: editTarget._id, body: editForm })}
+              disabled={editMutation.isPending || !editForm.flatId}
+              className="btn-primary flex-1"
+            >
+              {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={() => setEditTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Remove Resident Confirm */}
+      <ConfirmDialog
+        isOpen={!!removeTarget}
+        title={`Remove ${removeTarget?.name}?`}
+        message={
+          <>
+            This removes <strong>{removeTarget?.name}</strong> from the {terms.person.toLowerCase()} list and revokes their app login.
+            Their KYC and payment history are kept, not deleted — an admin can re-add them later if needed.
+          </>
+        }
+        confirmLabel="Remove Resident"
+        isPending={removeMutation.isPending}
+        onConfirm={() => removeTarget && removeMutation.mutate(removeTarget._id)}
+        onCancel={() => setRemoveTarget(null)}
+      />
 
       {/* Quick Add Flat Modal (reverse flow) */}
       <Modal isOpen={showQuickFlatModal} onClose={() => { setShowQuickFlatModal(false); setQuickFlatForm(BLANK_QUICK_FLAT); }} title={`Create New ${terms.unit}`}>

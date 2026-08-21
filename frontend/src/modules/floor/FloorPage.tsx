@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Layers3, ChevronRight, Zap, Loader2, Users } from 'lucide-react';
+import { LayoutGrid, Layers3, ChevronRight, Zap, Loader2, Users, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Tower, Floor } from '../../types';
 import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
-const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'Studio', 'Penthouse', 'Shop', 'Office', 'Parking', 'Staff Quarters'];
+// value must match the backend Flat.flatType enum exactly — label is just display text.
+const FLAT_TYPE_OPTIONS = [
+  { value: '1BHK', label: '1 BHK' }, { value: '2BHK', label: '2 BHK' }, { value: '3BHK', label: '3 BHK' }, { value: '4BHK', label: '4 BHK' },
+  { value: 'PENTHOUSE', label: 'Penthouse' }, { value: 'VILLA', label: 'Villa' }, { value: 'SHOP', label: 'Shop' }, { value: 'OFFICE', label: 'Office' },
+  { value: 'PARKING', label: 'Parking' }, { value: 'STAFF_QUARTERS', label: 'Staff Quarters' }, { value: 'OTHER', label: 'Other' },
+];
 const FLOOR_TYPE_LABEL: Record<string, string> = { GROUND: 'Ground', BASEMENT: 'Basement', TERRACE: 'Terrace', OTHER: 'Other' };
 
 export function FloorPage() {
@@ -27,6 +33,10 @@ export function FloorPage() {
   const [flatGenTarget, setFlatGenTarget] = useState<{ floor: Floor; tower: Tower } | null>(null);
   const [genAllTarget, setGenAllTarget] = useState<Tower | null>(null);
   const [flatConfig, setFlatConfig] = useState({ flatsPerFloor: 4, flatType: '2BHK', areaSqFt: 850, startUnit: 1 });
+
+  const [editTarget, setEditTarget] = useState<Floor | null>(null);
+  const [editName, setEditName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Floor | null>(null);
 
   const { data: towers = [] } = useQuery({
     queryKey: ['towers', societyId],
@@ -85,6 +95,28 @@ export function FloorPage() {
       queryClient.invalidateQueries({ queryKey: ['towers'] });
       toast.success(`Flats generated for all ${floors.length} floors!`);
       setGenAllTarget(null);
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, floorName }: { id: string; floorName: string }) => api.patch(`/floors/${id}`, { floorName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['floors'] });
+      setEditTarget(null);
+      toast.success('Floor updated!');
+    },
+  });
+
+  // Backend blocks this with a 409 + clear message ("still has N flat(s), delete those
+  // first") whenever the floor isn't empty — the global axios interceptor already surfaces
+  // that as a toast, so no local error handling needed here.
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/floors/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['floors'] });
+      queryClient.invalidateQueries({ queryKey: ['towers'] });
+      setDeleteTarget(null);
+      toast.success('Floor deleted');
     },
   });
 
@@ -196,6 +228,23 @@ export function FloorPage() {
                   )}
 
                   <span className={`badge ml-1 ${floor.status === 'ACTIVE' ? 'badge-green' : 'badge-gray'}`}>{floor.status}</span>
+
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => { setEditTarget(floor); setEditName(floor.floorName); }}
+                      title="Edit floor name"
+                      className="p-1.5 rounded-lg text-slate-400 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(floor)}
+                      title="Delete floor"
+                      className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -221,7 +270,7 @@ export function FloorPage() {
         <FlatConfigForm
           config={flatConfig}
           setFC={setFC}
-          flatTypes={FLAT_TYPES}
+          flatTypes={FLAT_TYPE_OPTIONS}
           previewLabel={`${flatConfig.flatsPerFloor} flats on ${flatGenTarget?.floor.floorName}`}
           flatNumberPrefix={flatGenTarget?.floor.flatNumberPrefix || `${(flatGenTarget?.tower.name || '').split(' ').pop()}-${flatGenTarget?.floor.floorNumber}`}
           isPending={genFlatsFloor.isPending}
@@ -235,7 +284,7 @@ export function FloorPage() {
         <FlatConfigForm
           config={flatConfig}
           setFC={setFC}
-          flatTypes={FLAT_TYPES}
+          flatTypes={FLAT_TYPE_OPTIONS}
           previewLabel={`${totalFlats} flats total (${flatConfig.flatsPerFloor} × ${floors.length} floors)`}
           flatNumberPrefix={floors[0]?.flatNumberPrefix || String(floors[0]?.floorNumber ?? '')}
           multiFloor
@@ -244,6 +293,43 @@ export function FloorPage() {
           onCancel={() => setGenAllTarget(null)}
         />
       </Modal>
+
+      {/* Edit Floor Name Modal */}
+      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Floor">
+        <div className="space-y-4">
+          <div>
+            <label className="label">Floor Name</label>
+            <input value={editName} onChange={(e) => setEditName(e.target.value)} className="input" placeholder="e.g. Ground Floor, Floor 1" />
+          </div>
+          <p className="text-xs text-slate-400">The floor number and flat-number prefix can't be changed here to avoid mismatching existing flat numbers.</p>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => editTarget && editMutation.mutate({ id: editTarget._id, floorName: editName })}
+              disabled={editMutation.isPending || !editName.trim()}
+              className="btn-primary flex-1"
+            >
+              {editMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={() => setEditTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Floor Confirm */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title={`Delete ${deleteTarget?.floorName}?`}
+        message={
+          <>
+            This permanently removes <strong>{deleteTarget?.floorName}</strong>. If it still has {terms.unitPlural.toLowerCase()},
+            deletion will be blocked — delete its {terms.unitPlural.toLowerCase()} first.
+          </>
+        }
+        confirmLabel="Delete Floor"
+        isPending={deleteMutation.isPending}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget._id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
@@ -251,7 +337,7 @@ export function FloorPage() {
 interface FlatConfigFormProps {
   config: { flatsPerFloor: number; flatType: string; areaSqFt: number; startUnit: number };
   setFC: (k: string) => (v: any) => void;
-  flatTypes: string[];
+  flatTypes: { value: string; label: string }[];
   previewLabel: string;
   flatNumberPrefix: string;
   multiFloor?: boolean;
@@ -278,7 +364,7 @@ function FlatConfigForm({ config, setFC, flatTypes, previewLabel, flatNumberPref
         <div>
           <label className="label">Flat Type</label>
           <select value={config.flatType} onChange={(e) => setFC('flatType')(e.target.value)} className="input">
-            {flatTypes.map((t) => <option key={t}>{t}</option>)}
+            {flatTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
