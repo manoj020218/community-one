@@ -206,9 +206,13 @@ export function FlatPage() {
                             <td className="table-cell"><span className="badge badge-blue">{f.flatType}</span></td>
                             <td className="table-cell text-slate-600">{f.areaSqFt ? `${f.areaSqFt} sqft` : '—'}</td>
                             <td className="table-cell">
-                              <span className={cn('badge text-xs', occupancyColors[f.occupancyStatus] || 'badge-gray')}>
-                                {f.occupancyStatus.replace(/_/g, ' ')}
-                              </span>
+                              <button
+                                onClick={() => setExpandedFlatId(isExpanded ? null : f._id)}
+                                className={cn('badge text-xs hover:opacity-80 transition-opacity', occupancyColors[f.occupancyStatus] || 'badge-gray')}
+                                title={f.occupancyStatus === 'VACANT' ? `No ${terms.person.toLowerCase()} — click for details` : `Click to see ${terms.person.toLowerCase()} details`}
+                              >
+                                {['OWNER_OCCUPIED', 'TENANT_OCCUPIED'].includes(f.occupancyStatus) ? 'OCCUPIED' : f.occupancyStatus.replace(/_/g, ' ')}
+                              </button>
                             </td>
                             <td className="table-cell">
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -254,10 +258,10 @@ export function FlatPage() {
                               </div>
                             </td>
                           </tr>
-                          {isHostel && isExpanded && (
+                          {isExpanded && (
                             <tr>
-                              <td colSpan={8} className="p-0 bg-slate-50 border-b border-slate-100">
-                                <BedsPanel flatId={f._id} societyId={societyId} />
+                              <td colSpan={isHostel ? 8 : 7} className="p-0 bg-slate-50 border-b border-slate-100">
+                                {isHostel ? <BedsPanel flatId={f._id} societyId={societyId} /> : <ResidentsPanel flatId={f._id} personLabel={terms.person} personPluralLabel={terms.personPlural} />}
                               </td>
                             </tr>
                           )}
@@ -406,6 +410,41 @@ export function FlatPage() {
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget._id)}
         onCancel={() => setDeleteTarget(null)}
       />
+    </div>
+  );
+}
+
+function ResidentsPanel({ flatId, personLabel, personPluralLabel }: { flatId: string; personLabel: string; personPluralLabel: string }) {
+  const navigate = useNavigate();
+  const { data: residents = [], isLoading } = useQuery({
+    queryKey: ['residents', 'flat', flatId],
+    queryFn: () => extractData<any[]>(api.get(`/residents/flat/${flatId}`)),
+  });
+
+  if (isLoading) return <div className="p-4 text-center text-slate-400 text-sm">Loading {personPluralLabel.toLowerCase()}...</div>;
+
+  if (!residents.length) {
+    return (
+      <div className="px-6 py-4 flex items-center justify-between">
+        <p className="text-sm text-slate-500">No {personLabel.toLowerCase()} recorded for this flat.</p>
+        <button onClick={() => navigate('/residents')} className="btn-secondary text-sm flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5" /> Add {personLabel}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {residents.map((r) => (
+        <div key={r._id} className="bg-white rounded-xl border border-slate-100 p-3 flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0">{r.name[0]}</div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800 truncate">{r.name}{r.primaryContact && <span className="text-xs text-primary-600 font-normal ml-1">(Primary)</span>}</p>
+            <p className="text-xs text-slate-500">{r.mobile} · {r.memberType.replace(/_/g, ' ')}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

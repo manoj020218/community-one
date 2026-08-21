@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../common/types';
-import { residentService } from './resident.service';
+import { residentService, ResidentSortField } from './resident.service';
 import { sendSuccess, sendCreated, sendPaginated, parsePagination } from '../../common/utils/response';
 import { auditService } from '../audit/audit.service';
 
@@ -20,7 +20,10 @@ export class ResidentController {
   async findBySociety(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
-      const result = await residentService.findBySociety(req.params.societyId, page, limit, req.query.search as string);
+      const validSorts: ResidentSortField[] = ['flatNo', 'name', 'memberType', 'kycStatus'];
+      const sortBy = validSorts.includes(req.query.sortBy as ResidentSortField) ? (req.query.sortBy as ResidentSortField) : 'flatNo';
+      const sortDir = req.query.sortDir === 'desc' ? -1 : 1;
+      const result = await residentService.findBySociety(req.params.societyId, page, limit, req.query.search as string, sortBy, sortDir);
       sendPaginated(res, result, 'Residents retrieved');
     } catch (error) { next(error); }
   }

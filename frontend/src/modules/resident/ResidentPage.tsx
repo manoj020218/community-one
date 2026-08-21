@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -34,6 +34,8 @@ export function ResidentPage() {
   const terms = useTerminology();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'flatNo' | 'name' | 'memberType' | 'kycStatus'>('flatNo');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ societyId, flatId: '', name: '', mobile: '', email: '', memberType: 'OWNER', primaryContact: true, loginAllowed: false });
 
@@ -68,10 +70,17 @@ export function ResidentPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['residents', societyId, page, search],
-    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?page=${page}&limit=20${search ? `&search=${search}` : ''}`)),
+    queryKey: ['residents', societyId, page, search, sortBy, sortDir],
+    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?page=${page}&limit=20&sortBy=${sortBy}&sortDir=${sortDir}${search ? `&search=${search}` : ''}`)),
     enabled: !!societyId,
   });
+
+  const toggleSort = (field: typeof sortBy) => {
+    setPage(1);
+    if (sortBy === field) { setSortDir((d) => (d === 'asc' ? 'desc' : 'asc')); return; }
+    setSortBy(field);
+    setSortDir('asc');
+  };
 
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/residents', data),
@@ -211,11 +220,11 @@ export function ResidentPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead><tr className="border-b border-slate-100">
-                    <th className="table-header text-left">Resident</th>
+                    <SortableHeader label="Resident" field="name" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <th className="table-header text-left">Contact</th>
-                    <th className="table-header text-left">Flat</th>
-                    <th className="table-header text-left">Type</th>
-                    <th className="table-header text-left">KYC</th>
+                    <SortableHeader label={terms.unit} field="flatNo" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="Type" field="memberType" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    <SortableHeader label="KYC" field="kycStatus" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <th className="table-header text-left">Actions</th>
                   </tr></thead>
                   <tbody className="divide-y divide-slate-50">
@@ -561,5 +570,25 @@ export function ResidentPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+interface SortableHeaderProps {
+  label: string;
+  field: 'flatNo' | 'name' | 'memberType' | 'kycStatus';
+  sortBy: string;
+  sortDir: 'asc' | 'desc';
+  onSort: (field: 'flatNo' | 'name' | 'memberType' | 'kycStatus') => void;
+}
+
+function SortableHeader({ label, field, sortBy, sortDir, onSort }: SortableHeaderProps) {
+  const active = sortBy === field;
+  return (
+    <th className="table-header text-left">
+      <button onClick={() => onSort(field)} className={`flex items-center gap-1 hover:text-slate-700 transition-colors ${active ? 'text-slate-700' : ''}`}>
+        {label}
+        {active ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-40" />}
+      </button>
+    </th>
   );
 }

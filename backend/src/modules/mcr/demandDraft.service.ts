@@ -61,8 +61,11 @@ export class DemandDraftService {
   ) {
     // isActive, not status — Flat.delete() only flips isActive (status is a separate, unused
     // field nothing in the flat module ever updates), so filtering on status here silently
-    // kept billing deleted flats forever.
-    const flatQuery: Record<string, unknown> = { societyId, isActive: true };
+    // kept billing deleted flats forever. occupancyStatus is now kept accurate automatically
+    // (set on resident add/remove, see resident.service.ts) — a genuinely Vacant flat is
+    // excluded; LOCKED/UNDER_RENOVATION still bill since the owner still owes maintenance
+    // either way, only an empty unopposed unit doesn't.
+    const flatQuery: Record<string, unknown> = { societyId, isActive: true, occupancyStatus: { $ne: 'VACANT' } };
     if (flatIds?.length) flatQuery._id = { $in: flatIds };
     const flats = await Flat.find(flatQuery).sort({ flatNo: 1 });
     const chargeHeadIds = [...new Set(billingPlan.chargeLines.map((line) => line.chargeHeadId.toString()))];
