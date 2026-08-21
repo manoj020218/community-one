@@ -21,7 +21,8 @@ export class FlatController {
   async findBySociety(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
-      const result = await flatService.findBySociety(req.params.societyId, page, limit);
+      const towerId = typeof req.query.towerId === 'string' ? req.query.towerId : undefined;
+      const result = await flatService.findBySociety(req.params.societyId, page, limit, towerId);
       sendPaginated(res, result, 'Flats retrieved');
     } catch (error) { next(error); }
   }

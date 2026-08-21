@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { Flat, IFlatDocument } from './flat.model';
 import { Floor } from '../floor/floor.model';
 import { Resident } from '../resident/resident.model';
@@ -64,14 +65,37 @@ export class FlatService {
     return Flat.insertMany(flats) as any;
   }
 
-  async findBySociety(societyId: string, page: number, limit: number): Promise<PaginatedResult<IFlatDocument>> {
+  async findBySociety(societyId: string, page: number, limit: number, towerId?: string): Promise<PaginatedResult<IFlatDocument>> {
     const skip = (page - 1) * limit;
-    const query = { societyId, isActive: true };
-    const [items, total] = await Promise.all([
-      Flat.find(query).populate('towerId', 'name code').populate('floorId', 'floorNumber floorName').sort({ flatNo: 1 }).skip(skip).limit(limit),
-      Flat.countDocuments(query),
+    const match: Record<string, any> = { societyId: new Types.ObjectId(societyId), isActive: true };
+    if (towerId) match.towerId = new Types.ObjectId(towerId);
+
+    // Sorting by flatNo alone is a plain string sort, so letter-prefixed flats (Ground
+    // floor "G01", basements "B101") sort AFTER every plain numeric flat ("101".."999") —
+    // with pagination that pushes Ground floor off page 1 entirely, even though it's
+    // physically the first floor. Look up each flat's real floor/tower and sort by that
+    // instead, so the list reads in actual building order.
+    const pipeline: any[] = [
+      { $match: match },
+      { $lookup: { from: 'floors', localField: 'floorId', foreignField: '_id', as: 'floor' } },
+      { $unwind: { path: '$floor', preserveNullAndEmptyArrays: true } },
+      { $lookup: { from: 'towers', localField: 'towerId', foreignField: '_id', as: 'tower' } },
+      { $unwind: { path: '$tower', preserveNullAndEmptyArrays: true } },
+      { $sort: { 'tower.name': 1, 'floor.floorNumber': 1, flatNo: 1 } },
+    ];
+
+    const [items, totalResult] = await Promise.all([
+      Flat.aggregate([...pipeline, { $skip: skip }, { $limit: limit }]),
+      Flat.aggregate([{ $match: match }, { $count: 'total' }]),
     ]);
-    return buildPaginatedResult(items, total, page, limit);
+
+    const shaped = items.map((f: any) => ({
+      ...f,
+      towerId: f.tower ? { _id: f.tower._id, name: f.tower.name, code: f.tower.code } : f.towerId,
+      floorId: f.floor ? { _id: f.floor._id, floorNumber: f.floor.floorNumber, floorName: f.floor.floorName } : f.floorId,
+    }));
+
+    return buildPaginatedResult(shaped, totalResult[0]?.total || 0, page, limit);
   }
 
   async findByFloor(floorId: string): Promise<IFlatDocument[]> {
