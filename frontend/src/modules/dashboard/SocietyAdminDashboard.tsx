@@ -8,13 +8,24 @@ import { CardSkeleton } from '../../components/common/LoadingSkeleton';
 import { Modal } from '../../components/common/Modal';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { useTerminology } from '../../utils/terminology';
 import { cn } from '../../utils/cn';
 import { WhatsAppStatus } from '../settings/communicationTypes';
+
+interface TowerFlatStats {
+  towerId: string;
+  towerName: string;
+  total: number;
+  occupied: number;
+  vacant: number;
+  other: number;
+}
 
 export function SocietyAdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { currentSociety } = useSocietyStore();
+  const terms = useTerminology();
   const societyId = currentSociety?._id || user?.societyId;
   const queryClient = useQueryClient();
   const [showWaModal, setShowWaModal] = useState(false);
@@ -22,6 +33,12 @@ export function SocietyAdminDashboard() {
   const { data: flatStats } = useQuery({
     queryKey: ['flat-stats', societyId],
     queryFn: () => societyId ? extractData(api.get(`/flats/society/${societyId}/stats`)) : null,
+    enabled: !!societyId,
+  });
+
+  const { data: towerStats } = useQuery({
+    queryKey: ['flat-stats-by-tower', societyId],
+    queryFn: () => societyId ? extractData<TowerFlatStats[]>(api.get(`/flats/society/${societyId}/stats-by-tower`)) : [],
     enabled: !!societyId,
   });
 
@@ -114,6 +131,42 @@ export function SocietyAdminDashboard() {
           </div>
         </button>
       </div>
+
+      {/* Block-wise Occupancy */}
+      {(towerStats?.length || 0) > 1 && (
+        <div className="card">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+            <h3 className="section-title">{terms.building}-wise Occupancy</h3>
+            <button onClick={() => navigate('/flats')} className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+              View {terms.unitPlural} <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {towerStats!.map((t) => {
+              const pct = t.total > 0 ? Math.round((t.occupied / t.total) * 100) : 0;
+              return (
+                <button
+                  key={t.towerId}
+                  onClick={() => navigate(`/flats?towerId=${t.towerId}`)}
+                  className="text-left p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-primary-200 hover:bg-white hover:shadow-card-hover transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-slate-800 truncate">{t.towerName}</span>
+                    <span className="text-xs font-medium text-slate-400">{t.total} {terms.unitPlural.toLowerCase()}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-2">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-emerald-600 font-medium">{t.occupied} Occupied</span>
+                    <span className="text-slate-400">{t.vacant} Vacant</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Modules Grid */}
       <div className="card">

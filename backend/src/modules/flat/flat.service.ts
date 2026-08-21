@@ -152,6 +152,24 @@ export class FlatService {
     ]);
     return stats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {});
   }
+
+  async getStatsByTower(societyId: string): Promise<Array<{ towerId: string; towerName: string; total: number; occupied: number; vacant: number; other: number }>> {
+    const rows = await Flat.aggregate([
+      { $match: { societyId: new Types.ObjectId(societyId), isActive: true } },
+      { $group: { _id: { towerId: '$towerId', occupancyStatus: '$occupancyStatus' }, count: { $sum: 1 } } },
+      { $group: { _id: '$_id.towerId', statuses: { $push: { status: '$_id.occupancyStatus', count: '$count' } }, total: { $sum: '$count' } } },
+      { $lookup: { from: 'towers', localField: '_id', foreignField: '_id', as: 'tower' } },
+      { $unwind: '$tower' },
+      { $sort: { 'tower.name': 1 } },
+    ]);
+    return rows.map((r) => {
+      const occupied = r.statuses
+        .filter((s: any) => s.status === 'OWNER_OCCUPIED' || s.status === 'TENANT_OCCUPIED')
+        .reduce((a: number, s: any) => a + s.count, 0);
+      const vacant = r.statuses.find((s: any) => s.status === 'VACANT')?.count || 0;
+      return { towerId: r._id.toString(), towerName: r.tower.name, total: r.total, occupied, vacant, other: r.total - occupied - vacant };
+    });
+  }
 }
 
 export const flatService = new FlatService();

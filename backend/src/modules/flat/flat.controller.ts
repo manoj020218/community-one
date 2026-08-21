@@ -61,6 +61,13 @@ export class FlatController {
       sendSuccess(res, stats, 'Stats retrieved');
     } catch (error) { next(error); }
   }
+
+  async getStatsByTower(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const stats = await flatService.getStatsByTower(req.params.societyId);
+      sendSuccess(res, stats, 'Tower-wise stats retrieved');
+    } catch (error) { next(error); }
+  }
 }
 
 export const flatController = new FlatController();

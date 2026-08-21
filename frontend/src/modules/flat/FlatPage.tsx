@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LayoutGrid, Zap, Filter, Users, Car, PawPrint, Loader2, ChevronRight, ChevronDown, BedDouble, Wrench, UserX, Pencil, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -45,9 +45,11 @@ export function FlatPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const terms = useTerminology();
+  const [searchParams] = useSearchParams();
 
   const [page, setPage] = useState(1);
-  const [filterTower, setFilterTower] = useState('');
+  // Lets the Dashboard's block-wise occupancy cards deep-link straight into a filtered view.
+  const [filterTower, setFilterTower] = useState(() => searchParams.get('towerId') || '');
   const [showGenModal, setShowGenModal] = useState(false);
   const [genTower, setGenTower] = useState('');
   const [genFloor, setGenFloor] = useState('');
