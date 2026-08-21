@@ -309,7 +309,7 @@ export function ResidentPage() {
               className="input" required
             >
               <option value="">Select flat...</option>
-              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
               <option value={CREATE_NEW_FLAT}>+ Create New {terms.unit}...</option>
             </select>
             {!flats?.items?.length && (
@@ -346,7 +346,7 @@ export function ResidentPage() {
           <div><label className="label">Flat <span className="text-red-500">*</span></label>
             <select value={editForm.flatId} onChange={(e) => setEditForm((f) => ({ ...f, flatId: e.target.value }))} className="input" required>
               <option value="">Select flat...</option>
-              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
             </select>
           </div>
           <div><label className="label">Member Type</label>

@@ -285,7 +285,7 @@ export function SamaStaffTab() {
               <div><label className="label">Flat <span className="text-red-500">*</span></label>
                 <select value={engagementForm.employerFlatId} onChange={(e) => { setEngagement('employerFlatId')(e.target.value); setEngagement('employerResidentId')(''); }} className="input">
                   <option value="">Select flat...</option>
-                  {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+                  {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
                 </select></div>
               <div><label className="label">Resident <span className="text-red-500">*</span></label>
                 <select value={engagementForm.employerResidentId} onChange={(e) => setEngagement('employerResidentId')(e.target.value)} className="input" disabled={!engagementForm.employerFlatId}>

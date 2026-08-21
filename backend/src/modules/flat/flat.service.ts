@@ -51,7 +51,9 @@ export class FlatService {
     for (let i = 0; i < dto.flatsPerFloor; i++) {
       const unit = String(startUnit + i).padStart(2, '0');
       const flatNo = `${prefix}${unit}`;
-      const exists = await Flat.findOne({ societyId: dto.societyId, flatNo });
+      // Scoped to this tower, not the whole society — two towers with the same floor
+      // structure legitimately produce the same flat numbers (see Flat's index comment).
+      const exists = await Flat.findOne({ towerId: dto.towerId, flatNo });
       if (!exists) {
         flats.push({
           societyId: dto.societyId,

@@ -185,7 +185,7 @@ export function McrPaymentsTab() {
             <div><label className="label">Flat <span className="text-red-500">*</span></label>
               <select value={form.flatId} onChange={(e) => set('flatId')(e.target.value)} className="input">
                 <option value="">Select flat...</option>
-                {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+                {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
               </select></div>
             <div><label className="label">Amount (₹) <span className="text-red-500">*</span></label>
               <input type="number" value={form.amountPaise} onChange={(e) => set('amountPaise')(e.target.value)} className="input" min={0} /></div>

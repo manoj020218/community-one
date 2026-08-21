@@ -82,7 +82,7 @@ export function LeaseFormModal({ isOpen, onClose, societyId, createdBy }: LeaseF
           <label className="label">Flat / Room <span className="text-red-500">*</span></label>
           <select value={form.flatId} onChange={(e) => { set('flatId')(e.target.value); set('residentId')(''); }} className="input">
             <option value="">Select flat...</option>
-            {flats.map((f: Flat) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+            {flats.map((f: Flat) => <option key={f._id} value={f._id}>{(f.towerId as any)?.name ? `${(f.towerId as any).name} - ${f.flatNo}` : f.flatNo}</option>)}
           </select>
         </div>
 

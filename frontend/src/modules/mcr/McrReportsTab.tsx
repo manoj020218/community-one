@@ -106,7 +106,7 @@ export function McrReportsTab() {
           <Search className="w-4 h-4 text-slate-400" />
           <select value={statementFlatId} onChange={(e) => setStatementFlatId(e.target.value)} className="input">
             <option value="">Select flat...</option>
-            {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+            {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
           </select>
         </div>
 

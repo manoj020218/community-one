@@ -46,9 +46,15 @@ const FlatSchema = new Schema(
   { timestamps: true }
 );
 
+// Unique per TOWER, not per society — flat numbers are auto-generated from floor prefix
+// alone (G01, 101...), so two towers with the same floor structure produce identical flat
+// numbers. Scoping uniqueness to the whole society meant the second tower's flats were
+// silently unable to generate at all (the generator's own "already exists" check matched the
+// first tower's flats). A flat's real identity is always tower + number together anyway.
 // partialFilterExpression: a soft-deleted flat (isActive: false) no longer reserves its
 // flat number, so an admin can delete a wrongly-created flat and immediately reuse the number.
-FlatSchema.index({ societyId: 1, flatNo: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
+FlatSchema.index({ towerId: 1, flatNo: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
+FlatSchema.index({ societyId: 1 });
 FlatSchema.index({ towerId: 1, floorId: 1 });
 
 export const Flat: Model<IFlatDocument> = mongoose.model<IFlatDocument>('Flat', FlatSchema);

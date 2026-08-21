@@ -99,7 +99,7 @@ export function VehiclePage() {
           <div><label className="label">Flat <span className="text-red-500">*</span></label>
             <select value={form.flatId} onChange={(e) => set('flatId')(e.target.value)} className="input" required>
               <option value="">Select flat...</option>
-              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
+              {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>)}
             </select></div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending} className="btn-primary flex-1">{mutation.isPending ? 'Registering...' : 'Register Vehicle'}</button>
