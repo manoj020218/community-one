@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3 } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -9,11 +9,21 @@ import { VoiceInputField } from '../../components/common/VoiceInputField';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
-import { Resident } from '../../types';
+import { Resident, Tower, Floor } from '../../types';
 import { useTerminology } from '../../utils/terminology';
 import toast from 'react-hot-toast';
 
 const MEMBER_TYPES = ['OWNER', 'TENANT', 'FAMILY_MEMBER', 'STAFF', 'VENDOR'];
+const TOWER_TYPES = ['TOWER', 'BLOCK', 'VILLA_ROW', 'SHOP_BLOCK', 'OTHER'];
+const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'PENTHOUSE', 'VILLA', 'SHOP', 'OFFICE', 'PARKING', 'STAFF_QUARTERS', 'OTHER'];
+const CREATE_NEW_FLAT = '__new_flat__';
+const CREATE_NEW_TOWER = '__new_tower__';
+
+const BLANK_QUICK_TOWER = {
+  name: '', type: 'TOWER', numberOfFloors: 10, hasLift: false,
+  hasGroundFloor: true, groundFloorFlats: 0, basementCount: 0, basementPrefix: 'B',
+};
+const BLANK_QUICK_FLAT = { towerId: '', floorId: '', flatNo: '', flatType: '2BHK', areaSqFt: '' as number | '' };
 
 export function ResidentPage() {
   const { user } = useAuthStore();
@@ -29,7 +39,28 @@ export function ResidentPage() {
   const [kycTarget, setKycTarget] = useState<Resident | null>(null);
   const [kycForm, setKycForm] = useState({ physicalLocation: '', notes: '' });
 
+  // Reverse flow: an admin picking "Add Resident" first often hasn't set up towers/floors/flats
+  // yet. These let them create a flat (and a tower, if needed) inline instead of bailing out to
+  // the Towers page and losing their place.
+  const [showQuickFlatModal, setShowQuickFlatModal] = useState(false);
+  const [quickFlatForm, setQuickFlatForm] = useState(BLANK_QUICK_FLAT);
+  const [flatNoAutoFilled, setFlatNoAutoFilled] = useState(true);
+  const [showQuickTowerModal, setShowQuickTowerModal] = useState(false);
+  const [quickTowerForm, setQuickTowerForm] = useState(BLANK_QUICK_TOWER);
+
   const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)), enabled: !!societyId });
+
+  const { data: towers } = useQuery({
+    queryKey: ['towers', societyId],
+    queryFn: () => extractData<Tower[]>(api.get(`/towers/society/${societyId}`)),
+    enabled: !!societyId && showQuickFlatModal,
+  });
+
+  const { data: quickFloors } = useQuery({
+    queryKey: ['floors', quickFlatForm.towerId],
+    queryFn: () => extractData<Floor[]>(api.get(`/floors/tower/${quickFlatForm.towerId}`)),
+    enabled: !!quickFlatForm.towerId,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['residents', societyId, page, search],
@@ -40,6 +71,7 @@ export function ResidentPage() {
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/residents', data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['residents'] }); setShowModal(false); toast.success('Resident added!'); },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to add resident'),
   });
 
   const kycMutation = useMutation({
@@ -52,11 +84,79 @@ export function ResidentPage() {
     },
   });
 
+  const createTowerMutation = useMutation({
+    mutationFn: async (t: typeof quickTowerForm) => {
+      const res = await api.post('/towers', { ...t, societyId });
+      const tower = res.data.data;
+      await api.post('/floors/generate', {
+        societyId, towerId: tower._id,
+        count: t.numberOfFloors,
+        hasGroundFloor: t.hasGroundFloor,
+        groundFloorFlats: t.groundFloorFlats,
+        basementCount: t.basementCount,
+        basementPrefix: t.basementPrefix,
+      });
+      return tower as Tower;
+    },
+    onSuccess: (tower) => {
+      queryClient.invalidateQueries({ queryKey: ['towers'] });
+      setQuickFlatForm((f) => ({ ...f, towerId: tower._id, floorId: '' }));
+      setFlatNoAutoFilled(true);
+      setShowQuickTowerModal(false);
+      setQuickTowerForm(BLANK_QUICK_TOWER);
+      toast.success(`${terms.building} "${tower.name}" created — now pick a floor`);
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || `Failed to create ${terms.building.toLowerCase()}`),
+  });
+
+  const createFlatMutation = useMutation({
+    mutationFn: async (f: typeof quickFlatForm) => {
+      const res = await api.post('/flats', {
+        societyId, towerId: f.towerId, floorId: f.floorId,
+        flatNo: f.flatNo.trim(), flatType: f.flatType,
+        ...(f.areaSqFt !== '' && { areaSqFt: Number(f.areaSqFt) }),
+      });
+      return res.data.data;
+    },
+    onSuccess: (newFlat) => {
+      queryClient.invalidateQueries({ queryKey: ['flats-list'] });
+      queryClient.invalidateQueries({ queryKey: ['floors'] });
+      queryClient.invalidateQueries({ queryKey: ['towers'] });
+      set('flatId')(newFlat._id);
+      setShowQuickFlatModal(false);
+      setQuickFlatForm(BLANK_QUICK_FLAT);
+      toast.success(`${terms.unit} ${newFlat.flatNo} created and selected!`);
+    },
+    onError: (err: any) => {
+      const isDuplicate = err?.response?.data?.error?.code === 'DUPLICATE_KEY';
+      toast.error(isDuplicate
+        ? `${terms.unit} number "${quickFlatForm.flatNo}" already exists in this ${terms.org.toLowerCase()} — pick a different number.`
+        : (err?.response?.data?.error?.message || `Failed to create ${terms.unit.toLowerCase()}`));
+    },
+  });
+
   const set = (k: string) => (v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
   const openKyc = (r: Resident) => {
     setKycTarget(r);
     setKycForm({ physicalLocation: r.kycPhysicalLocation || '', notes: r.kycNotes || '' });
+  };
+
+  const selectedTower = towers?.find((t) => t._id === quickFlatForm.towerId) ?? null;
+  const flatNoTrimmed = quickFlatForm.flatNo.trim().toLowerCase();
+  const looksLikeDuplicate = !!flatNoTrimmed && (flats?.items || []).some((f: any) => f.flatNo.trim().toLowerCase() === flatNoTrimmed);
+
+  const prefixForFloor = (floor: Floor | undefined, tower: Tower | null) =>
+    floor ? (floor.flatNumberPrefix || `${(tower?.name || '').split(' ').pop()}-${floor.floorNumber}`) : '';
+
+  const onFloorChange = (floorId: string) => {
+    const floor = quickFloors?.find((fl) => fl._id === floorId);
+    if (flatNoAutoFilled || !quickFlatForm.flatNo) {
+      setQuickFlatForm((f) => ({ ...f, floorId, flatNo: `${prefixForFloor(floor, selectedTower)}01` }));
+      setFlatNoAutoFilled(true);
+    } else {
+      setQuickFlatForm((f) => ({ ...f, floorId }));
+    }
   };
 
   return (
@@ -150,10 +250,22 @@ export function ResidentPage() {
           <VoiceInputField label="Mobile" value={form.mobile} onChange={(v) => set('mobile')(v)} placeholder="9876543210" required type="tel" />
           <VoiceInputField label="Email" value={form.email} onChange={(v) => set('email')(v)} placeholder="raj@example.com" type="email" />
           <div><label className="label">Flat <span className="text-red-500">*</span></label>
-            <select value={form.flatId} onChange={(e) => set('flatId')(e.target.value)} className="input" required>
+            <select
+              value={form.flatId}
+              onChange={(e) => {
+                if (e.target.value === CREATE_NEW_FLAT) { setShowQuickFlatModal(true); return; }
+                set('flatId')(e.target.value);
+              }}
+              className="input" required
+            >
               <option value="">Select flat...</option>
               {flats?.items?.map((f: any) => <option key={f._id} value={f._id}>{f.flatNo}</option>)}
-            </select></div>
+              <option value={CREATE_NEW_FLAT}>+ Create New {terms.unit}...</option>
+            </select>
+            {!flats?.items?.length && (
+              <p className="mt-1 text-xs text-slate-400">No {terms.unitPlural.toLowerCase()} set up yet — choose "+ Create New {terms.unit}" above to add one on the spot.</p>
+            )}
+          </div>
           <div><label className="label">Member Type</label>
             <select value={form.memberType} onChange={(e) => set('memberType')(e.target.value)} className="input">
               {MEMBER_TYPES.map((t) => <option key={t}>{t}</option>)}
@@ -165,12 +277,146 @@ export function ResidentPage() {
             </label>
             <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <input type="checkbox" checked={form.loginAllowed} onChange={(e) => set('loginAllowed')(e.target.checked)} className="w-4 h-4 text-primary-600" />
-              Allow Login
+              Allow Resident App Login by Same Mobile Number
             </label>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending} className="btn-primary flex-1">{mutation.isPending ? 'Adding...' : 'Add Resident'}</button>
+            <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending || !form.flatId} className="btn-primary flex-1">{mutation.isPending ? 'Adding...' : 'Add Resident'}</button>
             <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quick Add Flat Modal (reverse flow) */}
+      <Modal isOpen={showQuickFlatModal} onClose={() => { setShowQuickFlatModal(false); setQuickFlatForm(BLANK_QUICK_FLAT); }} title={`Create New ${terms.unit}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="label">{terms.building} <span className="text-red-500">*</span></label>
+            <select
+              value={quickFlatForm.towerId}
+              onChange={(e) => {
+                if (e.target.value === CREATE_NEW_TOWER) { setShowQuickTowerModal(true); return; }
+                setQuickFlatForm((f) => ({ ...f, towerId: e.target.value, floorId: '', flatNo: '' }));
+                setFlatNoAutoFilled(true);
+              }}
+              className="input"
+            >
+              <option value="">Select {terms.building.toLowerCase()}...</option>
+              {towers?.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+              <option value={CREATE_NEW_TOWER}>+ Create New {terms.building}...</option>
+            </select>
+            {!towers?.length && (
+              <p className="mt-1 text-xs text-slate-400 flex items-center gap-1"><Building2 className="w-3 h-3" /> No {terms.buildingPlural.toLowerCase()} yet — choose "+ Create New {terms.building}" above.</p>
+            )}
+          </div>
+
+          {quickFlatForm.towerId && (
+            <div>
+              <label className="label">Floor <span className="text-red-500">*</span></label>
+              <select value={quickFlatForm.floorId} onChange={(e) => onFloorChange(e.target.value)} className="input">
+                <option value="">Select floor...</option>
+                {quickFloors?.map((fl) => <option key={fl._id} value={fl._id}>{fl.floorName}</option>)}
+              </select>
+              {!quickFloors?.length && (
+                <p className="mt-1 text-xs text-slate-400 flex items-center gap-1"><Layers3 className="w-3 h-3" /> This {terms.building.toLowerCase()} has no floors yet.</p>
+              )}
+            </div>
+          )}
+
+          {quickFlatForm.floorId && (
+            <>
+              <div>
+                <label className="label">{terms.unit} No. <span className="text-red-500">*</span></label>
+                <input
+                  value={quickFlatForm.flatNo}
+                  onChange={(e) => { setQuickFlatForm((f) => ({ ...f, flatNo: e.target.value })); setFlatNoAutoFilled(false); }}
+                  className="input"
+                  placeholder="e.g. G01, 101, 205"
+                />
+                {looksLikeDuplicate && (
+                  <p className="mt-1 text-xs text-red-500">A {terms.unit.toLowerCase()} with this number already exists in this {terms.org.toLowerCase()} — pick a different number.</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">{terms.unit} Type</label>
+                  <select value={quickFlatForm.flatType} onChange={(e) => setQuickFlatForm((f) => ({ ...f, flatType: e.target.value }))} className="input">
+                    {FLAT_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Area (sq ft)</label>
+                  <input type="number" value={quickFlatForm.areaSqFt} onChange={(e) => setQuickFlatForm((f) => ({ ...f, areaSqFt: e.target.value === '' ? '' : +e.target.value }))} className="input" min={0} />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => createFlatMutation.mutate(quickFlatForm)}
+              disabled={createFlatMutation.isPending || !quickFlatForm.floorId || !quickFlatForm.flatNo.trim() || looksLikeDuplicate}
+              className="btn-primary flex-1"
+            >
+              {createFlatMutation.isPending ? 'Creating...' : `Create & Select ${terms.unit}`}
+            </button>
+            <button onClick={() => { setShowQuickFlatModal(false); setQuickFlatForm(BLANK_QUICK_FLAT); }} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quick Add Tower Modal (nested reverse flow, one level deeper) */}
+      <Modal isOpen={showQuickTowerModal} onClose={() => setShowQuickTowerModal(false)} title={`Create New ${terms.building}`}>
+        <div className="space-y-4">
+          <VoiceInputField label={`${terms.building} Name`} value={quickTowerForm.name} onChange={(v) => setQuickTowerForm((f) => ({ ...f, name: v }))} placeholder="Tower A" required />
+          <div>
+            <label className="label">Type</label>
+            <select value={quickTowerForm.type} onChange={(e) => setQuickTowerForm((f) => ({ ...f, type: e.target.value }))} className="input">
+              {TOWER_TYPES.map((t) => <option key={t}>{t.replace(/_/g, ' ')}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Number of Floors</label>
+            <input type="number" value={quickTowerForm.numberOfFloors} onChange={(e) => setQuickTowerForm((f) => ({ ...f, numberOfFloors: +e.target.value }))} className="input" min={1} max={99} />
+            <p className="text-xs text-slate-400 mt-1">Typical floors only — Ground floor and basements are separate below</p>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-xl space-y-3">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={quickTowerForm.hasGroundFloor} onChange={(e) => setQuickTowerForm((f) => ({ ...f, hasGroundFloor: e.target.checked }))} className="w-4 h-4 text-primary-600 rounded" />
+              Has Ground Floor
+            </label>
+            {quickTowerForm.hasGroundFloor && (
+              <div>
+                <label className="label text-xs">Ground Floor Flats</label>
+                <input type="number" value={quickTowerForm.groundFloorFlats} onChange={(e) => setQuickTowerForm((f) => ({ ...f, groundFloorFlats: +e.target.value }))} className="input" min={0} max={50} />
+                <p className="text-xs text-slate-400 mt-1">0 if lobby/reception only</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label text-xs">Basement Levels</label>
+                <input type="number" value={quickTowerForm.basementCount} onChange={(e) => setQuickTowerForm((f) => ({ ...f, basementCount: +e.target.value }))} className="input" min={0} max={5} />
+              </div>
+              {quickTowerForm.basementCount > 0 && (
+                <div>
+                  <label className="label text-xs">Basement Prefix</label>
+                  <select value={quickTowerForm.basementPrefix} onChange={(e) => setQuickTowerForm((f) => ({ ...f, basementPrefix: e.target.value }))} className="input">
+                    <option value="B">B (Basement)</option>
+                    <option value="P">P (Parking)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" checked={quickTowerForm.hasLift} onChange={(e) => setQuickTowerForm((f) => ({ ...f, hasLift: e.target.checked }))} className="w-4 h-4 text-primary-600 rounded" />
+            Has Lift / Elevator
+          </label>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => createTowerMutation.mutate(quickTowerForm)} disabled={createTowerMutation.isPending || !quickTowerForm.name} className="btn-primary flex-1">
+              {createTowerMutation.isPending ? 'Creating...' : `Create ${terms.building}`}
+            </button>
+            <button onClick={() => setShowQuickTowerModal(false)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>
