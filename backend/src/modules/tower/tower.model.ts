@@ -27,6 +27,8 @@ const TowerSchema = new Schema(
   { timestamps: true }
 );
 
-TowerSchema.index({ societyId: 1, code: 1 }, { unique: true });
+// partialFilterExpression: a soft-deleted tower (isActive: false) no longer reserves its
+// code, so an admin can delete a wrongly-created tower and immediately reuse the same name.
+TowerSchema.index({ societyId: 1, code: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
 
 export const Tower: Model<ITowerDocument> = mongoose.model<ITowerDocument>('Tower', TowerSchema);

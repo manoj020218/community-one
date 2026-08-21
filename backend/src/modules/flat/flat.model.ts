@@ -46,7 +46,9 @@ const FlatSchema = new Schema(
   { timestamps: true }
 );
 
-FlatSchema.index({ societyId: 1, flatNo: 1 }, { unique: true });
+// partialFilterExpression: a soft-deleted flat (isActive: false) no longer reserves its
+// flat number, so an admin can delete a wrongly-created flat and immediately reuse the number.
+FlatSchema.index({ societyId: 1, flatNo: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
 FlatSchema.index({ towerId: 1, floorId: 1 });
 
 export const Flat: Model<IFlatDocument> = mongoose.model<IFlatDocument>('Flat', FlatSchema);

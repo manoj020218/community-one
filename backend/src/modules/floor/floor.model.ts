@@ -38,7 +38,9 @@ const FloorSchema = new Schema(
   { timestamps: true }
 );
 
-FloorSchema.index({ towerId: 1, floorNumber: 1 }, { unique: true });
+// partialFilterExpression: a soft-deleted floor (isActive: false) no longer reserves its
+// floor number, so an admin can delete a wrongly-created floor and immediately reuse it.
+FloorSchema.index({ towerId: 1, floorNumber: 1 }, { unique: true, partialFilterExpression: { isActive: true } });
 FloorSchema.index({ societyId: 1 });
 
 export const Floor: Model<IFloorDocument> = mongoose.model<IFloorDocument>('Floor', FloorSchema);
