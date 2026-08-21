@@ -26,12 +26,20 @@ export type NavGroup = {
   label: string;
   color: GroupColor;
   items: NavItem[];
+  // Set when this whole group represents one toggleable platform Module (Module Registry
+  // code) — lets the sidebar show its on/off state and the Module Registry page reuse the
+  // same letter for the matching card, instead of the two screens drifting apart.
+  moduleCode?: string;
+  // Injected below, in top-to-bottom definition order — a stable A/B/C.. label per group so
+  // an admin can point at "C. Visitor Management" in the sidebar and find the same "C." on
+  // the Module Registry card.
+  letter?: string;
 };
 
 // Payments/Receipts (legacy) are intentionally omitted from navigation — MCR is the
 // current source of truth for maintenance billing. Their routes/backend stay live
 // since report.service.ts still reads from them.
-export const navGroups: NavGroup[] = [
+const RAW_NAV_GROUPS: NavGroup[] = [
   {
     id: 'overview',
     label: 'Overview',
@@ -56,16 +64,18 @@ export const navGroups: NavGroup[] = [
   },
   {
     id: 'access',
-    label: 'Access & Security',
+    label: 'Visitor Management',
     color: { text: 'text-amber-600', dot: 'bg-amber-500', activeBg: 'bg-amber-50', activeText: 'text-amber-700', activeDot: 'bg-amber-500' },
+    moduleCode: 'VISITOR',
     items: [
-      { to: '/visitor', icon: UserCheck, label: 'Visitor Desk', roles: [], permissions: ['visitor.request.create', 'visitor.request.respond_own_flat', 'visitor.report.view', 'visitor.request.view_society'] },
+      { to: '/visitor', icon: UserCheck, label: 'Visitor Management', roles: [], permissions: ['visitor.request.create', 'visitor.request.respond_own_flat', 'visitor.report.view', 'visitor.request.view_society'], moduleCode: 'VISITOR' },
     ],
   },
   {
     id: 'mcr',
     label: 'Maintenance & Receipts',
     color: { text: 'text-emerald-600', dot: 'bg-emerald-500', activeBg: 'bg-emerald-50', activeText: 'text-emerald-700', activeDot: 'bg-emerald-500' },
+    moduleCode: 'MCR',
     items: [
       { to: '/mcr', icon: Banknote, label: 'Maintenance & Receipts', roles: [], permissions: [...MCR_ROUTE_PERMISSIONS], moduleCode: 'MCR' },
     ],
@@ -74,6 +84,7 @@ export const navGroups: NavGroup[] = [
     id: 'sama',
     label: 'Staff, Attendance & Access',
     color: { text: 'text-violet-600', dot: 'bg-violet-500', activeBg: 'bg-violet-50', activeText: 'text-violet-700', activeDot: 'bg-violet-500' },
+    moduleCode: 'SAMA',
     items: [
       { to: '/sama', icon: UserCog, label: 'Staff, Attendance & Access', roles: [], permissions: [...SAMA_ROUTE_PERMISSIONS], moduleCode: 'SAMA' },
     ],
@@ -82,6 +93,7 @@ export const navGroups: NavGroup[] = [
     id: 'lease',
     label: 'Rent & Lease',
     color: { text: 'text-orange-600', dot: 'bg-orange-500', activeBg: 'bg-orange-50', activeText: 'text-orange-700', activeDot: 'bg-orange-500' },
+    moduleCode: 'LEASE',
     items: [
       { to: '/lease', icon: FileText, label: 'Rent & Lease', roles: [], permissions: [...LEASE_ROUTE_PERMISSIONS], moduleCode: 'LEASE' },
     ],
@@ -90,6 +102,7 @@ export const navGroups: NavGroup[] = [
     id: 'access-control',
     label: 'Member Access Control',
     color: { text: 'text-rose-600', dot: 'bg-rose-500', activeBg: 'bg-rose-50', activeText: 'text-rose-700', activeDot: 'bg-rose-500' },
+    moduleCode: 'ACCESS_CONTROL',
     items: [
       { to: '/access', icon: KeyRound, label: 'Member Access Control', roles: [], permissions: [...ACCESS_CONTROL_ROUTE_PERMISSIONS], moduleCode: 'ACCESS_CONTROL' },
     ],
@@ -120,3 +133,16 @@ export const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+// A/B/C.. assigned by fixed top-to-bottom position in the list above, not by what the
+// current user happens to see — so the same letter always means the same group for every
+// admin, and the Module Registry page (via moduleLetterMap below) can reuse it verbatim.
+export const navGroups: NavGroup[] = RAW_NAV_GROUPS.map((group, i) => ({ ...group, letter: String.fromCharCode(65 + i) }));
+
+// moduleCode -> letter, for the Module Registry page to prefix its cards with the same
+// letter shown in the sidebar for that module. Modules with no sidebar presence (still
+// COMING_SOON) are simply absent here and render unlettered.
+export const moduleLetterMap: Record<string, string> = navGroups.reduce((acc, g) => {
+  if (g.moduleCode) acc[g.moduleCode] = g.letter!;
+  return acc;
+}, {} as Record<string, string>);

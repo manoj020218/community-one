@@ -4,6 +4,7 @@ import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
+import { moduleLetterMap } from '../../components/layout/sidebarNav';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/cn';
 
@@ -57,7 +58,10 @@ export function ModuleRegistryPage() {
               </div>
             </div>
 
-            <h3 className="font-semibold text-slate-800 text-sm mb-1">{module.name}</h3>
+            <h3 className="font-semibold text-slate-800 text-sm mb-1">
+              {moduleLetterMap[module.code] && <span className="text-primary-500">{moduleLetterMap[module.code]}. </span>}
+              {module.name}
+            </h3>
             <p className="text-xs text-slate-500 mb-4 leading-relaxed">{module.description}</p>
 
             <div className="flex items-center justify-between">

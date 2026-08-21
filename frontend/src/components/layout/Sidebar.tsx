@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { X, Building2, User, LogOut, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, Building2, User, LogOut, ChevronRight, ChevronDown, PowerOff } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyModule } from '../../modules/moduleRegistry/useSocietyModules';
 import { useSamaModule } from '../../modules/sama/useSamaModule';
@@ -16,12 +16,32 @@ interface SidebarProps { mobile?: boolean; onClose?: () => void; }
 export function Sidebar({ mobile, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const { isEnabled: isMcrEnabled } = useSocietyModule('MCR');
-  const { isEnabled: isSamaEnabled } = useSamaModule();
-  const { isEnabled: isLeaseEnabled } = useLeaseModule();
-  const { isEnabled: isAccessControlEnabled } = useSocietyModule('ACCESS_CONTROL');
+  const visitorModule = useSocietyModule('VISITOR');
+  const mcrModule = useSocietyModule('MCR');
+  const samaModule = useSamaModule();
+  const leaseModule = useLeaseModule();
+  const accessControlModule = useSocietyModule('ACCESS_CONTROL');
   const terms = useTerminology();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // Which toggleable Modules are currently on for this society — drives the grey/"Not
+  // Activated" treatment below. A group with no moduleCode (Dashboard, Society Setup, ...)
+  // is always considered enabled since it isn't a toggleable module at all.
+  //
+  // Roles like SECURITY_GUARD can see a module's nav item (via that item's own
+  // permissions, e.g. visitor.request.create) without holding module.read, so their
+  // module-status query never runs (isSuccess stays false). Treat "couldn't check" as
+  // enabled rather than disabled — only a query that actually succeeded and confirmed
+  // the module is off should trigger the grey/"Not Activated" state, so a role that can't
+  // read module status isn't wrongly told an active module is off.
+  const asEnabled = (q: { isEnabled: boolean; isSuccess: boolean }) => !q.isSuccess || q.isEnabled;
+  const moduleEnabledMap: Record<string, boolean> = {
+    VISITOR: asEnabled(visitorModule),
+    MCR: asEnabled(mcrModule),
+    SAMA: asEnabled(samaModule),
+    LEASE: asEnabled(leaseModule),
+    ACCESS_CONTROL: asEnabled(accessControlModule),
+  };
 
   // Tier 1 vertical theming — same nav structure/routes for every org, only the
   // words change based on the org's vertical (Society/Tower/Flat vs Hostel/Block/Room).
@@ -41,12 +61,12 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
     toast.success('Logged out successfully');
   };
 
+  // Whether the admin can even see this nav row — purely role/permission based. Module
+  // on/off state is NOT part of visibility any more: a disabled module still shows (greyed,
+  // with a "Not Activated" badge) so it's obvious the module exists but isn't turned on yet,
+  // instead of silently vanishing from the menu.
   const itemVisible = (item: NavItem) => {
     if (item.permissions?.length && !hasAnyPermission(user, item.permissions)) return false;
-    if (item.moduleCode === 'MCR' && !isMcrEnabled) return false;
-    if (item.moduleCode === 'SAMA' && !isSamaEnabled) return false;
-    if (item.moduleCode === 'LEASE' && !isLeaseEnabled) return false;
-    if (item.moduleCode === 'ACCESS_CONTROL' && !isAccessControlEnabled) return false;
     if (item.roles.length === 0) return true;
     return item.roles.includes(user?.roleCode || '');
   };
@@ -82,6 +102,8 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
         {visibleGroups.map((group) => {
           const isCollapsed = !!collapsed[group.id];
           const showHeader = group.items.length > 1;
+          const singleItem = !showHeader ? group.items[0] : null;
+          const moduleDisabled = !!group.moduleCode && !moduleEnabledMap[group.moduleCode];
           return (
             <div key={group.id}>
               {showHeader && (
@@ -91,29 +113,57 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
                   className="w-full flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
                 >
                   <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', group.color.dot)} />
-                  <span className="flex-1 text-left">{group.label}</span>
+                  <span className="flex-1 text-left">{group.letter}. {group.label}</span>
                   {isCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
               )}
               {!isCollapsed && (
                 <div className="space-y-0.5 mt-0.5">
-                  {group.items.map((item) => (
-                    <NavLink key={item.to} to={item.to} onClick={mobile ? onClose : undefined}
+                  {showHeader ? (
+                    group.items.map((item) => (
+                      <NavLink key={item.to} to={item.to} onClick={mobile ? onClose : undefined}
+                        className={({ isActive }) => cn(
+                          'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
+                          isActive ? group.color.activeBg : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                          isActive && group.color.activeText,
+                        )}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <item.icon className={cn('w-4 h-4 flex-shrink-0', isActive ? group.color.text : 'text-slate-400 group-hover:text-slate-600')} />
+                            <span className="flex-1">{item.label}</span>
+                            {isActive && <span className={cn('w-1.5 h-1.5 rounded-full', group.color.activeDot)} />}
+                          </>
+                        )}
+                      </NavLink>
+                    ))
+                  ) : singleItem && (
+                    <NavLink
+                      key={singleItem.to}
+                      to={moduleDisabled ? '/modules' : singleItem.to}
+                      onClick={mobile ? onClose : undefined}
+                      title={moduleDisabled ? `${group.label} is not activated — go to Modules to turn it on` : undefined}
                       className={({ isActive }) => cn(
                         'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
-                        isActive ? group.color.activeBg : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
-                        isActive && group.color.activeText,
+                        moduleDisabled ? 'text-slate-400 hover:bg-slate-50' : isActive ? group.color.activeBg : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                        !moduleDisabled && isActive && group.color.activeText,
                       )}
                     >
                       {({ isActive }) => (
                         <>
-                          <item.icon className={cn('w-4 h-4 flex-shrink-0', isActive ? group.color.text : 'text-slate-400 group-hover:text-slate-600')} />
-                          <span className="flex-1">{item.label}</span>
-                          {isActive && <span className={cn('w-1.5 h-1.5 rounded-full', group.color.activeDot)} />}
+                          <singleItem.icon className={cn('w-4 h-4 flex-shrink-0', moduleDisabled ? 'text-slate-300' : isActive ? group.color.text : 'text-slate-400 group-hover:text-slate-600')} />
+                          <span className="flex-1 truncate">{group.letter}. {singleItem.label}</span>
+                          {moduleDisabled ? (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                              <PowerOff className="w-2.5 h-2.5" /> Not Activated
+                            </span>
+                          ) : (
+                            isActive && <span className={cn('w-1.5 h-1.5 rounded-full', group.color.activeDot)} />
+                          )}
                         </>
                       )}
                     </NavLink>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
