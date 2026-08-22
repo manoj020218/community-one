@@ -20,6 +20,7 @@ const BLANK: McrSettings = {
   reminderAutomationEnabled: false, reminderFrequencyDays: 1, reminderTimeOfDay: '10:00',
   vacantFlatPolicy: 'BILL_FULL', vacantFlatReducedPercent: 50,
   unsoldFlatPolicy: 'EXEMPT', unsoldFlatReducedPercent: 50,
+  vacantFlatPolicyConfirmed: false,
 };
 
 export function McrSettingsTab() {
@@ -48,7 +49,7 @@ export function McrSettingsTab() {
   useEffect(() => { if (settings) setForm(settings); }, [settings]);
 
   const saveMutation = useMutation({
-    mutationFn: () => api.patch('/mcr/settings', { ...form, societyId }),
+    mutationFn: (overrides: Partial<McrSettings>) => api.patch('/mcr/settings', { ...form, ...overrides, societyId }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['mcr-settings'] }); toast.success('MCR settings saved'); },
   });
 
@@ -112,7 +113,7 @@ export function McrSettingsTab() {
           <div><label className="label">Payee Name</label>
             <input value={form.collectionUpiPayeeName} onChange={setStr('collectionUpiPayeeName')} className="input" placeholder="Your Society Name" /></div>
         </div>
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
+        <button onClick={() => saveMutation.mutate({})} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save UPI Details'}
         </button>
       </div>
@@ -157,7 +158,7 @@ export function McrSettingsTab() {
               <input type="time" value={form.reminderTimeOfDay} onChange={setStr('reminderTimeOfDay')} className="input" /></div>
           </div>
         )}
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
+        <button onClick={() => saveMutation.mutate({})} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-4">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save Reminder Schedule'}
         </button>
       </div>
@@ -172,7 +173,7 @@ export function McrSettingsTab() {
             </label>
           ))}
         </div>
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
+        <button onClick={() => saveMutation.mutate({})} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save MCR Settings'}
         </button>
       </div>
@@ -219,7 +220,7 @@ export function McrSettingsTab() {
             </div>
           </div>
         </div>
-        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
+        <button onClick={() => saveMutation.mutate({ vacantFlatPolicyConfirmed: true })} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save Billing Policy'}
         </button>
       </div>

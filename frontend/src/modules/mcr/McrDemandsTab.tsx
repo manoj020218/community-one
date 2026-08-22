@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Tower } from '../../types';
 import { cn, formatDate } from '../../utils/cn';
-import { BillingPlan, DEMAND_STATUS_BADGE, formatPaise, MaintenanceDemand, MCR_DEMAND_STATUSES } from './mcr.types';
+import { BillingPlan, DEMAND_STATUS_BADGE, formatPaise, MaintenanceDemand, McrSettings, MCR_DEMAND_STATUSES } from './mcr.types';
 
 const currentMonthKey = () => new Date().toISOString().slice(0, 7);
 
@@ -26,6 +26,13 @@ export function McrDemandsTab() {
   const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '', towerId: '' });
   const [cancelTarget, setCancelTarget] = useState<MaintenanceDemand | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [showPolicyConfirm, setShowPolicyConfirm] = useState(false);
+  const [policyForm, setPolicyForm] = useState({
+    vacantFlatPolicy: 'BILL_FULL' as 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT',
+    vacantFlatReducedPercent: 50,
+    unsoldFlatPolicy: 'EXEMPT' as 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT',
+    unsoldFlatReducedPercent: 50,
+  });
 
   const { data: towers } = useQuery({
     queryKey: ['towers', societyId],
@@ -44,6 +51,40 @@ export function McrDemandsTab() {
     queryFn: () => extractData<BillingPlan[]>(api.get('/mcr/billing-plans', { params: { societyId } })),
     enabled: !!societyId && showModal,
   });
+
+  // Gates the very first draft generation on an explicit vacant/unsold billing policy choice
+  // — otherwise a society silently runs on the default (Bill Full for Vacant, Exempt for
+  // Builder-Unsold) that nobody actually reviewed.
+  const { data: settings } = useQuery({
+    queryKey: ['mcr-settings', societyId],
+    queryFn: () => extractData<McrSettings>(api.get('/mcr/settings', { params: { societyId } })),
+    enabled: !!societyId,
+  });
+
+  const confirmPolicyMutation = useMutation({
+    mutationFn: () => api.patch('/mcr/settings', { ...policyForm, vacantFlatPolicyConfirmed: true, societyId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mcr-settings'] });
+      setShowPolicyConfirm(false);
+      setForm((f) => ({ ...f, towerId: towerFilter }));
+      setShowModal(true);
+    },
+  });
+
+  const openGenerateFlow = () => {
+    if (settings && !settings.vacantFlatPolicyConfirmed) {
+      setPolicyForm({
+        vacantFlatPolicy: settings.vacantFlatPolicy,
+        vacantFlatReducedPercent: settings.vacantFlatReducedPercent,
+        unsoldFlatPolicy: settings.unsoldFlatPolicy,
+        unsoldFlatReducedPercent: settings.unsoldFlatReducedPercent,
+      });
+      setShowPolicyConfirm(true);
+      return;
+    }
+    setForm((f) => ({ ...f, towerId: towerFilter }));
+    setShowModal(true);
+  };
 
   // Generating/publishing/cancelling demands (or running late-fee/automation, which do the
   // same under the hood) changes totalDemandPaise/outstandingPaise — without this the MCR
@@ -115,7 +156,7 @@ export function McrDemandsTab() {
           <button onClick={() => remindersRunMutation.mutate()} disabled={remindersRunMutation.isPending} className="btn-secondary flex items-center gap-2 text-sm">
             <BellRing className="w-4 h-4" /> Send Reminders
           </button>
-          <button onClick={() => { setForm((f) => ({ ...f, towerId: towerFilter })); setShowModal(true); }} className="btn-primary flex items-center gap-2 text-sm">
+          <button onClick={openGenerateFlow} className="btn-primary flex items-center gap-2 text-sm">
             <Plus className="w-4 h-4" /> Generate Drafts
           </button>
         </div>
@@ -123,7 +164,7 @@ export function McrDemandsTab() {
 
       {isLoading ? <TableSkeleton rows={5} cols={6} /> : !data?.length ? (
         <EmptyState icon={FileText} title="No demands found" description="Generate draft demands from a billing plan to get started."
-          action={<button onClick={() => setShowModal(true)} className="btn-primary">Generate Drafts</button>} />
+          action={<button onClick={openGenerateFlow} className="btn-primary">Generate Drafts</button>} />
       ) : (
         <div className="card overflow-hidden overflow-x-auto">
           <table className="w-full">
@@ -181,6 +222,53 @@ export function McrDemandsTab() {
           </table>
         </div>
       )}
+
+      <Modal isOpen={showPolicyConfirm} onClose={() => setShowPolicyConfirm(false)} title="Confirm Vacant & Unsold Flat Billing">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">
+            Before this society's first demand generation, confirm how Vacant and Builder-Unsold flats should be billed —
+            these defaults apply going forward until changed later in MCR Settings.
+          </p>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Vacant flats <span className="text-xs font-normal text-slate-400">— owned, nobody currently living there</span></p>
+            <div className="flex items-center gap-3">
+              <select value={policyForm.vacantFlatPolicy} onChange={(e) => setPolicyForm((f) => ({ ...f, vacantFlatPolicy: e.target.value as typeof f.vacantFlatPolicy }))} className="input w-auto">
+                <option value="BILL_FULL">Bill in full</option>
+                <option value="BILL_REDUCED">Bill at a reduced rate</option>
+                <option value="EXEMPT">Exempt (still accrues)</option>
+              </select>
+              {policyForm.vacantFlatPolicy === 'BILL_REDUCED' && (
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} max={100} value={policyForm.vacantFlatReducedPercent} onChange={(e) => setPolicyForm((f) => ({ ...f, vacantFlatReducedPercent: +e.target.value }))} className="input w-20" />
+                  <span className="text-sm text-slate-500">%</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Builder-unsold flats <span className="text-xs font-normal text-slate-400">— not yet handed over to a buyer</span></p>
+            <div className="flex items-center gap-3">
+              <select value={policyForm.unsoldFlatPolicy} onChange={(e) => setPolicyForm((f) => ({ ...f, unsoldFlatPolicy: e.target.value as typeof f.unsoldFlatPolicy }))} className="input w-auto">
+                <option value="BILL_FULL">Bill in full</option>
+                <option value="BILL_REDUCED">Bill at a reduced rate</option>
+                <option value="EXEMPT">Exempt (still accrues)</option>
+              </select>
+              {policyForm.unsoldFlatPolicy === 'BILL_REDUCED' && (
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} max={100} value={policyForm.unsoldFlatReducedPercent} onChange={(e) => setPolicyForm((f) => ({ ...f, unsoldFlatReducedPercent: +e.target.value }))} className="input w-20" />
+                  <span className="text-sm text-slate-500">%</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => confirmPolicyMutation.mutate()} disabled={confirmPolicyMutation.isPending} className="btn-primary flex-1">
+              {confirmPolicyMutation.isPending ? 'Saving...' : 'Confirm & Continue'}
+            </button>
+            <button onClick={() => setShowPolicyConfirm(false)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Generate Draft Demands">
         <div className="space-y-4">

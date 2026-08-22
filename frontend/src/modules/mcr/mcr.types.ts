@@ -44,6 +44,7 @@ export interface McrSettings {
   vacantFlatReducedPercent: number;
   unsoldFlatPolicy: 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
   unsoldFlatReducedPercent: number;
+  vacantFlatPolicyConfirmed: boolean;
 }
 
 export interface McrUpiQr {

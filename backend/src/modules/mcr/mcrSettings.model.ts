@@ -28,6 +28,10 @@ export interface IMcrSettingsDocument extends Document {
   vacantFlatReducedPercent: number;
   unsoldFlatPolicy: 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
   unsoldFlatReducedPercent: number;
+  // False until an admin has explicitly reviewed/confirmed the two policies above at least
+  // once for this society — the Demands tab uses this to force that review before the very
+  // first draft generation, instead of a society silently running on defaults nobody chose.
+  vacantFlatPolicyConfirmed: boolean;
   updatedBy: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -69,6 +73,7 @@ const McrSettingsSchema = new Schema(
     vacantFlatReducedPercent: { type: Number, default: 50, min: 0, max: 100 },
     unsoldFlatPolicy: { type: String, enum: ['BILL_FULL', 'BILL_REDUCED', 'EXEMPT'], default: 'EXEMPT' },
     unsoldFlatReducedPercent: { type: Number, default: 50, min: 0, max: 100 },
+    vacantFlatPolicyConfirmed: { type: Boolean, default: false },
     updatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

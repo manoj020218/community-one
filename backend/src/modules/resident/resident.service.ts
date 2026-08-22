@@ -4,6 +4,21 @@ import { Flat } from '../flat/flat.model';
 import { NotFoundError } from '../../common/errors/AppError';
 import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
+import { demandPublishService } from '../mcr/demandPublish.service';
+import { moduleRegistryService } from '../moduleRegistry/moduleRegistry.service';
+import { MODULE_CODES } from '../../config/constants';
+
+// A newly-occupied flat may have demands sitting held (billingHold) from while it was
+// Vacant/Builder-Unsold — release them now that someone actually lives there. Best-effort: MCR
+// may not even be enabled for this society, and this should never block adding a resident.
+async function releaseHeldDemandsIfOccupied(societyId: string, flatId: string, actorUserId: string): Promise<void> {
+  try {
+    if (!(await moduleRegistryService.isModuleEnabled(societyId, MODULE_CODES.MCR))) return;
+    await demandPublishService.releaseHeldDemandsForFlat(societyId, flatId, actorUserId);
+  } catch {
+    // best-effort — never block resident creation/reassignment on this
+  }
+}
 
 export type ResidentSortField = 'flatNo' | 'name' | 'memberType' | 'kycStatus';
 
@@ -33,13 +48,20 @@ export class ResidentService {
     const resident = await Resident.create({ ...dto, createdBy });
 
     // Keep Flat.occupancyStatus accurate automatically — a manually-maintained field is easy
-    // to forget, and a stale "Vacant" flat both hides that someone lives there (Flats page)
-    // and, since demand generation now skips Vacant flats, would silently stop billing an
-    // occupied unit. Only flip from VACANT — LOCKED/UNDER_RENOVATION are explicit admin calls
-    // that adding a resident shouldn't override, and a flat already OWNER_/TENANT_OCCUPIED
-    // shouldn't flip type just because a second resident (e.g. a family member) joined.
+    // to forget, and a stale "Vacant"/"Builder Unsold" flat both hides that someone lives
+    // there (Flats page) and could leave it under-billed depending on the society's vacant/
+    // unsold billing policy. Only flip from those two — LOCKED/UNDER_RENOVATION are explicit
+    // admin calls that adding a resident shouldn't override, and a flat already OWNER_/
+    // TENANT_OCCUPIED shouldn't flip type just because a second resident (e.g. a family
+    // member) joined.
     const occupiedStatus = dto.memberType === 'OWNER' ? 'OWNER_OCCUPIED' : 'TENANT_OCCUPIED';
-    await Flat.updateOne({ _id: dto.flatId, occupancyStatus: 'VACANT' }, { occupancyStatus: occupiedStatus });
+    const previousFlat = await Flat.findOneAndUpdate(
+      { _id: dto.flatId, occupancyStatus: { $in: ['VACANT', 'BUILDER_UNSOLD'] } },
+      { occupancyStatus: occupiedStatus }
+    );
+    if (previousFlat) {
+      await releaseHeldDemandsIfOccupied(dto.societyId, dto.flatId, createdBy);
+    }
 
     return resident;
   }
@@ -132,7 +154,7 @@ export class ResidentService {
     return resident;
   }
 
-  async update(id: string, dto: Partial<CreateResidentDto>): Promise<IResidentDocument> {
+  async update(id: string, dto: Partial<CreateResidentDto>, actorUserId?: string): Promise<IResidentDocument> {
     const before = await Resident.findById(id);
     if (!before) throw new NotFoundError('Resident');
 
@@ -145,7 +167,13 @@ export class ResidentService {
     const newFlatId = dto.flatId ? dto.flatId.toString() : oldFlatId;
     if (dto.flatId && newFlatId !== oldFlatId) {
       const occupiedStatus = resident.memberType === 'OWNER' ? 'OWNER_OCCUPIED' : 'TENANT_OCCUPIED';
-      await Flat.updateOne({ _id: newFlatId, occupancyStatus: 'VACANT' }, { occupancyStatus: occupiedStatus });
+      const previousFlat = await Flat.findOneAndUpdate(
+        { _id: newFlatId, occupancyStatus: { $in: ['VACANT', 'BUILDER_UNSOLD'] } },
+        { occupancyStatus: occupiedStatus }
+      );
+      if (previousFlat && actorUserId) {
+        await releaseHeldDemandsIfOccupied(resident.societyId.toString(), newFlatId, actorUserId);
+      }
 
       const remaining = await Resident.countDocuments({ flatId: oldFlatId, isActive: true });
       if (remaining === 0) {

@@ -25,6 +25,23 @@ export class DemandPublishService {
     return this.publishExisting(context, demand, asOf);
   }
 
+  // Called when a Vacant/Builder-Unsold flat gets a resident — any demand generated for it
+  // while empty (held back under an EXEMPT billing policy, never auto-published) becomes a real
+  // bill now that someone actually lives there, instead of sitting invisible until an admin
+  // remembers to check for it.
+  async releaseHeldDemandsForFlat(societyId: string, flatId: string, actorUserId: string): Promise<number> {
+    const demands = await MaintenanceDemand.find({ societyId, flatId, status: 'DRAFT', billingHold: true });
+    if (!demands.length) return 0;
+    const context: McrActorContext = {
+      societyId,
+      user: { userId: actorUserId, email: 'system@jenix.local', mobile: '0000000000', roleCode: 'SYSTEM', permissions: [], societyId },
+    };
+    for (const demand of demands) {
+      await this.publishExisting(context, demand);
+    }
+    return demands.length;
+  }
+
   async publishExisting(context: McrActorContext, demand: IMaintenanceDemandDocument, asOf: Date = new Date()): Promise<IMaintenanceDemandDocument> {
     const advanceAllocations = await mcrAdvanceService.allocateToDemand({
       societyId: context.societyId,

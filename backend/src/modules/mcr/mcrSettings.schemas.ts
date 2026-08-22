@@ -26,6 +26,7 @@ export const mcrSettingsSchema = z.object({
   vacantFlatReducedPercent: z.coerce.number().int().min(0).max(100).default(50),
   unsoldFlatPolicy: z.enum(['BILL_FULL', 'BILL_REDUCED', 'EXEMPT']).default('EXEMPT'),
   unsoldFlatReducedPercent: z.coerce.number().int().min(0).max(100).default(50),
+  vacantFlatPolicyConfirmed: z.boolean().default(false),
 });
 
 export const mcrSettingsUpdateSchema = mcrSettingsSchema.partial();

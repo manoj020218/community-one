@@ -45,7 +45,7 @@ export class ResidentController {
 
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const resident = await residentService.update(req.params.id, req.body);
+      const resident = await residentService.update(req.params.id, req.body, req.user!.userId);
       sendSuccess(res, resident, 'Resident updated');
     } catch (error) { next(error); }
   }
