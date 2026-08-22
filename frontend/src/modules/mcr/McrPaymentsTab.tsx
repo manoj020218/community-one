@@ -67,7 +67,18 @@ export function McrPaymentsTab() {
     enabled: !!societyId,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mcr-payments'] });
+  // Recording/verifying/rejecting a payment changes the demand it's allocated against (status,
+  // outstandingPaise) and the summary/statement figures derived from demands — without these,
+  // the MCR Dashboard's Outstanding/Overdue cards kept showing pre-payment totals until the
+  // 5-minute query staleTime expired or the page was reloaded.
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['mcr-payments'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-statement'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-demands'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-collections'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-receipts'] });
+  };
 
   const recordMutation = useMutation({
     mutationFn: () => api.post('/mcr/payments', {

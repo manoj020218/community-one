@@ -45,7 +45,14 @@ export function McrDemandsTab() {
     enabled: !!societyId && showModal,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mcr-demands'] });
+  // Generating/publishing/cancelling demands (or running late-fee/automation, which do the
+  // same under the hood) changes totalDemandPaise/outstandingPaise — without this the MCR
+  // Dashboard's summary cards kept showing pre-change totals until their 5-minute staleTime.
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['mcr-demands'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['mcr-statement'] });
+  };
 
   const draftMutation = useMutation({
     mutationFn: () => api.post('/mcr/demands/drafts', { societyId, ...form, towerId: form.towerId || undefined }),

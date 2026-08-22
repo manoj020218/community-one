@@ -31,6 +31,10 @@ export function errorHandler(
     statusCode = 409;
     code = 'DUPLICATE_KEY';
     message = 'Duplicate entry already exists';
+    // The generic message above doesn't say which index/value collided, which makes a real
+    // duplicate (a genuine re-submit) indistinguishable from a symptom of some other bug
+    // (e.g. a numbering sequence out of sync) — log the specifics so it's diagnosable.
+    logger.warn('Duplicate key error:', { url: req.url, keyPattern: (err as any).keyPattern, keyValue: (err as any).keyValue });
   }
 
   if (statusCode === 500) {
