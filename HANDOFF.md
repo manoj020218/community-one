@@ -8,6 +8,61 @@
 
 ---
 
+## Recent Activity Log
+
+*(Newest entry first — append new entries here rather than editing old ones.)*
+
+### 2026-08-22 — MCR billing-accuracy fixes, configurable vacant/unsold flat policy, block-wise dashboards
+
+**MCR bug fixes (all found via live production reports, all deployed same-day):**
+- **Dashboard summary went stale after any payment/demand action** — `McrPaymentsTab`/`McrDemandsTab` only invalidated their own list's query cache, never `mcr-summary`/`mcr-statement`, so Outstanding/Overdue kept showing pre-change totals until the 5-minute query `staleTime` expired.
+- **Payments couldn't be recorded after the first one per society** — the `idempotencyKey` unique index used `sparse: true`, but sparse only excludes a document from a *compound* index when **all** of its fields are missing. Since `societyId` is always present, every payment missing `idempotencyKey` (i.e. every manually-recorded one) got indexed as `{societyId, idempotencyKey: null}` — so only the *first* such payment per society could ever insert; every later one failed as a false "duplicate submission" 409. Fixed with a `partialFilterExpression: {idempotencyKey: {$exists: true}}` index instead of `sparse`. Root-caused via a live mongo-shell reproduction, not just log-reading — the generic duplicate-key error message gave no field detail, so `errorHandler.ts` and `mcrPayment.service.ts` now log `keyPattern`/`keyValue` on any `code === 11000`.
+- **Payments couldn't be applied against OVERDUE demands** — allocation logic only accepted `PUBLISHED`/`PARTIALLY_PAID` demands as payable. OVERDUE is not a resolved state (it's just published-and-past-due, and `applyAllocations` itself routinely leaves a demand in that status after a partial payment) — excluding it meant once *any* bill went overdue, no payment against that flat could ever reduce Outstanding again; the money silently became stranded "advance" instead. Fixed in `mcrPaymentVerification.service.ts` (`PAYABLE_DEMAND_STATUSES` now includes `OVERDUE`). Two already-stranded payments for one live society were manually reconciled (proper `McrPaymentAllocation` records + demand `paidPaise`/`outstandingPaise` update, matching what the fixed code does) after a read-only audit confirmed no other society was affected.
+- **Receipts tab showed the raw flat ObjectId** instead of flat number — `mcrReceiptQuery.service.ts` never populated `flatId`.
+- **Society List report leaked every society to non-super admins** — `runReport('SOCIETY_LIST', ...)` ignored the `societyId` scope entirely and always returned every active society platform-wide. Report catalog now hides platform-wide reports from non-super roles; the report itself also scopes to the caller's own society as defense in depth.
+
+**New: configurable Vacant/Builder-Unsold flat billing policy** (MCR → Settings):
+- New `BUILDER_UNSOLD` occupancy status, distinct from `VACANT` (builder inventory not yet handed over vs. an owner's flat nobody currently lives in — most society bylaws still hold the owner liable for the latter).
+- Per-society policy setting, independently for Vacant and Builder-Unsold: **Bill Full / Bill at Reduced % / Exempt**. Exempt never skips generation outright — a demand is still created every cycle (`billingHold: true` on `MaintenanceDemand`) so there's a clean accrual trail, just withheld from auto-publish until an admin manually publishes it or the flat's occupancy changes.
+- When a resident is added to a previously Vacant/Builder-Unsold flat, any held demand for it is now auto-published (`demandPublishService.releaseHeldDemandsForFlat`, wired into `resident.service.ts` create/update).
+- A society's very first "Generate Drafts" click is gated on an explicit one-time policy confirmation modal (`vacantFlatPolicyConfirmed` on `McrSettings`) instead of silently running on unreviewed defaults.
+- A policy change only affects demands generated *after* the change — existing demands (published or held) keep their original amount forever, matching how billing-plan edits already work elsewhere in this system.
+
+**Tower/block-wise MCR planning:** extracted the segmented tower/block tab bar (3 tabs + overflow menu, first built for Residents) into a shared `frontend/src/components/common/TowerTabBar.tsx`, applied to MCR Demands/Payments/Receipts (filter by block, Block column, search/sort) and a new block-wise billing breakdown on the MCR Dashboard (`GET /mcr/reports/summary-by-tower`).
+
+**Other fixes:** `Tower.numberOfFloors`/`totalFlats` were write-once-at-creation denormalized counters nothing ever resynced — deleting a floor or generating flats left stale badges (e.g. "10F" after deleting down to 8, "0 flats generated" with 128 real flats). Now resynced on every floor/flat create or delete; existing data backfilled society-wide. WhatsApp linked number + a recharge-reminder note now shown on both `/settings` and `/dashboard`, not just Settings.
+
+**Deploy note:** the VPS is memory-constrained enough that `tsc` builds now routinely OOM-kill (swap sits near-full from other tenants on the shared box) — several deploys this day needed a temporary 1GB swapfile (`fallocate -l 1G /swapfile2 && mkswap /swapfile2 && swapon /swapfile2`, removed with `swapoff`/`rm` after the build) to get a clean `pnpm run build`. See Section 11.
+
+### 2026-08-21 — Cross-tenant security sweep, structure CRUD, multi-tower flat-numbering fix
+
+**Security (found via a real cross-tenant leak report — one society admin could see another society's data):**
+- `requireSocietyAccess` middleware existed but was applied on almost no routes — systematically added across all 31 route files (residents, flats, floors, towers, vehicles, pets, users, audit, files, module registry, payments, receipts, reports, devices, gates, guard assignments).
+- New `requireResourceSocietyAccess(model, paramName)` middleware for single-resource `:id` routes, which have no `societyId` in the URL/body to check against — looks up just that document's `societyId` and blocks a mismatched caller, added to every `GET/PATCH/DELETE /:id` route across the same modules.
+- Root cause of the original leak: `Zustand`'s `authStore` didn't clear `societyStore` on login/logout, so a stale `currentSociety` from a previous session leaked into the new one's requests. Fixed both client-side (`clearSociety()` wired into `setAuth`/`logout`) and server-side (the middleware sweep above), since either alone left a gap.
+
+**Multi-tower flat-numbering collision (data-modeling bug):** the unique index on `Flat` was `{societyId, flatNo}` — but flat numbers like "G01"/"101" are generated from floor prefix alone, so two towers with identical floor structures legitimately produce identical flat numbers. The second tower's flats silently failed to generate (the generator's own "already exists" check matched the *first* tower's flats). Fixed by rescoping the unique index to `{towerId, flatNo}` and the generator's existence check to match — required a live index migration on the VPS, plus disambiguating 7 frontend flat-picker dropdowns (`"Tower A - 101"`) since flat number is no longer globally unique per society.
+
+**Structure & resident management:** Edit/Delete for Residents/Towers/Floors/Flats with cascade guards (can't delete a tower with active floors, a floor with active flats, a flat with residents/vehicles/pets/active leases/unpaid demands). Soft-deleted tower/floor/flat codes are now immediately reusable (`partialFilterExpression: {isActive: true}` on the relevant unique indexes) instead of permanently reserved. Ground/basement-aware floor-number generation (Ground Floor = 0, basements negative, never silently swallowed by a plain "N floors" answer). Auto-maintained flat `occupancyStatus` — adding/removing a resident now flips Vacant ⇄ Owner/Tenant-Occupied automatically instead of relying on a manually-maintained field (which was both hiding true occupancy on the Flats page and, once demand generation started skipping Vacant flats, silently under-billing occupied units with stale data).
+
+**Residents page:** sortable columns (default: real building order — tower, then floor, then flat — not alphabetical, which had been pushing Ground Floor off page 1), search by flat number and member type, and a Tower→Floor→Flat cascading picker in Add/Edit Resident (a flat flat-number dropdown was unusable once a society had 100+ units).
+
+**MCR billing-accuracy chain** (surfaced by a real "why doesn't my Total Billed match" report): stale/cancelled demands kept inflating Total Billed forever (report aggregation only excluded `DRAFT`, not `CANCELLED`); an unpaid demand for a since-deleted flat had no way to be resolved (flat `delete()` now blocks if unpaid demands exist; added a `cancel` action for demands generated against flats deleted before this guard existed); the pagination cap (`Math.min(100, ...)`) was silently truncating dropdowns and demand lists for large societies (raised to 500); billing-plan charge lines now auto-fill their amount from the linked charge head instead of requiring manual re-entry; record-payment now auto-fills payer name/mobile from the flat's primary resident.
+
+---
+
+### 2026-08-10 — SEO foundation (sitemap, meta tags, structured data) + full deploy
+
+- Added `frontend/public/sitemap.xml` and `frontend/public/robots.txt` — sitemap lists the 5 public marketing routes only (`/`, `/about`, `/onboard`, `/privacy`, `/terms`); robots.txt explicitly disallows all authenticated app routes.
+- Added a runtime `Seo` component (`frontend/src/components/seo/Seo.tsx`, zero dependencies). Since this is a client-rendered Vite SPA sharing one static `index.html`, per-route `<title>`, meta description/keywords, canonical URL, Open Graph, Twitter Card, and JSON-LD are now set on mount per page instead of being identical across every route.
+- Wired `Seo` into all 5 public marketing pages with page-specific copy and keyword sets — see `frontend/src/components/seo/seoContent.ts` (keywords grouped by resident/committee audience, gate-hardware sellers/installers, and category-level — non-trademark — competitive terms). Landing and About page copy also picked up small natural mentions of boom barriers / gate hardware installers.
+- Added `Organization` + `SoftwareApplication` JSON-LD structured data on the homepage.
+- Fixed `frontend/index.html`'s static fallback `<title>` (was "Jenix Society One" — didn't match actual product branding) and added default OG/Twitter/`geo.region` meta as the pre-hydration fallback.
+- Deployed to VPS: pulled latest `master` (this SEO work, 2 commits, plus 5 previously-unpushed-to-VPS commits — voice-first Guard Kiosk, per-society automated MCR reminder scheduling, WhatsApp payment reminders, manual UPI payment submission, tenant-isolation/nav fixes), rebuilt backend + frontend (`pnpm install --ignore-workspace && pnpm build` in both), restarted `community-api` via PM2, copied `frontend/dist/*` to `/var/www/community/`. Verified: backend health check green, MongoDB connected, `mcrReminderWorker` running with `sentCount: 0` (automation is opt-in per society, default off — no surprise WhatsApp sends from the deploy).
+- Submitted `sitemap.xml` in Google Search Console — status: **Success**. Requested manual indexing (URL Inspection → Request Indexing) for all 5 public URLs.
+
+---
+
 ## 1. What This Product Does
 
 A SaaS platform that lets housing societies (apartments, gated communities) manage residents, flats, vehicles, pets, payments, visitors, staff, and IoT devices — all under one login.
@@ -25,7 +80,7 @@ Societies self-register at `/onboard`, get 6 months free trial, then enter a bil
 | Frontend | React 18, TypeScript, Vite, TailwindCSS, TanStack Query v5, React Router v6, Zustand |
 | Backend | Node.js, Express, TypeScript, Mongoose 8 |
 | Database | MongoDB 4.4 (local on VPS, auth enabled) |
-| Process Manager | PM2 (process: `community-api`, id: 39) |
+| Process Manager | PM2 (process: `community-api`, id: 18 — PM2 ids on this shared box can shift on process restarts; re-check with `pm2 list` if a command targeting the numeric id fails) |
 | Web Server | Nginx (reverse proxy + static frontend) |
 | Package Manager | **pnpm** — always use pnpm, never npm or yarn |
 
@@ -374,7 +429,7 @@ pm2 logs community-api --lines 20 --nostream
 | Project code | `/root/projects/community/` |
 | Frontend static files | `/var/www/community/` |
 | Backend dist | `/root/projects/community/backend/dist/` |
-| PM2 process name | `community-api` (id: 39) |
+| PM2 process name | `community-api` (id: 18 — PM2 ids on this shared box can shift on process restarts; re-check with `pm2 list` if a command targeting the numeric id fails) |
 | PM2 error log | `/root/.pm2/logs/community-api-error.log` |
 | PM2 out log | `/root/.pm2/logs/community-api-out.log` |
 | Backend `.env` | `/root/projects/community/backend/.env` |
@@ -385,6 +440,18 @@ pm2 logs community-api --lines 20 --nostream
 ```bash
 pm2 restart community-api --update-env
 ```
+
+### Builds OOM-killing? (as of 2026-08-22)
+
+The VPS is a shared box running ~18 other PM2 processes for unrelated projects — total RAM is 1.9GB and swap frequently sits near-full from that other traffic, not from this project. `NODE_OPTIONS='--max-old-space-size=768' pnpm run build` (backend or frontend `tsc`) can OOM-kill (exit 137) or hit a JS heap limit (exit 134) under that pressure, sometimes needing 2-3 retries to land in a moment of headroom. If it keeps failing, add temporary swap for the build and remove it after:
+
+```bash
+fallocate -l 1G /swapfile2 && chmod 600 /swapfile2 && mkswap /swapfile2 && swapon /swapfile2
+# ... run the build ...
+swapoff /swapfile2 && rm -f /swapfile2
+```
+
+Don't leave `/swapfile2` mounted permanently — it's a build-time crutch, not a fix for the underlying box being memory-tight. Check `free -h` before a build if you've seen recent OOM kills.
 
 ---
 
