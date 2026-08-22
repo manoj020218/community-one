@@ -1,5 +1,6 @@
 import { Floor, IFloorDocument, FloorType } from './floor.model';
 import { Flat } from '../flat/flat.model';
+import { Tower } from '../tower/tower.model';
 import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 
 export interface CreateFloorDto {
@@ -27,9 +28,19 @@ export interface GenerateFloorsDto {
 }
 
 export class FloorService {
+  // Tower.numberOfFloors is a denormalized display count (shown on the tower selector tabs and
+  // stat cards) — nothing kept it in sync after tower creation, so it silently drifted stale
+  // the moment a floor was added or deleted individually.
+  private async syncTowerFloorCount(towerId: string): Promise<void> {
+    const numberOfFloors = await Floor.countDocuments({ towerId, isActive: true });
+    await Tower.findByIdAndUpdate(towerId, { numberOfFloors });
+  }
+
   async create(dto: CreateFloorDto, createdBy: string): Promise<IFloorDocument> {
     const floorName = dto.floorName || `Floor ${dto.floorNumber}`;
-    return Floor.create({ ...dto, floorName, createdBy });
+    const floor = await Floor.create({ ...dto, floorName, createdBy });
+    await this.syncTowerFloorCount(dto.towerId);
+    return floor;
   }
 
   async generateFloors(dto: GenerateFloorsDto, createdBy: string): Promise<IFloorDocument[]> {
@@ -80,7 +91,9 @@ export class FloorService {
     const existingNumbers = new Set(existing.map((f) => f.floorNumber));
     const toCreate = floors.filter((f) => !existingNumbers.has(f.floorNumber!));
     if (toCreate.length === 0) return [];
-    return Floor.insertMany(toCreate) as any;
+    const created = await Floor.insertMany(toCreate) as any;
+    await this.syncTowerFloorCount(dto.towerId);
+    return created;
   }
 
   async findByTower(towerId: string): Promise<IFloorDocument[]> {
@@ -113,6 +126,7 @@ export class FloorService {
     }
 
     await Floor.findByIdAndUpdate(id, { isActive: false });
+    await this.syncTowerFloorCount(floor.towerId.toString());
   }
 }
 

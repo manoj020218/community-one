@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { Flat, IFlatDocument } from './flat.model';
 import { Floor } from '../floor/floor.model';
+import { Tower } from '../tower/tower.model';
 import { Resident } from '../resident/resident.model';
 import { Vehicle } from '../vehicle/vehicle.model';
 import { Pet } from '../pet/pet.model';
@@ -33,8 +34,18 @@ export interface GenerateFlatsDto {
 }
 
 export class FlatService {
+  // Tower.totalFlats is a denormalized display count (shown as "N flats generated" on the
+  // Floors page) — nothing ever wrote to it after tower creation, so it stayed 0 forever
+  // regardless of how many flats actually existed.
+  private async syncTowerFlatCount(towerId: string): Promise<void> {
+    const totalFlats = await Flat.countDocuments({ towerId, isActive: true });
+    await Tower.findByIdAndUpdate(towerId, { totalFlats });
+  }
+
   async create(dto: CreateFlatDto, createdBy: string): Promise<IFlatDocument> {
-    return Flat.create({ ...dto, createdBy });
+    const flat = await Flat.create({ ...dto, createdBy });
+    await this.syncTowerFlatCount(dto.towerId);
+    return flat;
   }
 
   async generateFlats(dto: GenerateFlatsDto, createdBy: string): Promise<IFlatDocument[]> {
@@ -65,7 +76,9 @@ export class FlatService {
         });
       }
     }
-    return Flat.insertMany(flats) as any;
+    const created = await Flat.insertMany(flats) as any;
+    await this.syncTowerFlatCount(dto.towerId);
+    return created;
   }
 
   async findBySociety(societyId: string, page: number, limit: number, towerId?: string): Promise<PaginatedResult<IFlatDocument>> {
@@ -143,6 +156,7 @@ export class FlatService {
     }
 
     await Flat.findByIdAndUpdate(id, { isActive: false });
+    await this.syncTowerFlatCount(flat.towerId.toString());
   }
 
   async getStats(societyId: string): Promise<Record<string, number>> {
