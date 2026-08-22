@@ -18,6 +18,8 @@ const BLANK: McrSettings = {
   allowPartialPayment: true, allowResidentPaymentSubmission: false, publicReceiptVerificationEnabled: false,
   collectionUpiId: '', collectionUpiPayeeName: '',
   reminderAutomationEnabled: false, reminderFrequencyDays: 1, reminderTimeOfDay: '10:00',
+  vacantFlatPolicy: 'BILL_FULL', vacantFlatReducedPercent: 50,
+  unsoldFlatPolicy: 'EXEMPT', unsoldFlatReducedPercent: 50,
 };
 
 export function McrSettingsTab() {
@@ -53,6 +55,7 @@ export function McrSettingsTab() {
   const setNum = (k: keyof McrSettings) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: Number(e.target.value) }));
   const setBool = (k: keyof McrSettings) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.checked }));
   const setStr = (k: keyof McrSettings) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setPolicy = (k: keyof McrSettings) => (e: React.ChangeEvent<HTMLSelectElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const toggles: Array<{ key: keyof McrSettings; label: string; desc: string }> = [
     { key: 'makerCheckerEnabled', label: 'Maker-checker verification', desc: 'Require a separate person to verify recorded payments' },
@@ -171,6 +174,53 @@ export function McrSettingsTab() {
         </div>
         <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
           <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save MCR Settings'}
+        </button>
+      </div>
+
+      <div className="card p-6">
+        <div className="flex items-center gap-2 mb-2"><Settings2 className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700">Vacant & Unsold Flat Billing</h3></div>
+        <p className="text-xs text-slate-500 mb-5">
+          Most society bylaws still hold an owner liable for maintenance on a flat they own but don't live in — it funds common-area
+          upkeep, not personal usage. Builder-unsold inventory is usually the one exception. Choosing "Exempt" doesn't skip billing
+          silently — a demand is still generated every cycle so there's a clean paper trail, it's just held back from auto-publish
+          until you (or the flat's occupancy status) says otherwise.
+        </p>
+        <div className="space-y-5">
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Vacant flats <span className="text-xs font-normal text-slate-400">— owned, but nobody currently living there</span></p>
+            <div className="flex items-center gap-3">
+              <select value={form.vacantFlatPolicy} onChange={setPolicy('vacantFlatPolicy')} className="input w-auto">
+                <option value="BILL_FULL">Bill in full</option>
+                <option value="BILL_REDUCED">Bill at a reduced rate</option>
+                <option value="EXEMPT">Exempt (still accrues)</option>
+              </select>
+              {form.vacantFlatPolicy === 'BILL_REDUCED' && (
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} max={100} value={form.vacantFlatReducedPercent} onChange={setNum('vacantFlatReducedPercent')} className="input w-20" />
+                  <span className="text-sm text-slate-500">% of normal amount</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2">Builder-unsold flats <span className="text-xs font-normal text-slate-400">— not yet handed over to a buyer</span></p>
+            <div className="flex items-center gap-3">
+              <select value={form.unsoldFlatPolicy} onChange={setPolicy('unsoldFlatPolicy')} className="input w-auto">
+                <option value="BILL_FULL">Bill in full</option>
+                <option value="BILL_REDUCED">Bill at a reduced rate</option>
+                <option value="EXEMPT">Exempt (still accrues)</option>
+              </select>
+              {form.unsoldFlatPolicy === 'BILL_REDUCED' && (
+                <div className="flex items-center gap-2">
+                  <input type="number" min={0} max={100} value={form.unsoldFlatReducedPercent} onChange={setNum('unsoldFlatReducedPercent')} className="input w-20" />
+                  <span className="text-sm text-slate-500">% of normal amount</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary flex items-center gap-2 text-sm mt-5">
+          <Save className="w-4 h-4" />{saveMutation.isPending ? 'Saving...' : 'Save Billing Policy'}
         </button>
       </div>
     </div>

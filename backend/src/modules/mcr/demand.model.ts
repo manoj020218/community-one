@@ -21,6 +21,11 @@ export interface IMaintenanceDemandDocument extends Document {
   issueDate: Date;
   dueDate: Date;
   status: 'DRAFT' | 'PUBLISHED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  // Set when this demand was generated for a Vacant/Builder-Unsold flat under an EXEMPT
+  // billing policy — it's still created (so there's an accrual trail) but withheld from
+  // auto-publish. A manual publish still works, as a deliberate admin override.
+  billingHold: boolean;
+  billingPolicyApplied?: 'FULL' | 'REDUCED' | 'EXEMPT';
   chargeLines: DemandChargeLine[];
   flatSnapshot: Record<string, unknown>;
   residentSnapshot?: Record<string, unknown>;
@@ -64,6 +69,8 @@ const MaintenanceDemandSchema = new Schema(
     issueDate: { type: Date, required: true },
     dueDate: { type: Date, required: true },
     status: { type: String, enum: ['DRAFT', 'PUBLISHED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED'], default: 'DRAFT' },
+    billingHold: { type: Boolean, default: false },
+    billingPolicyApplied: { type: String, enum: ['FULL', 'REDUCED', 'EXEMPT'] },
     chargeLines: { type: [DemandChargeLineSchema], required: true },
     flatSnapshot: { type: Schema.Types.Mixed, required: true },
     residentSnapshot: { type: Schema.Types.Mixed },

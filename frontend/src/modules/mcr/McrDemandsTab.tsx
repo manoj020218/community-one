@@ -150,7 +150,12 @@ export function McrDemandsTab() {
                   <td className="table-cell text-xs text-slate-500">{formatDate(demand.dueDate)}</td>
                   <td className="table-cell">{formatPaise(demand.totalDemandPaise)}</td>
                   <td className="table-cell font-semibold">{formatPaise(demand.outstandingPaise)}</td>
-                  <td className="table-cell"><span className={cn('badge', DEMAND_STATUS_BADGE[demand.status])}>{demand.status.replace('_', ' ')}</span></td>
+                  <td className="table-cell">
+                    <span className={cn('badge', DEMAND_STATUS_BADGE[demand.status])}>{demand.status.replace('_', ' ')}</span>
+                    {demand.billingHold && (
+                      <span className="badge badge-purple text-[10px] ml-1" title="Held per the society's vacant/unsold flat billing policy — accrued, not auto-published">Held</span>
+                    )}
+                  </td>
                   <td className="table-cell">
                     <div className="flex gap-2">
                       {demand.status === 'DRAFT' && (

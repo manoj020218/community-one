@@ -29,6 +29,7 @@ const occupancyColors: Record<string, string> = {
   VACANT: 'badge-gray',
   LOCKED: 'badge-yellow',
   UNDER_RENOVATION: 'badge-red',
+  BUILDER_UNSOLD: 'badge-purple',
 };
 
 const bedStatusColors: Record<string, string> = {

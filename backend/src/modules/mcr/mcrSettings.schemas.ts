@@ -22,6 +22,10 @@ export const mcrSettingsSchema = z.object({
   reminderAutomationEnabled: z.boolean().default(false),
   reminderFrequencyDays: z.coerce.number().int().min(1).max(14).default(1),
   reminderTimeOfDay: z.string().trim().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:mm 24-hour format').default('10:00'),
+  vacantFlatPolicy: z.enum(['BILL_FULL', 'BILL_REDUCED', 'EXEMPT']).default('BILL_FULL'),
+  vacantFlatReducedPercent: z.coerce.number().int().min(0).max(100).default(50),
+  unsoldFlatPolicy: z.enum(['BILL_FULL', 'BILL_REDUCED', 'EXEMPT']).default('EXEMPT'),
+  unsoldFlatReducedPercent: z.coerce.number().int().min(0).max(100).default(50),
 });
 
 export const mcrSettingsUpdateSchema = mcrSettingsSchema.partial();

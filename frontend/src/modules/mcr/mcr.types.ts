@@ -40,6 +40,10 @@ export interface McrSettings {
   reminderAutomationEnabled: boolean;
   reminderFrequencyDays: number;
   reminderTimeOfDay: string;
+  vacantFlatPolicy: 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
+  vacantFlatReducedPercent: number;
+  unsoldFlatPolicy: 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
+  unsoldFlatReducedPercent: number;
 }
 
 export interface McrUpiQr {
@@ -102,13 +106,15 @@ export interface MaintenanceDemand {
   // flatId is never populated by the list endpoint — this denormalized snapshot (taken at
   // demand-creation time, so it stays accurate even if the flat is later renamed/moved) is
   // the actual source for display.
-  flatSnapshot?: { flatNo?: string; towerId?: string; floorId?: string; areaSqFt?: number };
+  flatSnapshot?: { flatNo?: string; towerId?: string; floorId?: string; areaSqFt?: number; occupancyStatus?: string };
   demandType: 'REGULAR' | 'LATE_FEE';
   billingPeriodKey: string;
   billingPeriodLabel: string;
   issueDate: string;
   dueDate: string;
   status: McrDemandStatus;
+  billingHold?: boolean;
+  billingPolicyApplied?: 'FULL' | 'REDUCED' | 'EXEMPT';
   chargeLines: DemandChargeLine[];
   subtotalPaise: number;
   totalDemandPaise: number;

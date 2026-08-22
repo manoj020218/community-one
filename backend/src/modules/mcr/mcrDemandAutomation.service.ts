@@ -30,10 +30,14 @@ export class McrDemandAutomationService {
       for (const cycle of cycles) {
         const draftResult = await demandDraftService.createScheduledDrafts(societyId, plan._id!.toString(), cycle, runAsUserId);
         const drafts = draftResult.items.filter((item) => item.billingPeriodKey === cycle.billingPeriodKey && item.status === 'DRAFT');
+        // billingHold demands (Vacant/Builder-Unsold flats under an EXEMPT policy) stay in
+        // DRAFT even when autoPublish is on — they're an accrual record, not an active bill,
+        // until an admin manually publishes one as a deliberate override.
+        const publishableDrafts = drafts.filter((item) => !item.billingHold);
         let publishedCount = 0;
 
         if (plan.autoPublish) {
-          for (const draft of drafts) {
+          for (const draft of publishableDrafts) {
             await demandPublishService.publishSystem(societyId, draft._id!.toString(), runAsUserId, dto.asOf);
             publishedCount += 1;
           }

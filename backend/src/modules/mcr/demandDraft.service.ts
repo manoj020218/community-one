@@ -7,8 +7,31 @@ import { McrActorContext } from './mcr.access.service';
 import { MaintenanceDemand, IMaintenanceDemandDocument } from './demand.model';
 import { demandDraftCreateSchema } from './demand.schemas';
 import { McrBillingCycle, mcrBillingCycleService } from './mcrBillingCycle.service';
+import { mcrSettingsService } from './mcrSettings.service';
+import { IMcrSettingsDocument } from './mcrSettings.model';
 import { parseOrThrow } from './mcr.validation';
 import { NotFoundError, ConflictError } from '../../common/errors/AppError';
+
+type BillingPolicy = 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
+
+// Resolves what fraction of the normal bill applies, and whether the resulting demand should
+// be withheld from auto-publish. Only Vacant/Builder-Unsold flats are policy-governed — every
+// other occupancy state (including Locked/Under Renovation) is always billed in full, since the
+// owner owes maintenance either way.
+function resolveBillingPolicy(occupancyStatus: string, settings: IMcrSettingsDocument): { percent: number; policy: 'FULL' | 'REDUCED' | 'EXEMPT'; hold: boolean } {
+  let policy: BillingPolicy = 'BILL_FULL';
+  let reducedPercent = 100;
+  if (occupancyStatus === 'VACANT') {
+    policy = settings.vacantFlatPolicy;
+    reducedPercent = settings.vacantFlatReducedPercent;
+  } else if (occupancyStatus === 'BUILDER_UNSOLD') {
+    policy = settings.unsoldFlatPolicy;
+    reducedPercent = settings.unsoldFlatReducedPercent;
+  }
+  if (policy === 'EXEMPT') return { percent: 100, policy: 'EXEMPT', hold: true };
+  if (policy === 'BILL_REDUCED') return { percent: reducedPercent, policy: 'REDUCED', hold: false };
+  return { percent: 100, policy: 'FULL', hold: false };
+}
 
 export class DemandDraftService {
   async listBySociety(societyId: string, status?: string, towerId?: string): Promise<IMaintenanceDemandDocument[]> {
@@ -72,13 +95,16 @@ export class DemandDraftService {
   ) {
     // isActive, not status — Flat.delete() only flips isActive (status is a separate, unused
     // field nothing in the flat module ever updates), so filtering on status here silently
-    // kept billing deleted flats forever. occupancyStatus is now kept accurate automatically
-    // (set on resident add/remove, see resident.service.ts) — a genuinely Vacant flat is
-    // excluded; LOCKED/UNDER_RENOVATION still bill since the owner still owes maintenance
-    // either way, only an empty unopposed unit doesn't.
-    const flatQuery: Record<string, unknown> = { societyId, isActive: true, occupancyStatus: { $ne: 'VACANT' } };
+    // kept billing deleted flats forever. Vacant/Builder-Unsold flats are no longer excluded
+    // outright — a demand is still generated for every active flat regardless of occupancy
+    // (an accrual trail), with the society's own vacant/unsold billing policy (see
+    // resolveBillingPolicy below) deciding the amount and whether it's withheld from
+    // auto-publish. LOCKED/UNDER_RENOVATION always bill in full — the owner owes maintenance
+    // either way, only genuinely vacant/unsold units are policy-governed.
+    const flatQuery: Record<string, unknown> = { societyId, isActive: true };
     if (flatIds?.length) flatQuery._id = { $in: flatIds };
     const flats = await Flat.find(flatQuery).sort({ flatNo: 1 });
+    const settings = await mcrSettingsService.getBySociety(societyId, actorUserId);
     const chargeHeadIds = [...new Set(billingPlan.chargeLines.map((line) => line.chargeHeadId.toString()))];
     const chargeHeads = await ChargeHead.find({ societyId, _id: { $in: chargeHeadIds } });
     const chargeHeadMap = new Map(chargeHeads.map((item) => [item._id.toString(), item]));
@@ -96,13 +122,14 @@ export class DemandDraftService {
 
     for (const flat of flats) {
       if (existingMap.has(flat._id.toString())) continue;
+      const { percent, policy, hold } = resolveBillingPolicy(flat.occupancyStatus, settings);
       const chargeLines = billingPlan.chargeLines.map((line) => {
         const chargeHead = chargeHeadMap.get(line.chargeHeadId.toString());
         return {
           chargeHeadId: line.chargeHeadId,
           chargeCode: chargeHead?.code || 'UNKNOWN',
           chargeName: chargeHead?.name || 'Unknown Charge Head',
-          amountPaise: line.amountPaise,
+          amountPaise: percent === 100 ? line.amountPaise : Math.round((line.amountPaise * percent) / 100),
           calculationMethod: line.calculationMethod,
         };
       });
@@ -118,8 +145,10 @@ export class DemandDraftService {
         issueDate: cycle.issueDate,
         dueDate: cycle.dueDate,
         status: 'DRAFT',
+        billingHold: hold,
+        billingPolicyApplied: policy,
         chargeLines,
-        flatSnapshot: { flatNo: flat.flatNo, towerId: flat.towerId, floorId: flat.floorId, areaSqFt: flat.areaSqFt },
+        flatSnapshot: { flatNo: flat.flatNo, towerId: flat.towerId, floorId: flat.floorId, areaSqFt: flat.areaSqFt, occupancyStatus: flat.occupancyStatus },
         residentSnapshot: resident ? { name: resident.name, mobile: resident.mobile, email: resident.email } : undefined,
         subtotalPaise,
         totalDemandPaise: subtotalPaise,
