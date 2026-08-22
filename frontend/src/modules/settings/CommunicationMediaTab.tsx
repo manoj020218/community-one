@@ -80,11 +80,17 @@ export function CommunicationMediaTab() {
         </p>
 
         {waStatus?.status === 'CONNECTED' && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-            <p className="text-sm text-emerald-800">Linked number: +{waStatus.phoneNumber}</p>
-            <button onClick={() => disconnectMutation.mutate()} disabled={disconnectMutation.isPending} className="btn-secondary text-sm gap-2">
-              <Unplug className="w-4 h-4" /> Disconnect
-            </button>
+          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-emerald-800">Linked number: +{waStatus.phoneNumber}</p>
+              <button onClick={() => disconnectMutation.mutate()} disabled={disconnectMutation.isPending} className="btn-secondary text-sm gap-2">
+                <Unplug className="w-4 h-4" /> Disconnect
+              </button>
+            </div>
+            <p className="text-xs text-amber-600 mt-2">
+              Keep this SIM's recharge/validity current — if the mobile number lapses or gets deactivated, the WhatsApp session breaks and
+              reminders/receipts stop sending silently, with no error shown here until you check back.
+            </p>
           </div>
         )}
 

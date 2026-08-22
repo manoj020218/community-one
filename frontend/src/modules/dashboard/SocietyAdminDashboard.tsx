@@ -123,6 +123,12 @@ export function SocietyAdminDashboard() {
               <p className={cn('text-lg font-bold mt-1', waStatus?.status === 'CONNECTED' ? 'text-emerald-600' : 'text-red-600')}>
                 {waStatus?.status === 'CONNECTED' ? 'Connected' : waStatus?.status === 'CONNECTING' ? 'Connecting…' : 'Disconnected'}
               </p>
+              {waStatus?.status === 'CONNECTED' && waStatus.phoneNumber && (
+                <>
+                  <p className="text-xs text-slate-500 mt-1">+{waStatus.phoneNumber}</p>
+                  <p className="text-[11px] text-amber-600 mt-1">Keep this SIM's recharge current — a lapsed number breaks the session silently</p>
+                </>
+              )}
               {waStatus?.status !== 'CONNECTED' && <p className="text-xs text-primary-600 font-medium mt-1">Tap to reconnect</p>}
             </div>
             <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0', waStatus?.status === 'CONNECTED' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600')}>
