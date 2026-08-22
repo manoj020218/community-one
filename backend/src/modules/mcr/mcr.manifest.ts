@@ -44,6 +44,8 @@ export const MCR_MANIFEST = {
     PERMISSIONS.MCR_MANAGE_TEMPLATES,
     PERMISSIONS.MCR_MANAGE_PAYMENT_GATEWAY,
     PERMISSIONS.MCR_VIEW_AUDIT,
+    PERMISSIONS.MCR_MANAGE_EXPENSE,
+    PERMISSIONS.MCR_MANAGE_OPENING_BALANCE,
   ],
   settingsSchema: {
     makerCheckerEnabled: { type: 'boolean', default: true },

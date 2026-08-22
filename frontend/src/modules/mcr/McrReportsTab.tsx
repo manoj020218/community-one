@@ -8,7 +8,11 @@ import { StatCard } from '../../components/common/StatCard';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { formatDate } from '../../utils/cn';
-import { formatPaise, McrPaymentRecord, McrStatement } from './mcr.types';
+import { formatPaise, McrIncomeExpenditureStatement, McrPaymentRecord, McrStatement } from './mcr.types';
+import { hasMcrExpenseAccess } from './mcr.permissions';
+
+const monthStart = () => new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+const today = () => new Date().toISOString().slice(0, 10);
 
 function exportCsv(fileName: string, rows: Record<string, string | number>[]) {
   if (!rows.length) return;
@@ -33,6 +37,15 @@ export function McrReportsTab() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [statementFlatId, setStatementFlatId] = useState('');
+  const [ieStartDate, setIeStartDate] = useState(monthStart());
+  const [ieEndDate, setIeEndDate] = useState(today());
+  const canSeeFundBalance = hasMcrExpenseAccess(user?.permissions || []);
+
+  const { data: incomeExpenditure, isLoading: loadingIE } = useQuery({
+    queryKey: ['mcr-income-expenditure', societyId, ieStartDate, ieEndDate],
+    queryFn: () => extractData<McrIncomeExpenditureStatement>(api.get('/mcr/reports/income-expenditure', { params: { societyId, startDate: ieStartDate, endDate: ieEndDate } })),
+    enabled: !!societyId && canSeeFundBalance && !!ieStartDate && !!ieEndDate,
+  });
 
   const { data: flats } = useQuery({
     queryKey: ['flats-list', societyId],
@@ -99,6 +112,50 @@ export function McrReportsTab() {
           </div>
         )}
       </div>
+
+      {canSeeFundBalance && (
+        <div className="card p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="section-title">Income & Expenditure Statement</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <input type="date" value={ieStartDate} onChange={(e) => setIeStartDate(e.target.value)} className="input w-auto" />
+              <input type="date" value={ieEndDate} onChange={(e) => setIeEndDate(e.target.value)} className="input w-auto" />
+            </div>
+          </div>
+          {loadingIE ? <TableSkeleton rows={3} cols={2} /> : incomeExpenditure && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <StatCard title="Opening Balance" value={formatPaise(incomeExpenditure.periodOpeningBalancePaise)} icon={FileBarChart} color="blue" />
+                <StatCard title="Income" value={formatPaise(incomeExpenditure.totalIncomePaise)} icon={FileBarChart} color="green" />
+                <StatCard title="Expenses" value={formatPaise(incomeExpenditure.totalExpensePaise)} icon={FileBarChart} color="red" />
+                <StatCard title="Closing Balance" value={formatPaise(incomeExpenditure.closingBalancePaise)} icon={FileBarChart} color="indigo" />
+              </div>
+              {!incomeExpenditure.expensesByCategory.length ? (
+                <EmptyState icon={FileBarChart} title="No expenses in this period" description="Expenses recorded in the Expenses tab within this date range will appear here by category." />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead><tr>
+                      <th className="table-header text-left">Category</th>
+                      <th className="table-header text-left">Count</th>
+                      <th className="table-header text-left">Total</th>
+                    </tr></thead>
+                    <tbody>
+                      {incomeExpenditure.expensesByCategory.map((row) => (
+                        <tr key={row.category} className="table-row">
+                          <td className="table-cell text-sm">{row.category.replace('_', ' ')}</td>
+                          <td className="table-cell text-xs text-slate-500">{row.count}</td>
+                          <td className="table-cell font-semibold">{formatPaise(row.totalPaise)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="card p-6">
         <h3 className="section-title mb-4">Flat Statement</h3>

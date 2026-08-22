@@ -8,6 +8,9 @@ export const MCR_CHARGE_HEAD_CATEGORIES = ['MAINTENANCE', 'SINKING_FUND', 'REPAI
 export const MCR_CALCULATION_METHODS = ['FIXED_FLAT', 'FIXED_FLAT_TYPE', 'AREA_BASED', 'CUSTOM'] as const;
 export const MCR_BILLING_FREQUENCIES = ['MONTHLY', 'QUARTERLY', 'HALF_YEARLY', 'YEARLY', 'ONE_TIME'] as const;
 export const MCR_NOTIFICATION_CHANNELS = ['IN_APP', 'PUSH', 'WHATSAPP', 'EMAIL', 'SMS'] as const;
+export const EXPENSE_CATEGORIES = ['SALARY', 'ELECTRICITY', 'WATER', 'REPAIRS', 'SECURITY', 'HOUSEKEEPING', 'INSURANCE', 'ADMIN', 'OTHER'] as const;
+export const EXPENSE_PAYMENT_MODES = ['CASH', 'BANK'] as const;
+export const EXPENSE_STATUSES = ['RECORDED', 'CANCELLED'] as const;
 
 export type McrDemandStatus = typeof MCR_DEMAND_STATUSES[number];
 export type McrPaymentMethod = typeof MCR_PAYMENT_METHODS[number];
@@ -108,7 +111,7 @@ export interface MaintenanceDemand {
   // demand-creation time, so it stays accurate even if the flat is later renamed/moved) is
   // the actual source for display.
   flatSnapshot?: { flatNo?: string; towerId?: string; floorId?: string; areaSqFt?: number; occupancyStatus?: string };
-  demandType: 'REGULAR' | 'LATE_FEE';
+  demandType: 'REGULAR' | 'LATE_FEE' | 'OPENING_BALANCE';
   billingPeriodKey: string;
   billingPeriodLabel: string;
   issueDate: string;
@@ -221,6 +224,60 @@ export interface McrGatewayConfig {
   autoVerifySuccessfulPayments: boolean;
 }
 
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+export type ExpensePaymentMode = typeof EXPENSE_PAYMENT_MODES[number];
+export type ExpenseStatus = typeof EXPENSE_STATUSES[number];
+
+export interface Expense {
+  _id: string;
+  expenseNumber: string;
+  category: ExpenseCategory;
+  amountPaise: number;
+  paymentMode: ExpensePaymentMode;
+  paidTo: string;
+  expenseDate: string;
+  description?: string;
+  proofFileIds?: Array<{ _id: string; url: string; originalName?: string; mimeType?: string } | string>;
+  status: ExpenseStatus;
+  cancellationReason?: string;
+  createdAt?: string;
+}
+
+export interface McrOpeningBalance {
+  _id: string;
+  societyId: string;
+  asOfDate: string;
+  openingCashPaise: number;
+  openingBankPaise: number;
+}
+
+export interface McrFundBalance {
+  hasOpeningBalance: boolean;
+  asOfDate: string | null;
+  openingCashPaise: number;
+  openingBankPaise: number;
+  cashInPaise: number;
+  cashOutPaise: number;
+  bankInPaise: number;
+  bankOutPaise: number;
+  cashBalancePaise: number;
+  bankBalancePaise: number;
+  totalBalancePaise: number;
+  currentMonthIncomePaise: number;
+  currentMonthExpensePaise: number;
+}
+
+export interface McrIncomeExpenditureStatement {
+  startDate: string;
+  endDate: string;
+  periodOpeningBalancePaise: number;
+  incomeCount: number;
+  totalIncomePaise: number;
+  expensesByCategory: Array<{ category: ExpenseCategory; count: number; totalPaise: number }>;
+  totalExpensePaise: number;
+  closingBalancePaise: number;
+}
+
 export interface McrContext {
   moduleCode: string;
   societyId: string;
@@ -261,6 +318,11 @@ export const RECEIPT_STATUS_BADGE: Record<McrReceiptStatus, string> = {
   ISSUED: 'badge-green',
   VOID: 'badge-red',
   REPLACED: 'badge-gray',
+};
+
+export const EXPENSE_STATUS_BADGE: Record<ExpenseStatus, string> = {
+  RECORDED: 'badge-green',
+  CANCELLED: 'badge-gray',
 };
 
 /** Fetches an authenticated binary MCR document (HTML/SVG) and opens it in a new tab via an object URL. */

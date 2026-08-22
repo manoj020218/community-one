@@ -41,6 +41,28 @@ export class McrReportController {
     }
   }
 
+  async getFundBalance(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const balance = await mcrReportService.getFundBalance(context.societyId);
+      sendSuccess(res, balance, 'MCR fund balance retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getIncomeExpenditureStatement(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const query = parseOrThrow(mcrReportQuerySchema, req.query);
+      if (!query.startDate || !query.endDate) throw new ValidationError('startDate and endDate are required');
+      const statement = await mcrReportService.getIncomeExpenditureStatement(context.societyId, query.startDate, query.endDate);
+      sendSuccess(res, statement, 'MCR income & expenditure statement retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getStatement(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);

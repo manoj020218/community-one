@@ -46,3 +46,11 @@ export function hasMcrReportsAccess(permissions: string[] = []): boolean {
 export function hasMcrGatewayAccess(permissions: string[] = []): boolean {
   return permissions.includes('mcr.manage_payment_gateway');
 }
+
+export function hasMcrExpenseAccess(permissions: string[] = []): boolean {
+  return permissions.includes('mcr.manage_expense');
+}
+
+export function hasMcrOpeningBalanceAccess(permissions: string[] = []): boolean {
+  return permissions.includes('mcr.manage_opening_balance');
+}

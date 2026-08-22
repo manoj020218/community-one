@@ -15,6 +15,8 @@ import { mcrReminderController } from './mcrReminder.controller';
 import { mcrReportController } from './mcrReport.controller';
 import { mcrReceiptController } from './mcrReceipt.controller';
 import { mcrSettingsController } from './mcrSettings.controller';
+import { expenseController } from './expense.controller';
+import { mcrOpeningBalanceController } from './mcrOpeningBalance.controller';
 
 const router: Router = Router();
 
@@ -66,5 +68,15 @@ router.get('/reports/summary', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PE
 router.get('/reports/summary-by-tower', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getSummaryByTower.bind(mcrReportController));
 router.get('/reports/statement', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getStatement.bind(mcrReportController));
 router.get('/reports/collections', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.listCollections.bind(mcrReportController));
+router.get('/reports/fund-balance', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_MANAGE_EXPENSE, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getFundBalance.bind(mcrReportController));
+router.get('/reports/income-expenditure', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_MANAGE_EXPENSE, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getIncomeExpenditureStatement.bind(mcrReportController));
+
+router.get('/expenses', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.list.bind(expenseController));
+router.post('/expenses', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.create.bind(expenseController));
+router.post('/expenses/:id/cancel', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.cancel.bind(expenseController));
+
+router.get('/opening-balance', requireAnyPermission(PERMISSIONS.MCR_MANAGE_OPENING_BALANCE, PERMISSIONS.MCR_MANAGE_EXPENSE, PERMISSIONS.MCR_VIEW_ALL), mcrOpeningBalanceController.get.bind(mcrOpeningBalanceController));
+router.patch('/opening-balance', requirePermission(PERMISSIONS.MCR_MANAGE_OPENING_BALANCE), mcrOpeningBalanceController.set.bind(mcrOpeningBalanceController));
+router.post('/opening-balance/bulk-dues', requirePermission(PERMISSIONS.MCR_MANAGE_OPENING_BALANCE), mcrOpeningBalanceController.bulkDues.bind(mcrOpeningBalanceController));
 
 export default router;

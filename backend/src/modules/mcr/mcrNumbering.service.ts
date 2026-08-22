@@ -27,6 +27,10 @@ export class McrNumberingService {
     return this.nextFixedPrefixNumber(societyId, 'LEDGER', 'MCRL', date);
   }
 
+  async nextExpenseNumber(societyId: string, date: Date = new Date()): Promise<string> {
+    return this.nextFixedPrefixNumber(societyId, 'EXPENSE', 'MCRE', date);
+  }
+
   private async getPrefix(societyId: string, kind: 'demand' | 'receipt'): Promise<string> {
     const defaults = buildDefaultMcrSettingsInput();
     const settings = await McrSettings.findOne({ societyId }).lean();
@@ -37,7 +41,7 @@ export class McrNumberingService {
 
   private async nextFixedPrefixNumber(
     societyId: string,
-    sequenceType: 'PAYMENT' | 'LEDGER',
+    sequenceType: 'PAYMENT' | 'LEDGER' | 'EXPENSE',
     prefix: string,
     date: Date
   ): Promise<string> {

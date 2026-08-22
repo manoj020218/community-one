@@ -1,4 +1,4 @@
-export const MCR_SEQUENCE_TYPES = ['DEMAND', 'RECEIPT', 'PAYMENT', 'LEDGER'] as const;
+export const MCR_SEQUENCE_TYPES = ['DEMAND', 'RECEIPT', 'PAYMENT', 'LEDGER', 'EXPENSE'] as const;
 export type McrSequenceType = typeof MCR_SEQUENCE_TYPES[number];
 
 export const MCR_DEMAND_STATUSES = [

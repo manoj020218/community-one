@@ -124,6 +124,8 @@ export const PERMISSIONS = {
   MCR_MANAGE_TEMPLATES: 'mcr.manage_templates',
   MCR_MANAGE_PAYMENT_GATEWAY: 'mcr.manage_payment_gateway',
   MCR_VIEW_AUDIT: 'mcr.view_audit',
+  MCR_MANAGE_EXPENSE: 'mcr.manage_expense',
+  MCR_MANAGE_OPENING_BALANCE: 'mcr.manage_opening_balance',
   SAMA_VIEW_SELF: 'sama.view_self',
   SAMA_VIEW_SOCIETY: 'sama.view_society',
   SAMA_VIEW_STAFF: 'sama.view_staff',

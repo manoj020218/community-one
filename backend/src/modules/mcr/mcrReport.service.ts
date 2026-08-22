@@ -6,6 +6,8 @@ import { McrPaymentRecord } from './mcrPaymentRecord.model';
 import { McrReceipt } from './mcrReceipt.model';
 import { McrReportQuery } from './mcrReport.schemas';
 import { Tower } from '../tower/tower.model';
+import { Expense } from './expense.model';
+import { McrOpeningBalance } from './mcrOpeningBalance.model';
 
 function buildScope(societyId: string, flatId?: string) {
   const scope: Record<string, unknown> = { societyId: new mongoose.Types.ObjectId(societyId) };
@@ -125,6 +127,99 @@ export class McrReportService {
         issuedReceiptCount: receipt?.issuedReceiptCount || 0,
       };
     });
+  }
+
+  // Cash Balance / Bank Balance are always computed live from source records — never a
+  // stored running total — for the same reason Tower.numberOfFloors/totalFlats went stale
+  // earlier: a denormalized balance nothing actively resyncs *will* drift eventually.
+  async getFundBalance(societyId: string) {
+    const societyObjectId = new mongoose.Types.ObjectId(societyId);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [opening, paymentBuckets, expenseBuckets, monthIncome, monthExpense] = await Promise.all([
+      McrOpeningBalance.findOne({ societyId }),
+      McrPaymentRecord.aggregate([
+        { $match: { societyId: societyObjectId, status: 'VERIFIED' } },
+        { $group: { _id: { $cond: [{ $eq: ['$paymentMethod', 'CASH'] }, 'CASH', 'BANK'] }, total: { $sum: '$amountPaise' } } },
+      ]),
+      Expense.aggregate([
+        { $match: { societyId: societyObjectId, status: 'RECORDED' } },
+        { $group: { _id: '$paymentMode', total: { $sum: '$amountPaise' } } },
+      ]),
+      McrPaymentRecord.aggregate([
+        { $match: { societyId: societyObjectId, status: 'VERIFIED', paymentDate: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$amountPaise' } } },
+      ]),
+      Expense.aggregate([
+        { $match: { societyId: societyObjectId, status: 'RECORDED', expenseDate: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: '$amountPaise' } } },
+      ]),
+    ]);
+
+    const cashInPaise = paymentBuckets.find((r) => r._id === 'CASH')?.total || 0;
+    const bankInPaise = paymentBuckets.find((r) => r._id === 'BANK')?.total || 0;
+    const cashOutPaise = expenseBuckets.find((r) => r._id === 'CASH')?.total || 0;
+    const bankOutPaise = expenseBuckets.find((r) => r._id === 'BANK')?.total || 0;
+    const openingCashPaise = opening?.openingCashPaise || 0;
+    const openingBankPaise = opening?.openingBankPaise || 0;
+
+    return {
+      hasOpeningBalance: !!opening,
+      asOfDate: opening?.asOfDate || null,
+      openingCashPaise,
+      openingBankPaise,
+      cashInPaise,
+      cashOutPaise,
+      bankInPaise,
+      bankOutPaise,
+      cashBalancePaise: openingCashPaise + cashInPaise - cashOutPaise,
+      bankBalancePaise: openingBankPaise + bankInPaise - bankOutPaise,
+      totalBalancePaise: openingCashPaise + openingBankPaise + cashInPaise + bankInPaise - cashOutPaise - bankOutPaise,
+      currentMonthIncomePaise: monthIncome[0]?.total || 0,
+      currentMonthExpensePaise: monthExpense[0]?.total || 0,
+    };
+  }
+
+  async getIncomeExpenditureStatement(societyId: string, startDate: Date, endDate: Date) {
+    const societyObjectId = new mongoose.Types.ObjectId(societyId);
+    const opening = await McrOpeningBalance.findOne({ societyId });
+    const openingTotalPaise = (opening?.openingCashPaise || 0) + (opening?.openingBankPaise || 0);
+
+    const [priorIncome, priorExpense, periodIncome, expensesByCategory] = await Promise.all([
+      McrPaymentRecord.aggregate([
+        { $match: { societyId: societyObjectId, status: 'VERIFIED', paymentDate: { $lt: startDate } } },
+        { $group: { _id: null, total: { $sum: '$amountPaise' } } },
+      ]),
+      Expense.aggregate([
+        { $match: { societyId: societyObjectId, status: 'RECORDED', expenseDate: { $lt: startDate } } },
+        { $group: { _id: null, total: { $sum: '$amountPaise' } } },
+      ]),
+      McrPaymentRecord.aggregate([
+        { $match: { societyId: societyObjectId, status: 'VERIFIED', paymentDate: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: null, total: { $sum: '$amountPaise' }, count: { $sum: 1 } } },
+      ]),
+      Expense.aggregate([
+        { $match: { societyId: societyObjectId, status: 'RECORDED', expenseDate: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$category', total: { $sum: '$amountPaise' }, count: { $sum: 1 } } },
+        { $sort: { total: -1 } },
+      ]),
+    ]);
+
+    const periodOpeningBalancePaise = openingTotalPaise + (priorIncome[0]?.total || 0) - (priorExpense[0]?.total || 0);
+    const totalIncomePaise = periodIncome[0]?.total || 0;
+    const totalExpensePaise = expensesByCategory.reduce((sum, r) => sum + r.total, 0);
+
+    return {
+      startDate,
+      endDate,
+      periodOpeningBalancePaise,
+      incomeCount: periodIncome[0]?.count || 0,
+      totalIncomePaise,
+      expensesByCategory: expensesByCategory.map((r) => ({ category: r._id, count: r.count, totalPaise: r.total })),
+      totalExpensePaise,
+      closingBalancePaise: periodOpeningBalancePaise + totalIncomePaise - totalExpensePaise,
+    };
   }
 
   async getStatement(societyId: string, flatId: string) {

@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Banknote, LayoutDashboard, Wallet, ListTree, CalendarClock,
-  FileText, CreditCard, Receipt, FileBarChart, ShieldCheck, Settings2,
+  FileText, CreditCard, Receipt, FileBarChart, ShieldCheck, Settings2, TrendingDown,
 } from 'lucide-react';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageHeader } from '../../components/common/PageHeader';
 import { useAuthStore } from '../../store/authStore';
 import { useMcrModule } from './useMcrModule';
 import {
-  hasMcrAccess, hasMcrAdminAccess, hasMcrConfigureAccess, hasMcrDemandAccess,
+  hasMcrAccess, hasMcrAdminAccess, hasMcrConfigureAccess, hasMcrDemandAccess, hasMcrExpenseAccess,
   hasMcrGatewayAccess, hasMcrPaymentAccess, hasMcrReceiptAccess, hasMcrReportsAccess, hasMcrResidentAccess,
 } from './mcr.permissions';
 import { McrDashboardTab } from './McrDashboardTab';
@@ -19,11 +19,12 @@ import { McrBillingPlansTab } from './McrBillingPlansTab';
 import { McrDemandsTab } from './McrDemandsTab';
 import { McrPaymentsTab } from './McrPaymentsTab';
 import { McrReceiptsTab } from './McrReceiptsTab';
+import { McrExpensesTab } from './McrExpensesTab';
 import { McrReportsTab } from './McrReportsTab';
 import { McrGatewayTab } from './McrGatewayTab';
 import { McrSettingsTab } from './McrSettingsTab';
 
-type TabKey = 'dashboard' | 'mine' | 'chargeHeads' | 'billingPlans' | 'demands' | 'payments' | 'receipts' | 'reports' | 'gateway' | 'settings';
+type TabKey = 'dashboard' | 'mine' | 'chargeHeads' | 'billingPlans' | 'demands' | 'payments' | 'receipts' | 'expenses' | 'reports' | 'gateway' | 'settings';
 
 export function McrPage() {
   const { user } = useAuthStore();
@@ -38,6 +39,7 @@ export function McrPage() {
     ...(hasMcrDemandAccess(permissions) ? [{ key: 'demands' as const, label: 'Demands', icon: FileText }] : []),
     ...(hasMcrPaymentAccess(permissions) ? [{ key: 'payments' as const, label: 'Payments', icon: CreditCard }] : []),
     ...(hasMcrReceiptAccess(permissions) ? [{ key: 'receipts' as const, label: 'Receipts', icon: Receipt }] : []),
+    ...(hasMcrExpenseAccess(permissions) ? [{ key: 'expenses' as const, label: 'Expenses', icon: TrendingDown }] : []),
     ...(hasMcrReportsAccess(permissions) ? [{ key: 'reports' as const, label: 'Reports', icon: FileBarChart }] : []),
     ...(hasMcrGatewayAccess(permissions) ? [{ key: 'gateway' as const, label: 'Gateway', icon: ShieldCheck }] : []),
     ...(hasMcrConfigureAccess(permissions) ? [{ key: 'settings' as const, label: 'Settings', icon: Settings2 }] : []),
@@ -90,6 +92,7 @@ export function McrPage() {
       {activeTabKey === 'demands' && <McrDemandsTab />}
       {activeTabKey === 'payments' && <McrPaymentsTab />}
       {activeTabKey === 'receipts' && <McrReceiptsTab />}
+      {activeTabKey === 'expenses' && <McrExpensesTab />}
       {activeTabKey === 'reports' && <McrReportsTab />}
       {activeTabKey === 'gateway' && <McrGatewayTab />}
       {activeTabKey === 'settings' && <McrSettingsTab />}

@@ -13,7 +13,7 @@ export interface IMaintenanceDemandDocument extends Document {
   billingPlanId: string;
   demandNumber?: string;
   flatId: string;
-  demandType: 'REGULAR' | 'LATE_FEE';
+  demandType: 'REGULAR' | 'LATE_FEE' | 'OPENING_BALANCE';
   parentDemandId?: string;
   lateFeeCycleIndex?: number;
   billingPeriodKey: string;
@@ -61,7 +61,7 @@ const MaintenanceDemandSchema = new Schema(
     billingPlanId: { type: Schema.Types.ObjectId, ref: 'BillingPlan', required: true },
     demandNumber: { type: String },
     flatId: { type: Schema.Types.ObjectId, ref: 'Flat', required: true },
-    demandType: { type: String, enum: ['REGULAR', 'LATE_FEE'], default: 'REGULAR' },
+    demandType: { type: String, enum: ['REGULAR', 'LATE_FEE', 'OPENING_BALANCE'], default: 'REGULAR' },
     parentDemandId: { type: Schema.Types.ObjectId, ref: 'MaintenanceDemand' },
     lateFeeCycleIndex: { type: Number, min: 1 },
     billingPeriodKey: { type: String, required: true },
