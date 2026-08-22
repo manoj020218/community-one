@@ -5,7 +5,9 @@ export class McrReceiptQueryService {
   async listBySociety(societyId: string, status?: string): Promise<IMcrReceiptDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
-    return McrReceipt.find(query).sort({ issuedAt: -1, createdAt: -1 });
+    return McrReceipt.find(query)
+      .sort({ issuedAt: -1, createdAt: -1 })
+      .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name' } });
   }
 
   async findById(societyId: string, receiptId: string): Promise<IMcrReceiptDocument> {

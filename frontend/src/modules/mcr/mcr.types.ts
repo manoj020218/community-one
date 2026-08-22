@@ -152,7 +152,7 @@ export interface McrReceipt {
   _id: string;
   receiptNumber: string;
   paymentId: string;
-  flatId: { _id: string; flatNo?: string } | string;
+  flatId: { _id: string; flatNo?: string; towerId?: { _id: string; name: string } } | string;
   residentSnapshot: { name: string; mobile?: string; email?: string };
   paymentSnapshot: { payerName: string; paymentMethod: string; paymentDate: string; amountPaise: number };
   allocationSnapshot: Array<{ demandId: string; demandNumber: string; allocatedAmountPaise: number }>;

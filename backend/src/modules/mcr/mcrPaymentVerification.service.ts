@@ -10,6 +10,13 @@ import { mcrReceiptService } from './mcrReceipt.service';
 import { mcrSettingsService } from './mcrSettings.service';
 import { parseOrThrow } from './mcr.validation';
 
+// OVERDUE is not a resolved/terminal state — it's just PUBLISHED (or PARTIALLY_PAID) past its
+// due date, and applyAllocations() below routinely leaves a demand in this exact status after a
+// partial payment. Excluding it here meant that once ANY demand went overdue, no payment could
+// ever be applied to it again — every collection against that flat silently became stranded
+// "advance" instead of actually reducing what was owed.
+const PAYABLE_DEMAND_STATUSES = ['PUBLISHED', 'PARTIALLY_PAID', 'OVERDUE'];
+
 interface ResolvedAllocation {
   demand: IMaintenanceDemandDocument;
   amountPaise: number;
@@ -135,7 +142,7 @@ export class McrPaymentVerificationService {
 
     const resolved = allocations.map((item) => {
       const demand = demandMap.get(item.demandId);
-      if (!demand || !demand.demandNumber || !['PUBLISHED', 'PARTIALLY_PAID'].includes(demand.status) || demand.outstandingPaise <= 0) {
+      if (!demand || !demand.demandNumber || !PAYABLE_DEMAND_STATUSES.includes(demand.status) || demand.outstandingPaise <= 0) {
         throw new ValidationError('One or more selected demands are not eligible for payment allocation');
       }
       if (item.amountPaise > demand.outstandingPaise) throw new ValidationError('Allocation cannot exceed the demand outstanding amount');
@@ -155,7 +162,7 @@ export class McrPaymentVerificationService {
     const demands = await MaintenanceDemand.find({
       societyId,
       flatId: payment.flatId,
-      status: { $in: ['PUBLISHED', 'PARTIALLY_PAID'] },
+      status: { $in: PAYABLE_DEMAND_STATUSES },
       outstandingPaise: { $gt: 0 },
     }).sort({ dueDate: 1, createdAt: 1 });
     if (!demands.length) {
