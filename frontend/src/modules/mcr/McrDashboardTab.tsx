@@ -5,7 +5,7 @@ import { StatCard } from '../../components/common/StatCard';
 import { CardSkeleton } from '../../components/common/LoadingSkeleton';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
-import { formatPaise, McrReportSummary } from './mcr.types';
+import { formatPaise, McrReportSummary, McrTowerSummary } from './mcr.types';
 import { hasMcrAdminAccess } from './mcr.permissions';
 
 export function McrDashboardTab() {
@@ -20,6 +20,14 @@ export function McrDashboardTab() {
     queryKey: ['mcr-summary', societyId, flatId],
     queryFn: () => extractData<McrReportSummary>(api.get('/mcr/reports/summary', { params: { societyId, ...(flatId ? { flatId } : {}) } })),
     enabled: !!societyId,
+  });
+
+  // Block-wise breakdown only makes sense for the admin's society-wide view, not a single
+  // resident's own flat statement.
+  const { data: towerSummaries } = useQuery({
+    queryKey: ['mcr-summary-by-tower', societyId],
+    queryFn: () => extractData<McrTowerSummary[]>(api.get('/mcr/reports/summary-by-tower', { params: { societyId } })),
+    enabled: !!societyId && isAdminView,
   });
 
   if (isLoading) return <CardSkeleton count={6} />;
@@ -48,6 +56,40 @@ export function McrDashboardTab() {
           <div><p className="text-slate-500">Advance Balance</p><p className="font-semibold text-slate-800">{formatPaise(summary?.advanceBalancePaise)}</p></div>
         </div>
       </div>
+
+      {(towerSummaries?.length || 0) > 1 && (
+        <div className="card">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h3 className="section-title">Block-wise Billing</h3>
+          </div>
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {towerSummaries!.map((t) => {
+              const pct = t.totalDemandPaise > 0 ? Math.round((t.paidPaise / t.totalDemandPaise) * 100) : 0;
+              return (
+                <div key={t.towerId} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-slate-800 truncate">{t.towerName}</span>
+                    <span className="text-xs font-medium text-slate-400">{pct}% collected</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div><p className="text-slate-500">Billed</p><p className="font-semibold text-slate-800">{formatPaise(t.totalDemandPaise)}</p></div>
+                    <div><p className="text-slate-500">Collected</p><p className="font-semibold text-emerald-600">{formatPaise(t.paidPaise)}</p></div>
+                    <div><p className="text-slate-500">Outstanding</p><p className="font-semibold text-amber-600">{formatPaise(t.outstandingPaise)}</p></div>
+                    <div><p className="text-slate-500">Overdue</p><p className="font-semibold text-red-600">{formatPaise(t.overduePaise)}</p></div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-slate-200">
+                    <span>{t.demandCount} demands</span>
+                    <span>{t.issuedReceiptCount} receipts</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

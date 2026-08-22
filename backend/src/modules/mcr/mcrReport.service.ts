@@ -5,6 +5,7 @@ import { McrPaymentAllocation } from './mcrPaymentAllocation.model';
 import { McrPaymentRecord } from './mcrPaymentRecord.model';
 import { McrReceipt } from './mcrReceipt.model';
 import { McrReportQuery } from './mcrReport.schemas';
+import { Tower } from '../tower/tower.model';
 
 function buildScope(societyId: string, flatId?: string) {
   const scope: Record<string, unknown> = { societyId: new mongoose.Types.ObjectId(societyId) };
@@ -60,6 +61,70 @@ export class McrReportService {
       advanceBalancePaise,
       issuedReceiptCount: receiptCount,
     };
+  }
+
+  async getSummaryByTower(societyId: string) {
+    const scope = buildScope(societyId);
+    const now = new Date();
+    const societyObjectId = new mongoose.Types.ObjectId(societyId);
+
+    const [towers, demandRows, paymentRows, receiptRows] = await Promise.all([
+      Tower.find({ societyId, isActive: true }).select('_id name').sort({ name: 1 }),
+      MaintenanceDemand.aggregate([
+        { $match: { ...scope, status: { $nin: ['DRAFT', 'CANCELLED'] } } },
+        {
+          $group: {
+            _id: '$flatSnapshot.towerId',
+            demandCount: { $sum: 1 },
+            totalDemandPaise: { $sum: '$totalDemandPaise' },
+            paidPaise: { $sum: '$paidPaise' },
+            outstandingPaise: { $sum: '$outstandingPaise' },
+            overduePaise: {
+              $sum: {
+                $cond: [{ $and: [{ $gt: ['$outstandingPaise', 0] }, { $lt: ['$dueDate', now] }] }, '$outstandingPaise', 0],
+              },
+            },
+          },
+        },
+      ]),
+      // Payments don't carry a tower snapshot the way demands do, so this joins back to Flat —
+      // fine here since it's one dashboard-load aggregation, not a per-row list query.
+      McrPaymentRecord.aggregate([
+        { $match: { societyId: societyObjectId, status: 'VERIFIED' } },
+        { $lookup: { from: 'flats', localField: 'flatId', foreignField: '_id', as: 'flat' } },
+        { $unwind: { path: '$flat', preserveNullAndEmptyArrays: true } },
+        { $group: { _id: '$flat.towerId', collectionCount: { $sum: 1 }, collectedPaise: { $sum: '$amountPaise' } } },
+      ]),
+      McrReceipt.aggregate([
+        { $match: { societyId: societyObjectId, status: 'ISSUED' } },
+        { $lookup: { from: 'flats', localField: 'flatId', foreignField: '_id', as: 'flat' } },
+        { $unwind: { path: '$flat', preserveNullAndEmptyArrays: true } },
+        { $group: { _id: '$flat.towerId', issuedReceiptCount: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const demandByTower = new Map(demandRows.map((r) => [String(r._id), r]));
+    const paymentByTower = new Map(paymentRows.map((r) => [String(r._id), r]));
+    const receiptByTower = new Map(receiptRows.map((r) => [String(r._id), r]));
+
+    return towers.map((tower) => {
+      const towerId = tower._id.toString();
+      const demand = demandByTower.get(towerId);
+      const payment = paymentByTower.get(towerId);
+      const receipt = receiptByTower.get(towerId);
+      return {
+        towerId,
+        towerName: tower.name,
+        demandCount: demand?.demandCount || 0,
+        totalDemandPaise: demand?.totalDemandPaise || 0,
+        paidPaise: demand?.paidPaise || 0,
+        outstandingPaise: demand?.outstandingPaise || 0,
+        overduePaise: demand?.overduePaise || 0,
+        collectionCount: payment?.collectionCount || 0,
+        collectedPaise: payment?.collectedPaise || 0,
+        issuedReceiptCount: receipt?.issuedReceiptCount || 0,
+      };
+    });
   }
 
   async getStatement(societyId: string, flatId: string) {

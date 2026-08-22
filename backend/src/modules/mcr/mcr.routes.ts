@@ -63,6 +63,7 @@ router.post('/receipts/:receiptId/replace', requirePermission(PERMISSIONS.MCR_VO
 router.post('/receipts/:receiptId/send', requirePermission(PERMISSIONS.MCR_GENERATE_RECEIPT), mcrReceiptController.send.bind(mcrReceiptController));
 router.post('/reminders/run', requirePermission(PERMISSIONS.MCR_SEND_REMINDER), mcrReminderController.runOutstanding.bind(mcrReminderController));
 router.get('/reports/summary', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getSummary.bind(mcrReportController));
+router.get('/reports/summary-by-tower', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getSummaryByTower.bind(mcrReportController));
 router.get('/reports/statement', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.getStatement.bind(mcrReportController));
 router.get('/reports/collections', requireAnyPermission(...MCR_ROUTE_PERMISSIONS, PERMISSIONS.MCR_EXPORT_REPORTS), mcrReportController.listCollections.bind(mcrReportController));
 

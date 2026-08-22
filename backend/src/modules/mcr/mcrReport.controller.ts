@@ -31,6 +31,16 @@ export class McrReportController {
     }
   }
 
+  async getSummaryByTower(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const summary = await mcrReportService.getSummaryByTower(context.societyId);
+      sendSuccess(res, summary, 'MCR tower-wise summary retrieved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getStatement(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);

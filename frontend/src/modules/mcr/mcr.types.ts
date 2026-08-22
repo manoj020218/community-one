@@ -178,6 +178,19 @@ export interface McrReportSummary {
   issuedReceiptCount: number;
 }
 
+export interface McrTowerSummary {
+  towerId: string;
+  towerName: string;
+  demandCount: number;
+  totalDemandPaise: number;
+  paidPaise: number;
+  outstandingPaise: number;
+  overduePaise: number;
+  collectionCount: number;
+  collectedPaise: number;
+  issuedReceiptCount: number;
+}
+
 export interface McrStatement {
   flatId: string;
   summary: McrReportSummary;
