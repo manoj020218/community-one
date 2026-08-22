@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { ConflictError, NotFoundError, ValidationError } from '../../common/errors/AppError';
+import { logger } from '../../common/utils/logger';
 import { Flat } from '../flat/flat.model';
 import { FileAsset } from '../fileAsset/fileAsset.model';
 import { Resident } from '../resident/resident.model';
@@ -170,6 +171,13 @@ export class McrPaymentService {
       });
     } catch (error: any) {
       if (error?.code === 11000) {
+        logger.warn('MCR payment insert duplicate key:', {
+          societyId: context.societyId,
+          flatId: dto.flatId,
+          paymentNumber,
+          keyPattern: error.keyPattern,
+          keyValue: error.keyValue,
+        });
         throw new ConflictError('Duplicate MCR payment submission detected');
       }
       throw error;
