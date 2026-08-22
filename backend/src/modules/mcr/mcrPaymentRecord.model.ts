@@ -89,7 +89,17 @@ const McrPaymentRecordSchema = new Schema(
 );
 
 McrPaymentRecordSchema.index({ societyId: 1, paymentNumber: 1 }, { unique: true });
-McrPaymentRecordSchema.index({ societyId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });
+// `sparse` only excludes a document when ALL of a compound index's fields are missing — since
+// societyId is always present here, sparse gave no protection at all: every payment missing
+// idempotencyKey (i.e. every manually-recorded one, since only WhatsApp-inbound payments set
+// it) got indexed as { societyId, idempotencyKey: null }, so only the FIRST such payment per
+// society could ever be inserted and every later one failed as a false "duplicate". A
+// partialFilterExpression is the correct way to say "unique only when the field is actually
+// set" for a compound index like this.
+McrPaymentRecordSchema.index(
+  { societyId: 1, idempotencyKey: 1 },
+  { unique: true, partialFilterExpression: { idempotencyKey: { $exists: true } } }
+);
 McrPaymentRecordSchema.index({ societyId: 1, flatId: 1, status: 1, paymentDate: -1 });
 
 export const McrPaymentRecord: Model<IMcrPaymentRecordDocument> = mongoose.model<IMcrPaymentRecordDocument>(
