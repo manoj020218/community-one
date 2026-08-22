@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Download, Image as ImageIcon, Share2, Ban, Send } from 'lucide-react';
+import { Eye, Download, Image as ImageIcon, Share2, Ban, Send, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
 import { EmptyState } from '../../components/common/EmptyState';
 import { TableSkeleton } from '../../components/common/LoadingSkeleton';
+import { SortableTh } from '../../components/common/SortableTh';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn, formatDate } from '../../utils/cn';
@@ -18,16 +19,41 @@ export function McrReceiptsTab() {
   const queryClient = useQueryClient();
 
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('issuedAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [reasonPrompt, setReasonPrompt] = useState<{ receiptId: string; action: 'void' | 'replace' } | null>(null);
   const [reason, setReason] = useState('');
   const [sendPrompt, setSendPrompt] = useState<string | null>(null);
   const [channels, setChannels] = useState<string[]>(['IN_APP']);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['mcr-receipts', societyId, statusFilter],
-    queryFn: () => extractData<McrReceipt[]>(api.get('/mcr/receipts', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}) } })),
+  const { data: rawData, isLoading } = useQuery({
+    queryKey: ['mcr-receipts', societyId, statusFilter, search],
+    queryFn: () => extractData<McrReceipt[]>(api.get('/mcr/receipts', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}), ...(search ? { search } : {}) } })),
     enabled: !!societyId,
   });
+
+  const toggleSort = (field: string) => {
+    if (sortBy === field) { setSortDir((d) => (d === 'asc' ? 'desc' : 'asc')); return; }
+    setSortBy(field);
+    setSortDir('asc');
+  };
+
+  const sortValue = (r: McrReceipt): string | number => {
+    switch (sortBy) {
+      case 'payerName': return r.paymentSnapshot.payerName.toLowerCase();
+      case 'amountPaise': return r.amountPaise;
+      case 'status': return r.status;
+      case 'issuedAt': default: return new Date(r.issuedAt).getTime();
+    }
+  };
+
+  const data = rawData ? [...rawData].sort((a, b) => {
+    const av = sortValue(a);
+    const bv = sortValue(b);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  }) : rawData;
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['mcr-receipts'] });
 
@@ -56,7 +82,11 @@ export function McrReceiptsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input placeholder="Search payer, flat, receipt #..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pl-10 w-64" />
+        </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
           <option value="">All statuses</option>
           {MCR_RECEIPT_STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -70,16 +100,18 @@ export function McrReceiptsTab() {
           <table className="w-full">
             <thead><tr>
               <th className="table-header text-left">Receipt #</th>
+              <SortableTh label="Payer" field="payerName" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
               <th className="table-header text-left">Flat</th>
-              <th className="table-header text-left">Amount</th>
-              <th className="table-header text-left">Issued</th>
-              <th className="table-header text-left">Status</th>
+              <SortableTh label="Amount" field="amountPaise" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh label="Issued" field="issuedAt" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+              <SortableTh label="Status" field="status" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
               <th className="table-header text-left">Actions</th>
             </tr></thead>
             <tbody>
               {data.map((receipt) => (
                 <tr key={receipt._id} className="table-row">
                   <td className="table-cell font-mono text-xs">{receipt.receiptNumber}</td>
+                  <td className="table-cell text-sm text-slate-700">{receipt.paymentSnapshot.payerName}</td>
                   <td className="table-cell text-xs text-slate-600">{typeof receipt.flatId === 'object' ? receipt.flatId.flatNo : receipt.flatId}</td>
                   <td className="table-cell font-semibold">{formatPaise(receipt.amountPaise)}</td>
                   <td className="table-cell text-xs text-slate-500">{formatDate(receipt.issuedAt)}</td>

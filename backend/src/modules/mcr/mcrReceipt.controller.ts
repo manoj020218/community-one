@@ -28,7 +28,11 @@ export class McrReceiptController {
   async list(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);
-      sendSuccess(res, await mcrReceiptQueryService.listBySociety(context.societyId, req.query.status as string | undefined), 'MCR receipts retrieved');
+      sendSuccess(
+        res,
+        await mcrReceiptQueryService.listBySociety(context.societyId, req.query.status as string | undefined, req.query.search as string | undefined),
+        'MCR receipts retrieved'
+      );
     } catch (error) { next(error); }
   }
 

@@ -23,7 +23,8 @@ export class McrPaymentController {
       const items = await mcrPaymentService.listBySociety(
         context.societyId,
         req.query.status as string | undefined,
-        req.query.towerId as string | undefined
+        req.query.towerId as string | undefined,
+        req.query.search as string | undefined
       );
       sendSuccess(res, items, 'MCR payments retrieved');
     } catch (error) {

@@ -36,13 +36,31 @@ interface PaymentInsertInput {
 }
 
 export class McrPaymentService {
-  async listBySociety(societyId: string, status?: string, towerId?: string): Promise<IMcrPaymentRecordDocument[]> {
+  async listBySociety(societyId: string, status?: string, towerId?: string, search?: string): Promise<IMcrPaymentRecordDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
+
+    let flatScopeIds: string[] | undefined;
     if (towerId) {
       const towerFlats = await Flat.find({ towerId }).select('_id');
-      query.flatId = { $in: towerFlats.map((f) => f._id) };
+      flatScopeIds = towerFlats.map((f) => f._id.toString());
+      query.flatId = { $in: flatScopeIds };
     }
+
+    if (search) {
+      // flatNo lives on Flat, not the payment — resolve matching flats first (scoped to the
+      // tower filter above, if any) so searching "206" finds the right payments too.
+      const flatQuery: Record<string, unknown> = { societyId, flatNo: { $regex: search, $options: 'i' } };
+      if (flatScopeIds) flatQuery._id = { $in: flatScopeIds };
+      const matchingFlats = await Flat.find(flatQuery).select('_id');
+      query.$or = [
+        { paymentNumber: { $regex: search, $options: 'i' } },
+        { payerName: { $regex: search, $options: 'i' } },
+        { payerMobile: { $regex: search, $options: 'i' } },
+        ...(matchingFlats.length ? [{ flatId: { $in: matchingFlats.map((f) => f._id) } }] : []),
+      ];
+    }
+
     return McrPaymentRecord.find(query)
       .sort({ receivedDate: -1, createdAt: -1 })
       .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name' } })
