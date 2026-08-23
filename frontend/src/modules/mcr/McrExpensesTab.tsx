@@ -10,8 +10,10 @@ import { SortableTh } from '../../components/common/SortableTh';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { cn, formatDate } from '../../utils/cn';
-import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_MODES, EXPENSE_STATUSES, EXPENSE_STATUS_BADGE, Expense, formatPaise, McrOpeningBalance } from './mcr.types';
+import { EXPENSE_CATEGORIES, EXPENSE_PAYMENT_MODES, EXPENSE_STATUSES, EXPENSE_STATUS_BADGE, Expense, formatPaise, McrExpenseCategory, McrOpeningBalance } from './mcr.types';
 import { OpeningBalanceEmptyState, OpeningBalanceWizard } from './OpeningBalanceWizard';
+
+const CREATE_NEW_CATEGORY = '__create_new_category__';
 
 const BLANK_FORM = {
   category: 'OTHER' as string, amountPaise: '', paymentMode: 'CASH' as string,
@@ -35,11 +37,33 @@ export function McrExpensesTab() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Expense | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const { data: opening, isLoading: openingLoading } = useQuery({
     queryKey: ['mcr-opening-balance', societyId],
     queryFn: () => extractData<McrOpeningBalance | null>(api.get('/mcr/opening-balance', { params: { societyId } })),
     enabled: !!societyId,
+  });
+
+  const { data: customCategories } = useQuery({
+    queryKey: ['mcr-expense-categories', societyId],
+    queryFn: () => extractData<McrExpenseCategory[]>(api.get('/mcr/expense-categories', { params: { societyId } })),
+    enabled: !!societyId,
+  });
+
+  const allCategories = [...EXPENSE_CATEGORIES, ...(customCategories || []).map((c) => c.name)];
+
+  const createCategoryMutation = useMutation({
+    mutationFn: () => api.post('/mcr/expense-categories', { societyId, name: newCategoryName.trim() }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ['mcr-expense-categories'] });
+      const created = res.data?.data?.name || newCategoryName.trim();
+      setForm((f) => ({ ...f, category: created }));
+      setShowNewCategory(false);
+      setNewCategoryName('');
+      toast.success(`Category "${created}" added`);
+    },
   });
 
   const { data: rawData, isLoading } = useQuery({
@@ -100,7 +124,7 @@ export function McrExpensesTab() {
         proofFileIds,
       });
     },
-    onSuccess: () => { invalidate(); setShowModal(false); setForm(BLANK_FORM); setProofFile(null); toast.success('Expense recorded'); },
+    onSuccess: () => { invalidate(); closeModal(); toast.success('Expense recorded'); },
   });
 
   const cancelMutation = useMutation({
@@ -109,6 +133,14 @@ export function McrExpensesTab() {
   });
 
   const set = (k: keyof typeof BLANK_FORM) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const closeModal = () => {
+    setShowModal(false);
+    setForm(BLANK_FORM);
+    setProofFile(null);
+    setShowNewCategory(false);
+    setNewCategoryName('');
+  };
 
   if (openingLoading) return <TableSkeleton rows={4} cols={5} />;
 
@@ -131,7 +163,7 @@ export function McrExpensesTab() {
           </div>
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="input w-auto">
             <option value="">All categories</option>
-            {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
+            {allCategories.map((c) => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
           </select>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
             <option value="">All statuses</option>
@@ -198,13 +230,41 @@ export function McrExpensesTab() {
         </div>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Record Expense">
+      <Modal isOpen={showModal} onClose={closeModal} title="Record Expense">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div><label className="label">Category <span className="text-red-500">*</span></label>
-              <select value={form.category} onChange={(e) => set('category')(e.target.value)} className="input">
-                {EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
-              </select></div>
+              <select
+                value={form.category}
+                onChange={(e) => {
+                  if (e.target.value === CREATE_NEW_CATEGORY) { setShowNewCategory(true); return; }
+                  set('category')(e.target.value);
+                }}
+                className="input"
+              >
+                {allCategories.map((c) => <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>)}
+                <option value={CREATE_NEW_CATEGORY}>+ Create Category...</option>
+              </select>
+              {showNewCategory && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="e.g. Gardening, Lift AMC"
+                    className="input flex-1"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => createCategoryMutation.mutate()}
+                    disabled={createCategoryMutation.isPending || !newCategoryName.trim()}
+                    className="btn-primary text-sm px-3 py-2 whitespace-nowrap"
+                  >
+                    {createCategoryMutation.isPending ? 'Adding...' : 'Add'}
+                  </button>
+                  <button onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }} className="btn-secondary text-sm px-3 py-2">✕</button>
+                </div>
+              )}
+            </div>
             <div><label className="label">Amount (₹) <span className="text-red-500">*</span></label>
               <input type="number" min={0} value={form.amountPaise} onChange={(e) => set('amountPaise')(e.target.value)} className="input" /></div>
           </div>
@@ -232,7 +292,7 @@ export function McrExpensesTab() {
             <button onClick={() => recordMutation.mutate()} disabled={recordMutation.isPending || !form.paidTo || !form.amountPaise} className="btn-primary flex-1">
               {recordMutation.isPending ? 'Recording...' : 'Record Expense'}
             </button>
-            <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+            <button onClick={closeModal} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

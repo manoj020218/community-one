@@ -1,10 +1,13 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
+// Built-in suggestions only — not a validation enum. A society can add its own categories
+// (see mcrExpenseCategory.model.ts) to match its own norms, so `category` on the Expense
+// document itself is a free string, not restricted to this list.
 export const EXPENSE_CATEGORIES = [
   'SALARY', 'ELECTRICITY', 'WATER', 'REPAIRS', 'SECURITY',
   'HOUSEKEEPING', 'INSURANCE', 'ADMIN', 'OTHER',
 ] as const;
-export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+export type ExpenseCategory = string;
 
 export const EXPENSE_PAYMENT_MODES = ['CASH', 'BANK'] as const;
 export type ExpensePaymentMode = typeof EXPENSE_PAYMENT_MODES[number];
@@ -35,7 +38,7 @@ const ExpenseSchema = new Schema(
   {
     societyId: { type: Schema.Types.ObjectId, ref: 'Society', required: true },
     expenseNumber: { type: String, required: true, trim: true },
-    category: { type: String, enum: EXPENSE_CATEGORIES, required: true },
+    category: { type: String, required: true, trim: true },
     amountPaise: { type: Number, required: true, min: 1 },
     paymentMode: { type: String, enum: EXPENSE_PAYMENT_MODES, required: true },
     paidTo: { type: String, required: true, trim: true },

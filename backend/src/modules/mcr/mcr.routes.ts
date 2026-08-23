@@ -16,6 +16,7 @@ import { mcrReportController } from './mcrReport.controller';
 import { mcrReceiptController } from './mcrReceipt.controller';
 import { mcrSettingsController } from './mcrSettings.controller';
 import { expenseController } from './expense.controller';
+import { mcrExpenseCategoryController } from './mcrExpenseCategory.controller';
 import { mcrOpeningBalanceController } from './mcrOpeningBalance.controller';
 
 const router: Router = Router();
@@ -75,6 +76,9 @@ router.get('/reports/income-expenditure', requireAnyPermission(...MCR_ROUTE_PERM
 router.get('/expenses', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.list.bind(expenseController));
 router.post('/expenses', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.create.bind(expenseController));
 router.post('/expenses/:id/cancel', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), expenseController.cancel.bind(expenseController));
+
+router.get('/expense-categories', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), mcrExpenseCategoryController.list.bind(mcrExpenseCategoryController));
+router.post('/expense-categories', requirePermission(PERMISSIONS.MCR_MANAGE_EXPENSE), mcrExpenseCategoryController.create.bind(mcrExpenseCategoryController));
 
 router.get('/opening-balance', requireAnyPermission(PERMISSIONS.MCR_MANAGE_OPENING_BALANCE, PERMISSIONS.MCR_MANAGE_EXPENSE, PERMISSIONS.MCR_VIEW_ALL), mcrOpeningBalanceController.get.bind(mcrOpeningBalanceController));
 router.patch('/opening-balance', requirePermission(PERMISSIONS.MCR_MANAGE_OPENING_BALANCE), mcrOpeningBalanceController.set.bind(mcrOpeningBalanceController));

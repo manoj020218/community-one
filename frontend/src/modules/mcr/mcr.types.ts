@@ -224,7 +224,9 @@ export interface McrGatewayConfig {
   autoVerifySuccessfulPayments: boolean;
 }
 
-export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+// Free string, not an enum — EXPENSE_CATEGORIES above is just built-in suggestions; a society
+// can add its own via mcr/expense-categories.
+export type ExpenseCategory = string;
 export type ExpensePaymentMode = typeof EXPENSE_PAYMENT_MODES[number];
 export type ExpenseStatus = typeof EXPENSE_STATUSES[number];
 
@@ -241,6 +243,11 @@ export interface Expense {
   status: ExpenseStatus;
   cancellationReason?: string;
   createdAt?: string;
+}
+
+export interface McrExpenseCategory {
+  _id: string;
+  name: string;
 }
 
 export interface McrOpeningBalance {
