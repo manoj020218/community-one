@@ -12,6 +12,26 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-23 — MCR Fund Balance (opening dues + expenses), draft-demand editing, guard roster & gate assignment UI
+
+**New: MCR Fund Balance feature** — built for onboarding existing societies with real accounting history (e.g. "society running 5 years, admin just joined the platform this month, has ₹50,000 in hand and pending dues on old flats — how do we get an accurate starting point without re-entering years of history?"):
+- **Opening Balance** (`mcrOpeningBalance.model/service/controller.ts`) — one-time per-society entry of starting Cash + Bank balance as of a chosen date, plus an optional bulk wizard (`OpeningBalanceWizard.tsx`) to enter each flat's pre-platform pending dues in one screen. Each flat's opening due becomes a real, immediately-published `MaintenanceDemand` with `demandType: 'OPENING_BALANCE'` (backed by an auto-created hidden `ChargeHead`/`BillingPlan`), so it flows through the exact same payment/receipt/outstanding pipeline as any other demand — no parallel ledger. Idempotent: re-running the bulk wizard skips flats that already have one.
+- **Expenses** (`expense.model/service/controller.ts`, new MCR tab `McrExpensesTab.tsx`) — record/cancel expenses with category, amount, payment mode (Cash/Bank), payee, date, and optional proof file upload. Category dropdown supports **"+ Create Category"** inline (`mcrExpenseCategory.model/service.ts`) so admins aren't boxed into a fixed built-in list.
+- **Fund Balance card** (MCR Dashboard) and **Income & Expenditure Statement** (MCR Reports, date-range picker) — both computed **live** from source records every time (opening balance + verified payments by method − expenses by mode), never a stored running total that could drift out of sync — same principle already learned the hard way from the `Tower.totalFlats` staleness bug in the 08-22 entry below.
+- New permissions `mcr.manage_expense`, `mcr.manage_opening_balance` (granted to SOCIETY_ADMIN; `mcr.manage_expense` also to ACCOUNTANT).
+
+**Draft demand editing** — the `MCR_EDIT_DRAFT_DEMAND` permission existed but had no UI wired to it. `McrDemandsTab.tsx` now shows an Edit button on DRAFT-status rows (per-charge-line amount + due-date edit, `PATCH /mcr/demands/:demandId`, `demandDraft.service.ts` `updateDraft`) — lets an admin correct or backdate a draft before publishing instead of only being able to delete/regenerate it.
+
+**Dropdown truncation bug (11 files)** — flat/resident/payment dropdowns were hardcoded to `?limit=200`, even though the backend cap had already been raised to 500 earlier. Large blocks (e.g. a 128-flat tower placed after another in list order) silently vanished past item #200 in every "Select Flat" style dropdown. Bumped to `limit=500` across `AccessControlPage`, `LeaseFormModal`, `McrPaymentsTab`, `McrReportsTab`, `ParentLinksAdminPage`, `PaymentPage`, `PetPage`, `ReceiptPage`, `ResidentPage`, `SamaStaffTab`, `VehiclePage`. Add Resident's flat picker also now pre-scopes to the currently-selected block/tower segment instead of showing the whole society's flats.
+
+**New: Guard Roster & Gate Assignment UI** (Visitor Monitoring) — the backend for gate↔block mapping and guard↔gate assignment (`Gate.towerIds`, `GuardAssignment.gateIds`, and visitor-list scoping by a guard's assigned gates) already existed and worked, but had **no admin UI anywhere** — a new `SECURITY_GUARD` user had no way to be assigned a gate except calling the API directly. New `frontend/src/modules/visitor/GuardsAndGatesPanel.tsx`, rendered in `AdminVisitorView.tsx` below the existing grid (gated on `gate.read`): a Gates list+CRUD (name, code, entry type, multi-select of covered blocks — one gate can serve one or several blocks) and a Guard Roster (one card per `SECURITY_GUARD` user showing assigned gates/blocks, an amber "not assigned — won't see any visitors" state if none, and an Assign/Edit modal for gates + optional shift times/validity dates). No backend changes needed.
+
+**Other:** WhatsApp linked-number display (from 08-22) confirmed working for Dheeraj Jain's society. Report catalog/`SOCIETY_LIST` scoping fix (08-22) re-verified.
+
+**Deploy note:** this day's frontend build succeeded on the first try without needing the temporary-swapfile workaround (see "Builds OOM-killing?" below) — box memory pressure varies day to day depending on the other ~18 tenants, always try a plain build first.
+
+---
+
 ### 2026-08-22 — MCR billing-accuracy fixes, configurable vacant/unsold flat policy, block-wise dashboards
 
 **MCR bug fixes (all found via live production reports, all deployed same-day):**
