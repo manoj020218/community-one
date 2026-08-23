@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { User } from '../../types';
 import toast from 'react-hot-toast';
+import { ShareCredentialsModal, NewUserCredentials } from './ShareCredentialsModal';
 
 // Lower number = higher authority
 const ROLE_RANK: Record<string, number> = {
@@ -77,6 +78,7 @@ export function MembersManagementPanel() {
   const [showModal, setShowModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ ...BLANK_FORM, societyId });
+  const [shareCredentials, setShareCredentials] = useState<NewUserCredentials | null>(null);
 
   const myRank = ROLE_RANK[currentUser?.roleCode || ''] ?? 0;
   const creatableRoles = ALL_ROLES.filter((r) => ROLE_RANK[r] > myRank);
@@ -89,11 +91,18 @@ export function MembersManagementPanel() {
 
   const mutation = useMutation({
     mutationFn: (data: any) => api.post('/users', data),
-    onSuccess: () => {
+    onSuccess: (_res, submittedForm) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setShowModal(false);
-      setForm({ ...BLANK_FORM, societyId });
       toast.success('User created!');
+      setShareCredentials({
+        name: submittedForm.name,
+        roleLabel: ROLE_LABELS[submittedForm.roleCode] || submittedForm.roleCode,
+        email: submittedForm.email,
+        mobile: submittedForm.mobile,
+        password: submittedForm.password,
+      });
+      setForm({ ...BLANK_FORM, societyId });
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.error?.message || 'Failed to create user');
@@ -296,6 +305,12 @@ export function MembersManagementPanel() {
           </div>
         </div>
       </Modal>
+
+      <ShareCredentialsModal
+        credentials={shareCredentials}
+        onClose={() => setShareCredentials(null)}
+        societyName={currentSociety?.name}
+      />
     </div>
   );
 }

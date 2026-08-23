@@ -3,6 +3,7 @@ import QRCode from 'qrcode';
 import { Copy, Check, MessageCircle, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Modal } from '../../components/common/Modal';
+import { getApkUrl } from '../../utils/apkShare';
 
 interface ShareAppModalProps {
   isOpen: boolean;
@@ -10,12 +11,10 @@ interface ShareAppModalProps {
   societyName?: string;
 }
 
-const APK_PATH = '/downloads/jenix-community.apk';
-
 export function ShareAppModal({ isOpen, onClose, societyName }: ShareAppModalProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const apkUrl = `${window.location.origin}${APK_PATH}`;
+  const apkUrl = getApkUrl();
   const shareMessage = `Download the ${societyName ? `${societyName} ` : ''}Jenix Community app here:\n${apkUrl}\n\nInstall steps:\n1. Tap the link and download the file\n2. If prompted, allow "Install unknown apps" for your browser\n3. Open the installed app and log in with the username/password shared with you`;
 
   useEffect(() => {
