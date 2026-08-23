@@ -12,6 +12,14 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-23 (cont'd) — APK distribution: Share App on Dashboard + Share Credentials on user creation
+
+Until the app is on the Play Store, admins hand out the APK directly. Two additions, both using a new shared `getApkUrl()` helper (`frontend/src/utils/apkShare.ts`) pointing at the already-hosted `/downloads/jenix-community.apk`:
+- **"Share App" on the Society Admin Dashboard** (`ShareAppModal.tsx`) — copyable direct link, a scannable QR (client-side via the `qrcode` npm package, newly added to the frontend), and a WhatsApp share button with install steps pre-filled. For handing the link to anyone generically.
+- **"Share Login Credentials" right after creating a user** (`ShareCredentialsModal.tsx`, wired into `MembersManagementPanel.tsx`'s Add User flow) — since the admin types the password themselves at creation (no auto-generation in this flow), the moment right after `POST /users` succeeds is the only time both the identifier and password are known together. The modal shows them, and a WhatsApp share pre-fills the new user's own mobile number as the recipient (parsed to `91XXXXXXXXXX`) with a message containing mobile+password+APK link+install steps — one tap from admin to the new guard/resident/staff member's WhatsApp.
+
+Deliberately did **not** touch the Resident creation flow — residents-as-login-users (OWNER/TENANT roles) are created through this same Users/MembersManagementPanel, not a separate resident-specific form, so one integration point covers both.
+
 ### 2026-08-23 — MCR Fund Balance (opening dues + expenses), draft-demand editing, guard roster & gate assignment UI
 
 **New: MCR Fund Balance feature** — built for onboarding existing societies with real accounting history (e.g. "society running 5 years, admin just joined the platform this month, has ₹50,000 in hand and pending dues on old flats — how do we get an accurate starting point without re-entering years of history?"):
