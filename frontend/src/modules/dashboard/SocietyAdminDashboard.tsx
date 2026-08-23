@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle, UserCheck, MessageCircle } from 'lucide-react';
+import { Building2, Users, Car, Cat, Layers3, CreditCard, Bell, Puzzle, ArrowRight, Plus, AlertCircle, UserCheck, MessageCircle, Smartphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api, extractData } from '../../services/api';
 import { StatCard } from '../../components/common/StatCard';
@@ -11,6 +11,7 @@ import { useSocietyStore } from '../../store/societyStore';
 import { useTerminology } from '../../utils/terminology';
 import { cn } from '../../utils/cn';
 import { WhatsAppStatus } from '../settings/communicationTypes';
+import { ShareAppModal } from './ShareAppModal';
 
 interface TowerFlatStats {
   towerId: string;
@@ -29,6 +30,7 @@ export function SocietyAdminDashboard() {
   const societyId = currentSociety?._id || user?.societyId;
   const queryClient = useQueryClient();
   const [showWaModal, setShowWaModal] = useState(false);
+  const [showShareApp, setShowShareApp] = useState(false);
 
   const { data: flatStats } = useQuery({
     queryKey: ['flat-stats', societyId],
@@ -99,6 +101,9 @@ export function SocietyAdminDashboard() {
           <div className="flex gap-3 mt-4">
             <button onClick={() => navigate('/residents')} className="flex items-center gap-2 bg-white text-emerald-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-50 transition-colors">
               <Plus className="w-4 h-4" /> Add Resident
+            </button>
+            <button onClick={() => setShowShareApp(true)} className="flex items-center gap-2 bg-white/15 text-white border border-white/25 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-white/25 transition-colors">
+              <Smartphone className="w-4 h-4" /> Share App
             </button>
           </div>
         </div>
@@ -216,6 +221,13 @@ export function SocietyAdminDashboard() {
             <span className="text-sm font-medium text-slate-700">{a.label}</span>
           </button>
         ))}
+        <button onClick={() => setShowShareApp(true)}
+          className="card p-5 flex flex-col items-center gap-3 hover:shadow-card-hover hover:border-primary-200 transition-all border border-transparent">
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-teal-600 bg-teal-50">
+            <Smartphone className="w-6 h-6" />
+          </div>
+          <span className="text-sm font-medium text-slate-700">Share App</span>
+        </button>
       </div>
 
       <Modal isOpen={showWaModal} onClose={() => setShowWaModal(false)} title="Reconnect WhatsApp">
@@ -243,6 +255,8 @@ export function SocietyAdminDashboard() {
           </button>
         </div>
       </Modal>
+
+      <ShareAppModal isOpen={showShareApp} onClose={() => setShowShareApp(false)} societyName={currentSociety?.name} />
     </div>
   );
 }
