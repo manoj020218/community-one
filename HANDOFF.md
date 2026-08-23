@@ -12,6 +12,17 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-23 (cont'd 2) — "My Home": admin accounts that are also residents
+
+**Fixed the APK download** (marketing page and both new Share modals were silently broken): the app's PWA service worker (`vite-plugin-pwa`, generateSW mode) had no `navigateFallbackDenylist`, so it intercepted a plain link click to `/downloads/jenix-community.apk` as an SPA navigation and served `index.html` instead of the file — invisible to a `curl` check (which bypasses the service worker entirely) but broken for every real browser. Fixed with `navigateFallbackDenylist: [/^\/downloads\//]` in `frontend/vite.config.ts`, plus a `download` attribute on the marketing CTA. Anyone who visited before this fix needs one hard refresh to pick up the corrected service worker.
+
+**New: "My Home" for admin accounts that are also residents.** Real problem raised: at least one Society Admin is nearly always also personally a resident, but `email` is a *globally unique* index on `User` (`backend/src/modules/user/user.model.ts:34`) — one person literally cannot hold two separate login accounts (Admin + Owner) under the same email, and two logins under different emails is worse UX anyway. Rejected a login-time "As Resident / As Management" picker in favor of one identity, one login:
+- New `PATCH /users/:id/link-flat` (`USER_UPDATE` permission, same-society validated) ties an existing admin-rank account (SOCIETY_ADMIN/COMMITTEE_MEMBER/ACCOUNTANT/FACILITY_MANAGER) to their own flat — exposed as a "Link Flat" action per eligible row on the Users page (`MembersManagementPanel.tsx`), reusing the pattern of populating `flatId` with `flatNo`+`towerId.name` for display.
+- Granted `mcr.view_self`, `mcr.submit_payment`, `visitor.request.respond_own_flat` to those four admin-rank roles in `permissions.seed.ts` — these only actually surface anything once that specific account's `flatId` is set (a harmless empty state otherwise), since `McrMyMaintenanceTab.tsx` and the visitor own-flat views already key off `user.flatId` directly, not `roleCode` — confirmed this by reading the existing resident-facing components before building, which meant no changes were needed there at all.
+- A "My Home" pill appears in the top bar (`TopBar.tsx`) whenever `user.flatId` is set on one of those four roles, linking to a new `/my-home` route that reuses `ResidentDashboard` verbatim (zero modification — it was already driven by `user`/`hasPermission`, never gated on `roleCode`).
+- **Caveat:** `flatId` is baked into the JWT at login (`common/utils/jwt.ts`), so an admin whose account is freshly linked needs to log out and back in before "My Home" appears — same class of staleness as the earlier permissions-refresh issue.
+- Deliberately scoped to "admin who is also a resident of *this* society" — does not address one person administering multiple societies, which would need real multi-account/session switching.
+
 ### 2026-08-23 (cont'd) — APK distribution: Share App on Dashboard + Share Credentials on user creation
 
 Until the app is on the Play Store, admins hand out the APK directly. Two additions, both using a new shared `getApkUrl()` helper (`frontend/src/utils/apkShare.ts`) pointing at the already-hosted `/downloads/jenix-community.apk`:
