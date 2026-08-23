@@ -12,6 +12,7 @@ import { hasPermission } from '../../utils/permissions';
 import { VisitorRequest, VisitorSummary } from './types';
 import { withSocietyQuery } from './visitorApi';
 import { VisitorSettingsPanel } from './VisitorSettingsPanel';
+import { GuardsAndGatesPanel } from './GuardsAndGatesPanel';
 
 export function AdminVisitorView(props: { societyId: string; transport: string; pollingMs: number }) {
   const { user } = useAuthStore();
@@ -86,6 +87,7 @@ export function AdminVisitorView(props: { societyId: string; transport: string; 
           </div>
         </div>
       </div>
+      {hasPermission(user, 'gate.read') && <GuardsAndGatesPanel societyId={props.societyId} />}
     </div>
   );
 }

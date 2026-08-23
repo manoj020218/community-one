@@ -20,6 +20,27 @@ export interface VisitorGate {
   entryType: string;
 }
 
+export interface AdminGate {
+  _id: string;
+  name: string;
+  code: string;
+  description?: string;
+  entryType: 'ENTRY' | 'EXIT' | 'BOTH' | 'SERVICE';
+  towerIds: Array<{ _id: string; name: string; code: string }>;
+  isActive: boolean;
+}
+
+export interface GuardAssignment {
+  _id: string;
+  userId: { _id: string; name: string; email: string; roleCode: string } | string;
+  gateIds: Array<{ _id: string; name: string; code: string }>;
+  shiftStart?: string;
+  shiftEnd?: string;
+  validFrom?: string;
+  validUntil?: string;
+  isActive: boolean;
+}
+
 export interface VisitorFlatTile {
   _id: string;
   flatNo: string;
