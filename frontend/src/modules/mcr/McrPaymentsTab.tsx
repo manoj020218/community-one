@@ -46,7 +46,7 @@ export function McrPaymentsTab() {
 
   const { data: flats } = useQuery({
     queryKey: ['flats-list', societyId],
-    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)),
+    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)),
     enabled: !!societyId && showModal,
   });
 

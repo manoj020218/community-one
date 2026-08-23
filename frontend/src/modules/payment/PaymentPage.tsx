@@ -23,7 +23,7 @@ export function PaymentPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ societyId, flatId: '', amount: '', paymentPurpose: '', paymentMode: 'UPI', remarks: '' });
 
-  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)), enabled: !!societyId });
+  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)), enabled: !!societyId });
   const { data: summary } = useQuery({ queryKey: ['payment-summary', societyId], queryFn: () => extractData<any>(api.get(`/payments/society/${societyId}/summary`)), enabled: !!societyId });
   const { data, isLoading } = useQuery({ queryKey: ['payments', societyId], queryFn: () => extractData<any>(api.get(`/payments/society/${societyId}?limit=50`)), enabled: !!societyId });
 

@@ -66,7 +66,7 @@ export function AccessControlPage() {
 
   const { data: residents } = useQuery({
     queryKey: ['residents-society', societyId],
-    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=200`)),
+    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=500`)),
     enabled: !!societyId && (showCredentialModal || showPolicyModal || !!resolveEventId),
   });
 

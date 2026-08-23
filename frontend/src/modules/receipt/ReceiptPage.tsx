@@ -20,7 +20,7 @@ export function ReceiptPage() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({ societyId, paymentId: '', residentId: '', remarks: '' });
 
-  const { data: payments } = useQuery({ queryKey: ['payments-list', societyId], queryFn: () => extractData<any>(api.get(`/payments/society/${societyId}?limit=200&status=RECEIVED`)), enabled: !!societyId });
+  const { data: payments } = useQuery({ queryKey: ['payments-list', societyId], queryFn: () => extractData<any>(api.get(`/payments/society/${societyId}?limit=500&status=RECEIVED`)), enabled: !!societyId });
   const { data, isLoading } = useQuery({ queryKey: ['receipts', societyId, page], queryFn: () => extractData<any>(api.get(`/receipts/society/${societyId}?page=${page}&limit=20`)), enabled: !!societyId });
 
   const mutation = useMutation({

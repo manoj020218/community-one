@@ -51,7 +51,7 @@ export function ParentLinksAdminPage() {
 
   const { data: residentsRes } = useQuery({
     queryKey: ['residents-society', societyId],
-    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=200`)),
+    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=500`)),
     enabled: !!societyId && showModal,
   });
   const residentOptions: Resident[] = residentsRes?.items || [];

@@ -25,7 +25,7 @@ export function PetPage() {
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({ societyId, residentId: '', petName: '', petType: 'DOG', breed: '', aggressiveFlag: false, vaccinationExpiryDate: '' });
 
-  const { data: residents } = useQuery({ queryKey: ['residents-list', societyId], queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=200`)), enabled: !!societyId });
+  const { data: residents } = useQuery({ queryKey: ['residents-list', societyId], queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=500`)), enabled: !!societyId });
   const { data, isLoading } = useQuery({ queryKey: ['pets', societyId, page], queryFn: () => extractData<any>(api.get(`/pets/society/${societyId}?page=${page}&limit=20`)), enabled: !!societyId });
 
   const mutation = useMutation({

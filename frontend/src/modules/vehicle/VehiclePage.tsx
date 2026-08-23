@@ -24,7 +24,7 @@ export function VehiclePage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ societyId, flatId: '', vehicleNo: '', vehicleType: 'CAR', brand: '', model: '', color: '', parkingSlot: '' });
 
-  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)), enabled: !!societyId });
+  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)), enabled: !!societyId });
 
   const { data, isLoading } = useQuery({
     queryKey: ['vehicles', societyId, search],

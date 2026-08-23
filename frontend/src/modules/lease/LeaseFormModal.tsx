@@ -27,7 +27,7 @@ export function LeaseFormModal({ isOpen, onClose, societyId, createdBy }: LeaseF
 
   const { data: flats = [] } = useQuery({
     queryKey: ['flats-list', societyId],
-    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)).then((d) => d.items),
+    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)).then((d) => d.items),
     enabled: isOpen && !!societyId,
   });
 

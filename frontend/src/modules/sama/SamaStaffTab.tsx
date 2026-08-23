@@ -53,13 +53,13 @@ export function SamaStaffTab() {
 
   const { data: flats } = useQuery({
     queryKey: ['flats-list', societyId],
-    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)),
+    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)),
     enabled: !!societyId && !!engagementStaffId && engagementForm.employerType === 'HOUSEHOLD',
   });
 
   const { data: residents } = useQuery({
     queryKey: ['residents-list', societyId],
-    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=200`)),
+    queryFn: () => extractData<any>(api.get(`/residents/society/${societyId}?limit=500`)),
     enabled: !!societyId && !!engagementStaffId && engagementForm.employerType === 'HOUSEHOLD',
   });
 

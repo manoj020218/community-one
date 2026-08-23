@@ -61,7 +61,7 @@ export function ResidentPage() {
   const [showQuickTowerModal, setShowQuickTowerModal] = useState(false);
   const [quickTowerForm, setQuickTowerForm] = useState(BLANK_QUICK_TOWER);
 
-  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=200`)), enabled: !!societyId });
+  const { data: flats } = useQuery({ queryKey: ['flats-list', societyId], queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)), enabled: !!societyId });
 
   // Always enabled (not just while the quick-add-tower flow is open) — the Tower/Floor
   // cascade on the main Add/Edit Resident flat pickers needs this too, so a big society
@@ -237,10 +237,20 @@ export function ResidentPage() {
     setEditFloorId(typeof flatObj?.floorId === 'string' ? flatObj.floorId : flatObj?.floorId?._id || '');
   };
 
+  const openAdd = () => {
+    // Whatever block the table is currently segmented to is almost certainly the block the
+    // admin wants to add into — pre-scope the picker to it instead of showing every flat in
+    // the society again.
+    setAddTowerId(tableTowerFilter);
+    setAddFloorId('');
+    set('flatId')('');
+    setShowModal(true);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={terms.personPlural} subtitle={`Manage all ${terms.person.toLowerCase()}s, owners, and tenants`}
-        action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Add {terms.person}</button>} />
+        action={<button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Add {terms.person}</button>} />
 
       <div className="card p-4 space-y-3">
         <div className="relative">
@@ -259,7 +269,7 @@ export function ResidentPage() {
         <div className="card overflow-hidden">
           {!data?.items?.length ? (
             <EmptyState icon={Users} title={`No ${terms.person.toLowerCase()}s yet`} description={`Add your first ${terms.person.toLowerCase()} to get started`}
-              action={<button onClick={() => setShowModal(true)} className="btn-primary">Add {terms.person}</button>} />
+              action={<button onClick={openAdd} className="btn-primary">Add {terms.person}</button>} />
           ) : (
             <>
               <div className="overflow-x-auto">
