@@ -71,6 +71,27 @@ export class DemandController {
     }
   }
 
+  async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const context = await resolveContext(req);
+      const demand = await demandDraftService.updateDraft(context, req.params.demandId, req.body);
+      await auditService.log({
+        societyId: context.societyId,
+        actorUserId: context.user.userId,
+        actorRole: context.user.roleCode,
+        moduleCode: 'MCR',
+        action: 'MCR_DEMAND_DRAFT_EDITED',
+        entityType: 'MaintenanceDemand',
+        entityId: demand._id!.toString(),
+        newValue: { totalDemandPaise: demand.totalDemandPaise },
+        ipAddress: req.ip,
+      });
+      sendSuccess(res, demand, 'MCR demand draft updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async cancel(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const context = await resolveContext(req);

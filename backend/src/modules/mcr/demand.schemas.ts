@@ -17,3 +17,14 @@ export const demandChargeLineSchema = z.object({
   amountPaise: paiseSchema,
   calculationMethod: z.string(),
 });
+
+// DRAFT-only — lets an admin correct an amount before publishing (e.g. a charge that should
+// be waived/adjusted for one flat this cycle) without touching chargeHeadId/chargeCode/
+// calculationMethod, which stay pinned to what the billing plan actually defined.
+export const demandUpdateSchema = z.object({
+  chargeLines: z.array(z.object({
+    chargeHeadId: objectIdSchema,
+    amountPaise: paiseSchema,
+  })).min(1),
+  dueDate: z.coerce.date().optional(),
+});

@@ -5,12 +5,12 @@ import { BillingPlan, IBillingPlanDocument } from './billingPlan.model';
 import { ChargeHead } from './chargeHead.model';
 import { McrActorContext } from './mcr.access.service';
 import { MaintenanceDemand, IMaintenanceDemandDocument } from './demand.model';
-import { demandDraftCreateSchema } from './demand.schemas';
+import { demandDraftCreateSchema, demandUpdateSchema } from './demand.schemas';
 import { McrBillingCycle, mcrBillingCycleService } from './mcrBillingCycle.service';
 import { mcrSettingsService } from './mcrSettings.service';
 import { IMcrSettingsDocument } from './mcrSettings.model';
 import { parseOrThrow } from './mcr.validation';
-import { NotFoundError, ConflictError } from '../../common/errors/AppError';
+import { NotFoundError, ConflictError, ValidationError } from '../../common/errors/AppError';
 
 type BillingPolicy = 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT';
 
@@ -56,6 +56,45 @@ export class DemandDraftService {
 
     demand.status = 'CANCELLED';
     demand.outstandingPaise = 0;
+    demand.updatedBy = context.user.userId;
+    await demand.save();
+    return demand;
+  }
+
+  // DRAFT-only — a demand loses its editability the moment it's published (that's when it
+  // becomes a real, resident-facing bill). paidPaise is always 0 on a DRAFT (payment
+  // allocation only ever considers PUBLISHED/PARTIALLY_PAID/OVERDUE demands), so the new
+  // total simply replaces outstandingPaise wholesale — no partial-payment math to preserve.
+  async updateDraft(context: McrActorContext, demandId: string, input: unknown): Promise<IMaintenanceDemandDocument> {
+    const dto = parseOrThrow(demandUpdateSchema, input);
+    const demand = await MaintenanceDemand.findOne({ _id: demandId, societyId: context.societyId });
+    if (!demand) throw new NotFoundError('MaintenanceDemand');
+    if (demand.status !== 'DRAFT') {
+      throw new ConflictError('Only draft demands can be edited — publish a correction as a separate demand instead.');
+    }
+
+    const amountByChargeHead = new Map(dto.chargeLines.map((line) => [line.chargeHeadId, line.amountPaise]));
+    const unknownIds = dto.chargeLines.filter((line) => !demand.chargeLines.some((existing) => existing.chargeHeadId.toString() === line.chargeHeadId));
+    if (unknownIds.length) {
+      throw new ValidationError('One or more charge lines do not belong to this demand');
+    }
+
+    demand.chargeLines = demand.chargeLines.map((line) => {
+      const nextAmount = amountByChargeHead.get(line.chargeHeadId.toString());
+      return {
+        chargeHeadId: line.chargeHeadId,
+        chargeCode: line.chargeCode,
+        chargeName: line.chargeName,
+        calculationMethod: line.calculationMethod,
+        amountPaise: nextAmount === undefined ? line.amountPaise : nextAmount,
+      };
+    }) as any;
+    if (dto.dueDate) demand.dueDate = dto.dueDate;
+
+    const subtotalPaise = demand.chargeLines.reduce((sum, line) => sum + line.amountPaise, 0);
+    demand.subtotalPaise = subtotalPaise;
+    demand.totalDemandPaise = subtotalPaise;
+    demand.outstandingPaise = subtotalPaise;
     demand.updatedBy = context.user.userId;
     await demand.save();
     return demand;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban } from 'lucide-react';
+import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Tower } from '../../types';
 import { cn, formatDate } from '../../utils/cn';
+import { hasMcrEditDraftAccess } from './mcr.permissions';
 import { BillingPlan, DEMAND_STATUS_BADGE, formatPaise, MaintenanceDemand, McrSettings, MCR_DEMAND_STATUSES } from './mcr.types';
 
 const currentMonthKey = () => new Date().toISOString().slice(0, 7);
@@ -26,6 +27,10 @@ export function McrDemandsTab() {
   const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '', towerId: '' });
   const [cancelTarget, setCancelTarget] = useState<MaintenanceDemand | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [editTarget, setEditTarget] = useState<MaintenanceDemand | null>(null);
+  const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
+  const [editDueDate, setEditDueDate] = useState('');
+  const canEditDraft = hasMcrEditDraftAccess(user?.permissions || []);
   const [showPolicyConfirm, setShowPolicyConfirm] = useState(false);
   const [policyForm, setPolicyForm] = useState({
     vacantFlatPolicy: 'BILL_FULL' as 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT',
@@ -135,6 +140,26 @@ export function McrDemandsTab() {
     onSuccess: () => { invalidate(); toast.success('Demand cancelled'); setCancelTarget(null); setCancelReason(''); },
   });
 
+  const openEdit = (demand: MaintenanceDemand) => {
+    setEditTarget(demand);
+    setEditAmounts(Object.fromEntries(demand.chargeLines.map((l) => [l.chargeHeadId, (l.amountPaise / 100).toString()])));
+    setEditDueDate(demand.dueDate.slice(0, 10));
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: () => api.patch(`/mcr/demands/${editTarget!._id}`, {
+      societyId,
+      dueDate: editDueDate,
+      chargeLines: editTarget!.chargeLines.map((l) => ({
+        chargeHeadId: l.chargeHeadId,
+        amountPaise: Math.round(Number(editAmounts[l.chargeHeadId] || 0) * 100),
+      })),
+    }),
+    onSuccess: () => { invalidate(); toast.success('Draft demand updated'); setEditTarget(null); },
+  });
+
+  const editTotalPaise = editTarget ? editTarget.chargeLines.reduce((sum, l) => sum + Math.round(Number(editAmounts[l.chargeHeadId] || 0) * 100), 0) : 0;
+
   const towerNameById = new Map((towers || []).map((t) => [t._id, t.name]));
 
   return (
@@ -202,6 +227,11 @@ export function McrDemandsTab() {
                       {demand.status === 'DRAFT' && (
                         <button onClick={() => publishMutation.mutate(demand._id)} disabled={publishMutation.isPending} className="text-primary-600 hover:text-primary-700 text-xs font-medium flex items-center gap-1">
                           <Send className="w-3.5 h-3.5" /> Publish
+                        </button>
+                      )}
+                      {demand.status === 'DRAFT' && canEditDraft && (
+                        <button onClick={() => openEdit(demand)} className="text-slate-500 hover:text-slate-700 text-xs font-medium flex items-center gap-1" title="Edit amount before publishing">
+                          <Pencil className="w-3.5 h-3.5" /> Edit
                         </button>
                       )}
                       {demand.status !== 'DRAFT' && demand.status !== 'CANCELLED' && (
@@ -278,7 +308,9 @@ export function McrDemandsTab() {
               {billingPlans?.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
             </select></div>
           <div><label className="label">Billing Period Key <span className="text-red-500">*</span></label>
-            <input value={form.billingPeriodKey} onChange={(e) => setForm((f) => ({ ...f, billingPeriodKey: e.target.value }))} className="input" placeholder="2026-07" /></div>
+            <input value={form.billingPeriodKey} onChange={(e) => setForm((f) => ({ ...f, billingPeriodKey: e.target.value }))} className="input" placeholder="2026-07" />
+            <p className="mt-1 text-xs text-slate-400">Defaults to the current month — change it to any past month to generate a backdated demand (e.g. "2026-05"), it stays in Draft until you publish it.</p>
+          </div>
           <div><label className="label">Billing Period Label</label>
             <input value={form.billingPeriodLabel} onChange={(e) => setForm((f) => ({ ...f, billingPeriodLabel: e.target.value }))} className="input" placeholder="July 2026" /></div>
           {(towers?.length || 0) > 1 && (
@@ -297,6 +329,36 @@ export function McrDemandsTab() {
               {draftMutation.isPending ? 'Generating...' : 'Generate'}
             </button>
             <button onClick={() => setShowModal(false)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!editTarget} onClose={() => setEditTarget(null)} title={`Edit Draft — ${editTarget?.flatSnapshot?.flatNo || ''}`}>
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500">Only available while this demand is still a Draft — publishing locks it in as the real bill.</p>
+          <div className="space-y-3">
+            {editTarget?.chargeLines.map((line) => (
+              <div key={line.chargeHeadId} className="flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-700">{line.chargeName}</span>
+                <input
+                  type="number" min={0} className="input w-32"
+                  value={editAmounts[line.chargeHeadId] ?? ''}
+                  onChange={(e) => setEditAmounts((a) => ({ ...a, [line.chargeHeadId]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div><label className="label">Due Date</label>
+            <input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="input" /></div>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-sm">
+            <span className="text-slate-500">New Total</span>
+            <span className="font-semibold text-slate-800">{formatPaise(editTotalPaise)}</span>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending} className="btn-primary flex-1">
+              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button onClick={() => setEditTarget(null)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

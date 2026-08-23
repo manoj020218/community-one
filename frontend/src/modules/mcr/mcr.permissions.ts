@@ -27,6 +27,10 @@ export function hasMcrDemandAccess(permissions: string[] = []): boolean {
   return ['mcr.view_all', 'mcr.generate_demand', 'mcr.publish_demand'].some((permission) => permissions.includes(permission));
 }
 
+export function hasMcrEditDraftAccess(permissions: string[] = []): boolean {
+  return permissions.includes('mcr.edit_draft_demand');
+}
+
 export function hasMcrPaymentAccess(permissions: string[] = []): boolean {
   return ['mcr.view_all', 'mcr.record_payment', 'mcr.verify_payment'].some((permission) => permissions.includes(permission));
 }
