@@ -2,7 +2,8 @@ import { User, IUserDocument } from './user.model';
 import { CreateUserDto, UpdateUserDto } from './user.types';
 import { hashPassword } from '../../common/utils/password';
 import { roleService } from '../role/role.service';
-import { NotFoundError, ConflictError } from '../../common/errors/AppError';
+import { Flat } from '../flat/flat.model';
+import { NotFoundError, ConflictError, ValidationError } from '../../common/errors/AppError';
 
 export class UserService {
   async create(dto: CreateUserDto): Promise<IUserDocument> {
@@ -38,7 +39,31 @@ export class UserService {
   }
 
   async findBySociety(societyId: string): Promise<IUserDocument[]> {
-    return User.find({ societyId, isActive: true }).select('-passwordHash -refreshToken');
+    return User.find({ societyId, isActive: true })
+      .select('-passwordHash -refreshToken')
+      .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name code' } });
+  }
+
+  // A staff/admin account (Society Admin, Committee Member, etc.) is very often also a
+  // resident of the society they manage — this links their account to their own flat so
+  // resident-facing self-service views (My Maintenance, own visitor requests) can find
+  // "their" flat without needing a second login under a different role.
+  async linkFlat(id: string, flatId: string | null): Promise<IUserDocument> {
+    const user = await User.findById(id);
+    if (!user) throw new NotFoundError('User');
+
+    if (flatId) {
+      const flat = await Flat.findOne({ _id: flatId, societyId: user.societyId, isActive: true });
+      if (!flat) throw new ValidationError('Flat does not belong to this society');
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      id,
+      flatId ? { flatId } : { $unset: { flatId: 1 } },
+      { new: true }
+    ).select('-passwordHash -refreshToken')
+      .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name code' } });
+    return updated!;
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<IUserDocument> {

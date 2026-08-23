@@ -61,6 +61,15 @@ export class UserController {
       next(error);
     }
   }
+
+  async linkFlat(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await userService.linkFlat(req.params.id, req.body.flatId || null);
+      sendSuccess(res, user, 'Flat link updated');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const userController = new UserController();

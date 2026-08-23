@@ -97,6 +97,7 @@ export default function App() {
       {/* Protected app routes — auth required, use AppLayout */}
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardRoute />} />
+        <Route path="/my-home" element={<RequireSociety><ResidentDashboard /></RequireSociety>} />
         <Route path="/societies" element={<SocietyListPage />} />
         <Route path="/societies/new" element={<SocietyFormPage />} />
         <Route path="/societies/:id/edit" element={<SocietyFormPage />} />

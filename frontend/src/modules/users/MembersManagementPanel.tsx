@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, UserCog, Mail, Phone, Shield, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, UserCog, Mail, Phone, Shield, CheckCircle2, XCircle, Eye, EyeOff, Home, Link2 } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
@@ -64,6 +64,11 @@ const ALL_ROLES = Object.keys(ROLE_RANK);
 
 const BLANK_FORM = { name: '', email: '', mobile: '', password: '', roleCode: '', societyId: '' };
 
+// Staff/admin roles that are frequently also a resident of the same society they manage —
+// these are the roles eligible to have "Link Flat" shown, unlocking their own My Maintenance /
+// own-visitor-request views alongside their full management access.
+const ADMIN_RESIDENT_ROLES = ['SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'];
+
 /**
  * Society member management — create/list users with different access rights.
  * Rendered both standalone at /users and as the "Members Mgmt" tab on Settings.
@@ -79,6 +84,8 @@ export function MembersManagementPanel() {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ ...BLANK_FORM, societyId });
   const [shareCredentials, setShareCredentials] = useState<NewUserCredentials | null>(null);
+  const [linkFlatTarget, setLinkFlatTarget] = useState<User | null>(null);
+  const [linkFlatId, setLinkFlatId] = useState('');
 
   const myRank = ROLE_RANK[currentUser?.roleCode || ''] ?? 0;
   const creatableRoles = ALL_ROLES.filter((r) => ROLE_RANK[r] > myRank);
@@ -86,6 +93,12 @@ export function MembersManagementPanel() {
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', societyId],
     queryFn: () => extractData<User[]>(api.get(`/users/society/${societyId}`)),
+    enabled: !!societyId,
+  });
+
+  const { data: flats } = useQuery({
+    queryKey: ['flats-list', societyId],
+    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)),
     enabled: !!societyId,
   });
 
@@ -108,6 +121,24 @@ export function MembersManagementPanel() {
       toast.error(err?.response?.data?.error?.message || 'Failed to create user');
     },
   });
+
+  const linkFlatMutation = useMutation({
+    mutationFn: (flatId: string | null) => api.patch(`/users/${linkFlatTarget?._id}/link-flat`, { flatId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      setLinkFlatTarget(null);
+      toast.success('Flat link updated');
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error?.message || 'Failed to update flat link');
+    },
+  });
+
+  const openLinkFlat = (u: User) => {
+    setLinkFlatTarget(u);
+    const currentFlat = u.flatId as any;
+    setLinkFlatId(typeof currentFlat === 'object' && currentFlat ? currentFlat._id : '');
+  };
 
   const filtered = search
     ? users.filter((u) =>
@@ -161,7 +192,7 @@ export function MembersManagementPanel() {
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} cols={5} />
+        <TableSkeleton rows={6} cols={6} />
       ) : (
         <div className="card overflow-hidden">
           {filtered.length === 0 ? (
@@ -184,11 +215,17 @@ export function MembersManagementPanel() {
                     <th className="table-header text-left">Contact</th>
                     <th className="table-header text-left">Role</th>
                     <th className="table-header text-left">Status</th>
+                    <th className="table-header text-left">Resident Flat</th>
                     <th className="table-header text-left">Last Login</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filtered.map((u: User) => (
+                  {filtered.map((u: User) => {
+                    const linkedFlat = u.flatId as any;
+                    const flatLabel = linkedFlat && typeof linkedFlat === 'object'
+                      ? `${linkedFlat.towerId?.name ? `${linkedFlat.towerId.name} - ` : ''}${linkedFlat.flatNo}`
+                      : null;
+                    return (
                     <tr key={u._id} className="table-row">
                       <td className="table-cell">
                         <div className="flex items-center gap-3">
@@ -229,11 +266,26 @@ export function MembersManagementPanel() {
                           </div>
                         )}
                       </td>
+                      <td className="table-cell">
+                        {ADMIN_RESIDENT_ROLES.includes(u.roleCode) ? (
+                          <button
+                            onClick={() => openLinkFlat(u)}
+                            className={`flex items-center gap-1 text-xs font-medium ${flatLabel ? 'text-primary-600 hover:text-primary-700' : 'text-slate-400 hover:text-slate-600'}`}
+                            title={flatLabel ? 'Change or remove flat link' : 'Link this account to a flat — they also live here'}
+                          >
+                            <Home className="w-3 h-3" />
+                            {flatLabel || 'Link flat'}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </td>
                       <td className="table-cell text-xs text-slate-500">
                         {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                       </td>
                     </tr>
-                  ))}
+                  );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -311,6 +363,31 @@ export function MembersManagementPanel() {
         onClose={() => setShareCredentials(null)}
         societyName={currentSociety?.name}
       />
+
+      {/* Link Flat Modal */}
+      <Modal isOpen={!!linkFlatTarget} onClose={() => setLinkFlatTarget(null)} title={`Link Flat — ${linkFlatTarget?.name || ''}`}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            If {linkFlatTarget?.name} also lives here, link their account to that flat. It unlocks their own
+            maintenance dues and visitor requests alongside their management access — same login, no separate account.
+          </p>
+          <div>
+            <label className="label">Flat</label>
+            <select value={linkFlatId} onChange={(e) => setLinkFlatId(e.target.value)} className="input">
+              <option value="">Not linked to a flat</option>
+              {flats?.items?.map((f: any) => (
+                <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => linkFlatMutation.mutate(linkFlatId || null)} disabled={linkFlatMutation.isPending} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <Link2 className="w-4 h-4" /> {linkFlatMutation.isPending ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={() => setLinkFlatTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

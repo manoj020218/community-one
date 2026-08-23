@@ -1,4 +1,4 @@
-import { Menu, Bell, ChevronDown, Building2 } from 'lucide-react';
+import { Menu, Bell, ChevronDown, Building2, Home } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { getInitials } from '../../utils/cn';
@@ -6,10 +6,15 @@ import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps { onMenuClick: () => void; }
 
+// Roles that can also personally be a resident of the society they manage — shown a
+// "My Home" shortcut once their account is linked to a flat (Users → Link Flat).
+const ADMIN_RESIDENT_ROLES = ['SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'];
+
 export function TopBar({ onMenuClick }: TopBarProps) {
   const { user } = useAuthStore();
   const { currentSociety } = useSocietyStore();
   const navigate = useNavigate();
+  const showMyHome = !!user?.flatId && ADMIN_RESIDENT_ROLES.includes(user.roleCode);
 
   return (
     <header className="min-h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-8 flex-shrink-0 safe-area-top">
@@ -27,6 +32,17 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <Building2 className="w-4 h-4" />
             <span className="max-w-[180px] truncate">{currentSociety.name}</span>
             <ChevronDown className="w-3 h-3" />
+          </button>
+        )}
+
+        {showMyHome && (
+          <button
+            onClick={() => navigate('/my-home')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-100 text-teal-700 text-sm font-medium hover:bg-teal-100 transition-colors"
+            title="Switch to your own resident view — dues, notices, visitor requests for your flat"
+          >
+            <Home className="w-4 h-4" />
+            <span className="hidden sm:inline">My Home</span>
           </button>
         )}
       </div>
