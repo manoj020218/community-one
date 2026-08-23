@@ -9,6 +9,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      workbox: {
+        // Without this, the SPA navigate-fallback swallows a plain link click to a
+        // static file under /downloads/ (e.g. the APK) and serves index.html instead.
+        navigateFallbackDenylist: [/^\/downloads\//],
+      },
       manifest: {
         name: 'Jenix Society One',
         short_name: 'JenixOne',

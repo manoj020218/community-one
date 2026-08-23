@@ -14,6 +14,7 @@ export function ApkDownloadButton({ compact = false, className }: ApkDownloadBut
   return (
     <a
       href="/downloads/jenix-community.apk"
+      download
       className={cn(
         'group relative inline-flex items-center gap-3 rounded-2xl overflow-hidden',
         'border border-white/25 bg-white/10 backdrop-blur-md',
