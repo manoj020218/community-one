@@ -10,6 +10,17 @@ export class UserService {
     const existing = await User.findOne({ email: dto.email.toLowerCase() });
     if (existing) throw new ConflictError('Email already registered');
 
+    // Login is looked up by mobile OR email (findByMobileOrEmail) — a second active account
+    // sharing the same mobile makes that lookup ambiguous (whichever Mongo happens to return
+    // first), so a login can silently start failing for an existing account the moment a new
+    // one is created with the same number. If this is the same person who already has a
+    // staff/admin login, the right move is linking that existing account to a flat (Users →
+    // Link Flat) instead of creating a second one.
+    const existingMobile = await User.findOne({ mobile: dto.mobile, isActive: true });
+    if (existingMobile) {
+      throw new ConflictError(`This mobile number is already registered to ${existingMobile.name} (${existingMobile.roleCode}). If this is the same person, link their existing account to a flat instead of creating a new login.`);
+    }
+
     validateCredentialStrength(dto.roleCode, dto.password);
 
     const permissions = await roleService.getPermissionsForRole(dto.roleCode);
