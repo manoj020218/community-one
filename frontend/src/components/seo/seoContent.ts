@@ -14,7 +14,8 @@ export const LANDING_KEYWORDS = [
   'pet registration society app', 'KYC management housing society', 'audit trail society management software',
   'IoT gate access control software', 'smart gate management system India', 'RFID gate access society',
   'boom barrier integration software', 'boom barrier installer platform', 'QR code gate entry system',
-  'society app for security guards', 'guard kiosk app', 'apartment complex software India',
+  'society app for security guards', 'guard kiosk app', 'guard patrol software', 'guard patrol tracking app',
+  'security guard round tracking', 'QR checkpoint patrol system', 'GPS guard patrol verification', 'apartment complex software India',
   'housing cooperative management software', 'PropTech software India', 'free society management software India',
   'staff attendance management society software', 'household staff access control app',
   'WhatsApp maintenance reminder software', 'family safety alert society app', 'know when family reaches home app',
@@ -50,6 +51,7 @@ export const HOSTEL_KEYWORDS = [
   'hostel owner software India', 'hostel safety software', 'parent notification hostel app', 'working women hostel management',
   'PG rent management app', 'hostel visitor management system', 'hostel warden software',
   'hostel entry exit alert for parents', 'app to know child reached hostel safely', 'real time hostel gate alert app',
+  'hostel guard patrol app', 'hostel security round tracking',
 ];
 
 export const ORGANIZATION_SCHEMA = {
@@ -70,7 +72,7 @@ export const SOFTWARE_APPLICATION_SCHEMA = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   url: SITE_URL,
-  description: 'Digital society management platform for Indian gated communities, apartment complexes and RWAs — resident registry, visitor management, WhatsApp maintenance billing, staff & attendance tracking, family safety alerts and IoT gate access control.',
+  description: 'Digital society management platform for Indian gated communities, apartment complexes and RWAs — resident registry, visitor management, WhatsApp maintenance billing, staff & attendance tracking, family safety alerts, GPS-verified guard patrolling and IoT gate access control.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
   audience: {
     '@type': 'Audience',
@@ -87,7 +89,7 @@ export const HOSTEL_SOFTWARE_APPLICATION_SCHEMA = {
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
   url: `${SITE_URL}/hostel`,
-  description: 'Hostel and PG management platform for India — smart gate entry/exit tracking with instant parent safety alerts, digital student records, room and rent management, and multi-hostel support for owners.',
+  description: 'Hostel and PG management platform for India — smart gate entry/exit tracking with instant parent safety alerts, digital student records, room and rent management, GPS-verified guard patrolling, and multi-hostel support for owners.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
   audience: {
     '@type': 'Audience',

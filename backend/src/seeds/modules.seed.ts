@@ -22,4 +22,5 @@ export const MODULES_SEED = [
   { code: 'ASSET_AMC', name: 'Asset & AMC', description: 'Common area asset tracking and AMC management', version: '1.0.0', status: 'COMING_SOON', icon: 'Wrench', routePrefix: '/assets', apiPrefix: '/api/assets', requiredPlan: ['STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   { code: 'IOT_HEALTH', name: 'IoT Device Health', description: 'Real-time monitoring of all IoT devices', version: '1.0.0', status: 'COMING_SOON', icon: 'Activity', routePrefix: '/iot-health', apiPrefix: '/api/iot-health', requiredPlan: ['PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   GUARD_PATROL_MANIFEST,
+  { code: 'VIDEO_INTERCOM', name: 'Video Intercom & Chat', description: 'Video calling between the gate/guard and a flat, plus in-app chat between residents', version: '1.0.0', status: 'COMING_SOON', icon: 'Video', routePrefix: '/video-intercom', apiPrefix: '/api/video-intercom', requiredPlan: ['PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
 ];

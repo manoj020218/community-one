@@ -74,10 +74,10 @@ export function AboutPage() {
               <strong className="text-slate-800">Jenix Community One</strong> is a multi-tenant SaaS platform that lets society committees, RWAs, and housing cooperatives manage their day-to-day operations completely online.
             </p>
             <p>
-              The platform covers everything from structural management (towers, floors, flats) to resident management, vehicle tracking, pet registry, payments, receipts, and a full audit trail of every action.
+              The platform covers everything from structural management (towers, floors, flats) to resident management, vehicle tracking, pet registry, payments, receipts, visitor management, WhatsApp maintenance billing, staff attendance, GPS-verified guard patrolling, and a full audit trail of every action.
             </p>
             <p>
-              Future modules include visitor management, maintenance request tracking, amenity booking, complaint management, digital polls, and emergency alerts — making Jenix a true all-in-one society operating system.
+              Future modules include amenity booking, complaint management, digital polls, and emergency alerts — making Jenix a true all-in-one society operating system.
             </p>
             <p>
               We also build and integrate IoT hardware — smart gate controllers, boom barriers, RFID readers, and access control devices — that connect directly to the platform for real-time entry management. We work with gate hardware sellers and installers looking to pair their equipment with a ready-made society management platform.

@@ -174,6 +174,7 @@ export const MODULE_CODES = {
   ASSET_AMC: 'ASSET_AMC',
   IOT_HEALTH: 'IOT_HEALTH',
   GUARD_PATROL: 'GUARD_PATROL',
+  VIDEO_INTERCOM: 'VIDEO_INTERCOM',
 } as const;
 
 export const ROLE_RANK: Record<string, number> = {

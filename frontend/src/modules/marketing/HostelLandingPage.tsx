@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, ChevronRight, CheckCircle2, Star, ScanLine, Bell, Wallet, FileText,
   Building2, ShieldCheck, Users, DoorOpen, Camera, Home, Layers3, Receipt,
-  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList,
+  MessageCircleQuestion, Sparkles, Lock, UserCheck, ClipboardList, Footprints, Video,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
@@ -21,8 +21,10 @@ const FEATURES = [
   { icon: ClipboardList, name: 'Audit Trail', desc: 'Every action logged — who changed what, when, from where. Full accountability by default', tag: 'Live', color: 'bg-slate-100 text-slate-600' },
   { icon: Bell, name: 'Parent Entry/Exit Alerts', desc: 'The moment your child taps in or out at the gate, an alert reaches your phone — with a full history you can check any time in your own login', tag: 'Live', color: 'bg-amber-100 text-amber-600' },
   { icon: Receipt, name: 'Automated Fee Reminders', desc: 'WhatsApp reminders before rent is due, with a UPI payment link — so admins stop chasing payments by phone call', tag: 'Live', color: 'bg-orange-100 text-orange-600' },
+  { icon: Footprints, name: 'Guard Patrolling', desc: 'QR-checkpoint night rounds, GPS-verified — the guard\'s phone alerts them if they fall behind schedule, with a Hit/Miss report per shift', tag: 'Live', color: 'bg-teal-100 text-teal-700' },
   { icon: ShieldCheck, name: 'Curfew & Late-Return Alerts', desc: 'Set allowed hours; anything outside that window flags the warden automatically', tag: 'Coming Soon', color: 'bg-rose-100 text-rose-600' },
   { icon: Sparkles, name: 'Mess & Housekeeping', desc: 'Meal planning, attendance, and housekeeping task tracking', tag: 'Coming Soon', color: 'bg-fuchsia-100 text-fuchsia-600' },
+  { icon: Video, name: 'Video Intercom & Chat', desc: 'Video call from the gate before entry, plus in-app chat between students', tag: 'Coming Soon', color: 'bg-indigo-100 text-indigo-500' },
 ];
 
 const FAQS = [

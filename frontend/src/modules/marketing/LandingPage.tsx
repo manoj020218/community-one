@@ -4,7 +4,7 @@ import {
   CalendarDays, Megaphone, BarChart3, MessageSquare, UserCheck, Package,
   AlertTriangle, Vote, FileText, Cpu, Activity, CheckCircle2, Star, Zap, Globe,
   Lock, Headphones, LayoutGrid, PawPrint, ChevronRight, BadgeCheck,
-  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, UserCog, Bell,
+  ScanLine, Camera, PhoneCall, ClipboardCheck, Banknote, UserCog, Bell, Footprints, Video,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { Seo } from '../../components/seo/Seo';
@@ -25,7 +25,9 @@ const MODULES = [
   { icon: Banknote,     name: 'Maintenance & Receipts (MCR)', desc: 'Digital demands, WhatsApp payment reminders with a UPI link, verified payments & instant receipts', tag: 'Live', color: 'bg-orange-100 text-orange-600' },
   { icon: UserCog,      name: 'Staff, Attendance & Access (SAMA)', desc: 'Manage guards, gardeners, drivers & household help — approved timings and gate access in one place', tag: 'Live', color: 'bg-fuchsia-100 text-fuchsia-700' },
   { icon: Bell,         name: 'Family Safety Alerts', desc: 'Know the moment a family member badges in or out at the gate — instant alert to their phone, full history any time', tag: 'Live', color: 'bg-amber-100 text-amber-600' },
+  { icon: Footprints,   name: 'Guard Patrolling',  desc: 'QR & GPS-verified patrol rounds — checkpoints, routes, live alerts if a guard falls behind, and Hit/Miss reports per shift', tag: 'Live', color: 'bg-cyan-100 text-cyan-700' },
   { icon: CalendarDays, name: 'Amenity Booking',   desc: 'Clubhouse, gym, pool — online booking with time slots',  tag: 'Coming Soon',  color: 'bg-violet-100 text-violet-600' },
+  { icon: Video,        name: 'Video Intercom & Chat', desc: 'Video call from the gate to a flat before entry, plus in-app chat between residents', tag: 'Coming Soon', color: 'bg-indigo-100 text-indigo-500' },
   { icon: Megaphone,    name: 'Announcements',     desc: 'Broadcast notices, events and emergency alerts to all',  tag: 'Coming Soon',  color: 'bg-rose-100 text-rose-600'     },
   { icon: MessageSquare,name: 'Complaints',        desc: 'Log complaints, track resolution, rate outcomes',        tag: 'Coming Soon',  color: 'bg-pink-100 text-pink-600'     },
   { icon: Vote,         name: 'Polls & Voting',    desc: 'Digital AGM voting, resolutions and society decisions',  tag: 'Coming Soon',  color: 'bg-fuchsia-100 text-fuchsia-600'},
@@ -420,6 +422,20 @@ function WorkflowsSection() {
             </p>
           </div>
         </div>
+
+        {/* Guard Patrolling callout */}
+        <div className="mt-4 bg-gradient-to-r from-cyan-50 to-sky-50 rounded-2xl p-6 border border-cyan-100 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-100 text-cyan-700 flex items-center justify-center flex-shrink-0">
+            <Footprints className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">Live: Guard Patrolling</h4>
+            <p className="text-sm text-slate-600 mt-1">
+              Set up QR checkpoints on a route, and every scan is GPS-verified — the guard's phone alerts them if they fall
+              behind schedule, and admins get a Hit/Miss report for every shift, every guard.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -465,9 +481,9 @@ function ModulesSection() {
 
         <div className="mt-10 text-center">
           <p className="text-slate-400 text-sm">
-            <span className="text-emerald-400 font-semibold">● 15 modules live</span>
+            <span className="text-emerald-400 font-semibold">● 16 modules live</span>
             <span className="mx-3 text-slate-600">·</span>
-            <span className="text-white/50">7 coming in next releases</span>
+            <span className="text-white/50">8 coming in next releases</span>
           </p>
         </div>
       </div>
@@ -696,7 +712,7 @@ export function LandingPage() {
     <div>
       <Seo
         title="Jenix Community One | Society Management Software for Gated Communities in India"
-        description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, WhatsApp maintenance reminders, staff & attendance tracking, family safety alerts, vehicle & parking control, and smart IoT gate access, all in one app. Free onboarding, no card needed."
+        description="Digital society management platform for Indian gated communities and RWAs — resident registry, visitor management, WhatsApp maintenance reminders, staff & attendance tracking, family safety alerts, guard patrol tracking, vehicle & parking control, and smart IoT gate access, all in one app. Free onboarding, no card needed."
         keywords={LANDING_KEYWORDS}
         path="/"
         structuredData={LANDING_STRUCTURED_DATA}
