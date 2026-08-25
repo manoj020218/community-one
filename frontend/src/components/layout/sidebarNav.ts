@@ -1,8 +1,9 @@
-import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound, Link2, Megaphone } from 'lucide-react';
+import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound, Link2, Megaphone, Footprints } from 'lucide-react';
 import { MCR_ROUTE_PERMISSIONS } from '../../modules/mcr/mcr.permissions';
 import { SAMA_ROUTE_PERMISSIONS } from '../../modules/sama/sama.permissions';
 import { LEASE_ROUTE_PERMISSIONS } from '../../modules/lease/lease.permissions';
 import { ACCESS_CONTROL_ROUTE_PERMISSIONS } from '../../modules/access-control/access-control.permissions';
+import { PATROL_ROUTE_PERMISSIONS } from '../../modules/guardPatrol/guardPatrol.permissions';
 
 export type NavItem = {
   to: string;
@@ -78,6 +79,15 @@ const RAW_NAV_GROUPS: NavGroup[] = [
     moduleCode: 'MCR',
     items: [
       { to: '/mcr', icon: Banknote, label: 'Maintenance & Receipts', roles: [], permissions: [...MCR_ROUTE_PERMISSIONS], moduleCode: 'MCR' },
+    ],
+  },
+  {
+    id: 'guard-patrol',
+    label: 'Guard Patrolling',
+    color: { text: 'text-cyan-600', dot: 'bg-cyan-500', activeBg: 'bg-cyan-50', activeText: 'text-cyan-700', activeDot: 'bg-cyan-500' },
+    moduleCode: 'GUARD_PATROL',
+    items: [
+      { to: '/guard-patrol', icon: Footprints, label: 'Guard Patrolling', roles: [], permissions: [...PATROL_ROUTE_PERMISSIONS], moduleCode: 'GUARD_PATROL' },
     ],
   },
   {

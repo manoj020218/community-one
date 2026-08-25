@@ -7,6 +7,7 @@ import { mcrReminderWorker } from '../mcr/mcrReminder.worker';
 import { pushProviderService } from '../notification/pushProvider.service';
 import { samaScheduledSyncWorker } from '../sama/samaScheduledSync.worker';
 import { visitorExpiryWorker } from '../visitor/visitor.expiry.worker';
+import { patrolRoundWorker } from '../guardPatrol/patrolRound.worker';
 import { visitorRealtimeService } from '../visitor/visitor.realtime.service';
 import { HealthLog } from './health.model';
 
@@ -21,6 +22,7 @@ export class HealthController {
     const mcrWorkerStatus = mcrReminderWorker.getStatus();
     const samaWorkerStatus = samaScheduledSyncWorker.getStatus();
     const workerStatus = visitorExpiryWorker.getStatus();
+    const patrolWorkerStatus = patrolRoundWorker.getStatus();
     const realtimeStatus = visitorRealtimeService.getDiagnostics();
     const anyWorkerEnabled = workerStatus.enabled || mcrWorkerStatus.enabled || lateFeeWorkerStatus.enabled || demandWorkerStatus.enabled || samaWorkerStatus.enabled;
     const anyWorkerRunning = workerStatus.running || mcrWorkerStatus.running || lateFeeWorkerStatus.running || demandWorkerStatus.running || samaWorkerStatus.running;
@@ -43,6 +45,7 @@ export class HealthController {
         mcrReminderWorker: mcrWorkerStatus,
         samaSyncWorker: samaWorkerStatus,
         visitorExpiryWorker: workerStatus,
+        patrolRoundWorker: patrolWorkerStatus,
       },
       message: status === 'ok' ? 'System healthy' : 'System degraded',
     });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LogOut, Languages, ShieldCheck } from 'lucide-react';
+import { LogOut, Languages, ShieldCheck, Footprints } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
@@ -133,6 +133,11 @@ export function GuardKioskPage() {
           <button onClick={toggleLang} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">
             <Languages className="w-3.5 h-3.5" /> {lang === 'en' ? 'हिंदी' : 'English'}
           </button>
+          {user.permissions?.includes('patrol.execute') && (
+            <button onClick={() => navigate('/patrol-kiosk')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold">
+              <Footprints className="w-3.5 h-3.5" /> Patrol
+            </button>
+          )}
           <button onClick={logout} className="p-2 rounded-xl bg-white/10 border border-white/20 text-white/80 hover:text-white">
             <LogOut className="w-4 h-4" />
           </button>

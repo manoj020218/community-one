@@ -8,6 +8,7 @@ import { mcrReminderWorker } from './modules/mcr/mcrReminder.worker';
 import { mcrWhatsAppInboundService } from './modules/mcr/mcrWhatsAppInbound.service';
 import { samaScheduledSyncWorker } from './modules/sama/samaScheduledSync.worker';
 import { visitorExpiryWorker } from './modules/visitor/visitor.expiry.worker';
+import { patrolRoundWorker } from './modules/guardPatrol/patrolRound.worker';
 import { whatsAppService } from './modules/communication/whatsapp.service';
 
 async function startServer(): Promise<void> {
@@ -19,6 +20,7 @@ async function startServer(): Promise<void> {
     if (env.MCR_REMINDER_WORKER_ENABLED) mcrReminderWorker.start();
     if (env.SAMA_SYNC_WORKER_ENABLED) samaScheduledSyncWorker.start();
     if (env.VISITOR_EXPIRY_WORKER_ENABLED) visitorExpiryWorker.start();
+    patrolRoundWorker.start();
     whatsAppService.onInboundImage((societyId, payload) => mcrWhatsAppInboundService.handle(societyId, payload));
     whatsAppService.reconnectAll().catch((err) => logger.warn('WhatsApp reconnectAll failed', { err }));
 
@@ -35,6 +37,7 @@ async function startServer(): Promise<void> {
       mcrReminderWorker.stop();
       samaScheduledSyncWorker.stop();
       visitorExpiryWorker.stop();
+      patrolRoundWorker.stop();
       server.close(async () => {
         const { disconnectDatabase } = await import('./config/database');
         await disconnectDatabase();

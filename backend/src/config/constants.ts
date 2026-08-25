@@ -146,6 +146,14 @@ export const PERMISSIONS = {
   SAMA_VIEW_REPORTS: 'sama.view_reports',
   SAMA_EXPORT_REPORTS: 'sama.export_reports',
   SAMA_VIEW_AUDIT: 'sama.view_audit',
+  PATROL_CONFIGURE: 'patrol.configure',
+  PATROL_CHECKPOINT_MANAGE: 'patrol.checkpoint.manage',
+  PATROL_ROUTE_MANAGE: 'patrol.route.manage',
+  PATROL_ASSIGNMENT_MANAGE: 'patrol.assignment.manage',
+  PATROL_EXECUTE: 'patrol.execute',
+  PATROL_VIEW_ALL: 'patrol.view_all',
+  PATROL_VIEW_OWN: 'patrol.view_own',
+  PATROL_VIEW_REPORTS: 'patrol.view_reports',
 } as const;
 
 export const MODULE_CODES = {
@@ -165,6 +173,7 @@ export const MODULE_CODES = {
   DOCUMENT: 'DOCUMENT',
   ASSET_AMC: 'ASSET_AMC',
   IOT_HEALTH: 'IOT_HEALTH',
+  GUARD_PATROL: 'GUARD_PATROL',
 } as const;
 
 export const ROLE_RANK: Record<string, number> = {

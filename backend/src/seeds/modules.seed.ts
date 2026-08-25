@@ -1,6 +1,7 @@
 import { MCR_MANIFEST } from '../modules/mcr/mcr.manifest';
 import { SAMA_MANIFEST } from '../modules/sama/sama.manifest';
 import { ACCESS_CONTROL_MANIFEST } from '../modules/access-control/access-control.manifest';
+import { GUARD_PATROL_MANIFEST } from '../modules/guardPatrol/guardPatrol.manifest';
 
 export const MODULES_SEED = [
   { code: 'CORE', name: 'Core Platform', description: 'Foundation module for all society management', version: '1.0.0', status: 'ACTIVE', icon: 'Home', routePrefix: '/', apiPrefix: '/api', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: true, permissions: [] },
@@ -20,4 +21,5 @@ export const MODULES_SEED = [
   { code: 'DOCUMENT', name: 'Document Management', description: 'Society documents and file management', version: '1.0.0', status: 'COMING_SOON', icon: 'FileText', routePrefix: '/documents', apiPrefix: '/api/documents', requiredPlan: ['BASIC','STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   { code: 'ASSET_AMC', name: 'Asset & AMC', description: 'Common area asset tracking and AMC management', version: '1.0.0', status: 'COMING_SOON', icon: 'Wrench', routePrefix: '/assets', apiPrefix: '/api/assets', requiredPlan: ['STANDARD','PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
   { code: 'IOT_HEALTH', name: 'IoT Device Health', description: 'Real-time monitoring of all IoT devices', version: '1.0.0', status: 'COMING_SOON', icon: 'Activity', routePrefix: '/iot-health', apiPrefix: '/api/iot-health', requiredPlan: ['PREMIUM','ENTERPRISE'], defaultEnabled: false, permissions: [] },
+  GUARD_PATROL_MANIFEST,
 ];

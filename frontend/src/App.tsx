@@ -35,6 +35,8 @@ import { SettingsPage } from './modules/settings/SettingsPage';
 import { VisitorPage } from './modules/visitor/VisitorPage';
 import { GuardKioskPage } from './modules/guardKiosk/GuardKioskPage';
 import { McrPage } from './modules/mcr/McrPage';
+import { GuardPatrolPage } from './modules/guardPatrol/GuardPatrolPage';
+import { GuardPatrolKioskPage } from './modules/guardPatrol/GuardPatrolKioskPage';
 import { SamaPage } from './modules/sama/SamaPage';
 import { LeasePage } from './modules/lease/LeasePage';
 import { AccessControlPage } from './modules/access-control/AccessControlPage';
@@ -83,6 +85,7 @@ export default function App() {
 
       {/* Guard Kiosk — full-screen, no Sidebar/TopBar shell */}
       <Route path="/guard-kiosk" element={<ProtectedRoute><RequireSociety><GuardKioskPage /></RequireSociety></ProtectedRoute>} />
+      <Route path="/patrol-kiosk" element={<ProtectedRoute><RequireSociety><GuardPatrolKioskPage /></RequireSociety></ProtectedRoute>} />
 
       {/* Public marketing routes — no auth required */}
       <Route element={<MarketingLayout />}>
@@ -112,6 +115,7 @@ export default function App() {
         <Route path="/users" element={<RequireSociety><UsersPage /></RequireSociety>} />
         <Route path="/modules" element={<RequireSociety><ModuleRegistryPage /></RequireSociety>} />
         <Route path="/mcr" element={<RequireSociety><McrPage /></RequireSociety>} />
+        <Route path="/guard-patrol" element={<RequireSociety><GuardPatrolPage /></RequireSociety>} />
         <Route path="/sama" element={<RequireSociety><SamaPage /></RequireSociety>} />
         <Route path="/lease" element={<RequireSociety><LeasePage /></RequireSociety>} />
         <Route path="/access" element={<RequireSociety><AccessControlPage /></RequireSociety>} />
