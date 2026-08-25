@@ -12,6 +12,36 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-25 (cont'd 4) — First native APK rebuild this session (Guard Patrolling permissions live in the installed app)
+
+Rebuilt and redistributed the signed release APK so the *installed* app (not just the mobile-browser
+path) gets the Guard Patrolling camera/GPS/vibrate permissions added earlier. Pure Capacitor —
+no Kotlin/Java authored, just `npx cap sync android` (copies the same web `dist/` into the
+existing Capacitor-generated Android project) + a Gradle release build using the existing
+signing config, so it installs as a normal update over the current app (same package
+`in.iotsoft.community`, same signing cert).
+
+**Working toolchain, for next time:** the system JDK on this machine is 17
+(`C:\Program Files\Eclipse Adoptium\jdk-17...`), but Capacitor 7's Android template
+(`android/app/capacitor.build.gradle`) requires Java 21 — building with JDK 17 fails with
+`error: invalid source release: 21`. Fix: point `JAVA_HOME` at Android Studio's bundled JBR
+(`C:\Program Files\Android Studio\jbr` — confirmed exactly JDK 21.0.8) for the Gradle
+invocation:
+```
+cd frontend/android
+JAVA_HOME="/c/Program Files/Android Studio/jbr" ./gradlew assembleRelease --no-daemon
+```
+`--no-daemon` avoided a second issue — a stale daemon left over from the first (failed, wrong-JDK)
+attempt held a Windows file lock that made AAPT resource linking fail (`R.txt ... The data is
+invalid. (13)`); `./gradlew --stop` clears stale daemons if this recurs.
+
+Release keystore already exists and is correctly wired into `android/app/build.gradle`'s
+`signingConfigs.release` — nothing to set up there, it just works. Verified the output with
+`apksigner verify --print-certs` (exit 0, cert DN matches the existing "Jenix Community One /
+IOT Soft" signing identity) and `aapt dump permissions` (confirmed CAMERA/
+ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION/VIBRATE all present) before uploading over
+`/var/www/community/downloads/jenix-community.apk` on the VPS via `pscp_git.bat`.
+
 ### 2026-08-25 (cont'd 3) — Marketing site updated for Guard Patrolling; Video Intercom & Chat registered as Coming Soon
 
 Guard Patrolling (shipped earlier this session) was missing from all marketing copy. Added as
