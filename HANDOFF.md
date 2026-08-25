@@ -12,6 +12,12 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-25 — Guard Kiosk: flat picker was capped at 30, added voice search
+
+`TowerFlatPicker.tsx` (the flat-selection grid guards tap through when raising a visitor request) hardcoded `FLATS_PAGE_SIZE = 30` with no pagination UI — guards at any block with more than 30 flats (i.e. most real blocks — LIG BLOCK alone runs ~128) could only ever see and search the first 30, sorted by flat number. The backend endpoint (`visitor.directory.service.ts`) already supported up to 500 per page (`parsePagination`'s cap) — the frontend just never asked for more. Bumped to 500.
+
+Also added voice search for that same flat picker: guards often have limited literacy, and the kiosk already had a full hold-to-speak voice input system built for the guest-name/purpose/mobile steps (`VoiceHoldButton.tsx`, Web Speech API, `hi-IN`/`en-IN`). Added a `compact` variant of that same component (small inline mic icon instead of the big 128px hold button) next to the flat search box, so a guard can speak a flat number instead of typing it — replacing the search text on transcript rather than appending, since search doesn't build up a sentence.
+
 ### 2026-08-23 (cont'd 2) — "My Home": admin accounts that are also residents
 
 **Fixed the APK download** (marketing page and both new Share modals were silently broken): the app's PWA service worker (`vite-plugin-pwa`, generateSW mode) had no `navigateFallbackDenylist`, so it intercepted a plain link click to `/downloads/jenix-community.apk` as an SPA navigation and served `index.html` instead of the file — invisible to a `curl` check (which bypasses the service worker entirely) but broken for every real browser. Fixed with `navigateFallbackDenylist: [/^\/downloads\//]` in `frontend/vite.config.ts`, plus a `download` attribute on the marketing CTA. Anyone who visited before this fix needs one hard refresh to pick up the corrected service worker.
