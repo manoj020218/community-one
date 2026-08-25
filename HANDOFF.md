@@ -8,82 +8,43 @@
 
 ---
 
-## 🚧 IN PROGRESS: Guard Patrolling Module (Phase 1)
-
-*Started 2026-08-25. If this session gets interrupted (power cut, etc.), pick up from the
-unchecked items below — the full approved plan is preserved here so there's no need to
-re-plan. Update the checkboxes as work lands; move this whole section into the Recent
-Activity Log (as a normal dated entry, condensed) once Phase 1 ships.*
-
-**What it is:** an independent, toggleable module (same Module Registry pattern as MCR/SAMA)
-for guard patrol rounds. Admin defines checkpoints (printed QR sticker for Phase 1; NFC tag
-deferred to Phase 2), builds ordered routes, assigns guards. Guard's phone scans each
-checkpoint with GPS capture; if too long passes between scans (admin-set threshold, default
-5 min), the phone vibrates/sounds an alert. Admin dashboard shows per-guard Hit/Miss ratio;
-monthly CSV report downloadable.
-
-**Key decisions from planning** (full reasoning in the plan; condensed here):
-- QR-only in Phase 1 — NFC needs a native Capacitor plugin + tag hardware + guard phones with
-  NFC chips (many don't have one). Data model supports both from day one
-  (`PatrolCheckpoint.method: 'QR'|'NFC'`) so this isn't a rearchitecture later.
-- **This module needs new Capacitor plugins** (`@capacitor/geolocation`, `@capacitor/haptics`,
-  a barcode-scanning plugin) **and new Android permissions**
-  (`frontend/android/app/src/main/AndroidManifest.xml` — currently only INTERNET,
-  RECORD_AUDIO, MODIFY_AUDIO_SETTINGS, POST_NOTIFICATIONS; needs
-  ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION, CAMERA, VIBRATE). Unlike every other feature
-  this session, guard-facing scanning **requires an APK rebuild + guard reinstall** — not a
-  plain web deploy. Flag this before doing the mobile-scanning half of the build.
-- Reports: copy the MCR/SAMA hand-rolled CSV pattern (`toCsv()` + `{fileName,content}` JSON +
-  the existing `downloadCsv()` client helper in `frontend/src/modules/sama/sama.types.ts`) —
-  the generic `backend/src/modules/report/*` system is a dead end nothing else uses, don't
-  build against it.
-- QR generation: reuse the exact `qrcode` npm package pattern already used in
-  `backend/src/modules/mcr/mcrReceiptPoster.service.ts` (`QRCode.toDataURL(token)` embedded
-  in a generated SVG/HTML sheet) — no new backend dependency needed for generation.
-- Vibrate: plain `navigator.vibrate()` Web API works fine inside the Capacitor WebView
-  (confirmed — matches Guard Kiosk's existing "raw Web API first" convention for speech), no
-  plugin required. GPS capture is mandatory per scan (reject scan client-side if no fix) as
-  basic anti-spoofing. Foreground-only alerting for Phase 1 — locked-screen/background alerts
-  need a native foreground service, explicitly deferred to Phase 3.
-- Full plan detail (data model field-by-field, exact file list, verification steps) is saved
-  at `C:\Users\User\.claude\plans\witty-jumping-ripple.md` on the dev machine — if that's
-  unavailable, this section plus the module-wiring pattern below is enough to rebuild it.
-
-**Module wiring checklist** (mirrors MCR/SAMA exactly — see `mcr.manifest.ts` /
-`mcr.access.service.ts` as the literal templates):
-- [ ] `backend/src/config/constants.ts` — `MODULE_CODES.GUARD_PATROL`, permission constants
-      (`patrol.configure`, `patrol.checkpoint.manage`, `patrol.route.manage`,
-      `patrol.assignment.manage`, `patrol.execute`, `patrol.view_all`, `patrol.view_own`,
-      `patrol.view_reports`)
-- [ ] `backend/src/modules/guardPatrol/guardPatrol.manifest.ts`
-- [ ] `backend/src/modules/guardPatrol/guardPatrol.access.service.ts`
-- [ ] `backend/src/seeds/modules.seed.ts` — register the manifest
-- [ ] `backend/src/seeds/permissions.seed.ts` — manually wire new permissions into
-      `ROLE_PERMISSIONS.SOCIETY_ADMIN` (all), `.SECURITY_GUARD` (`patrol.execute`,
-      `patrol.view_own`), `.COMMITTEE_MEMBER`/`.FACILITY_MANAGER` (`patrol.view_reports`,
-      `patrol.view_all`) — no auto-derivation from the manifest, easy to forget
-- [ ] Backend models/services/controllers: `PatrolCheckpoint`, `PatrolRoute`,
-      `PatrolAssignment`, `PatrolRound`, `PatrolScan` + one `guardPatrol.routes.ts` mounted in
-      `app.ts` (Access Control's ~17-file scope is the right size reference, not MCR's ~90)
-- [ ] Stale-round cleanup worker (same convention as `visitorExpiryWorker`, exposed on
-      `/health`)
-- [ ] `guardPatrolQr.service.ts` — checkpoint QR sheet generator, modeled on
-      `mcrReceiptPoster.service.ts`
-- [ ] Frontend `frontend/src/modules/guardPatrol/`: `useGuardPatrolModule.ts` (own copy, not
-      shared — deliberate convention), `guardPatrol.permissions.ts`, `GuardPatrolPage.tsx` +
-      tabs (Dashboard / Checkpoints / Routes / Assignments / Live Rounds / Reports / Settings)
-- [ ] Sidebar entry (`sidebarNav.ts`) + route (`App.tsx`)
-- [ ] Guard-facing `/patrol-kiosk` full-screen route (mirrors `/guard-kiosk`'s bespoke
-      no-sidebar pattern) — scan button, GPS capture, alert timer/vibrate/sound, Start/End
-      Round
-- [ ] New Capacitor plugins installed + `AndroidManifest.xml` permissions + APK rebuild
-- [ ] Monthly Hit/Miss CSV export endpoint + dashboard stat cards
-
 ---
 
 ## Recent Activity Log
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
+
+### 2026-08-25 (cont'd 2) — Guard Patrolling Module (Phase 1), shipped
+
+New independent, toggleable module (`GUARD_PATROL`, same Module Registry pattern as MCR/SAMA
+— `guardPatrol.manifest.ts` / `guardPatrol.access.service.ts` mirror `mcr.manifest.ts` /
+`mcr.access.service.ts`). Admin defines checkpoints (QR sticker — printable via the existing
+`qrcode`/`mcrReceiptPoster.service.ts` pattern; NFC data model in place via
+`PatrolCheckpoint.method` but tag *scanning* deferred to Phase 2), builds ordered routes,
+assigns guards. Guard's phone scans each checkpoint at `/patrol-kiosk` (mirrors `/guard-kiosk`'s
+bespoke full-screen layout, linked from its header) with GPS **required** on every scan
+(rejected client-side without a fix — basic anti-spoofing); if too long passes since the last
+scan, the phone vibrates and plays an alert tone. Admin dashboard shows live in-progress
+rounds and each guard's Hit/Late/Missed counts + Hit Rate; monthly CSV export follows the
+MCR/SAMA hand-rolled pattern, not the unused generic report system.
+
+**Turned out simpler than planned — no native plugins needed for Phase 1.** The plan assumed
+`@capacitor-mlkit/barcode-scanning` + `@capacitor/geolocation` + `@capacitor/haptics` would be
+required (implying an APK rebuild before any of this worked). Built it with plain Web APIs
+instead: `jsQR` (small pure-JS package, `pnpm add jsqr`, camera frames decoded via
+`getUserMedia` + canvas) for scanning, raw `navigator.geolocation`/`navigator.vibrate()` for
+GPS/vibrate, and a Web Audio oscillator for the alert tone (`guardPatrol/alertSounds.ts` —
+no bundled mp3 files, tones generated on the fly). Result: **the entire guard-facing flow is
+a normal web deploy** — works immediately via mobile browser, no APK rebuild required to use
+it. `AndroidManifest.xml` (camera/location/vibrate permissions) was updated locally so the
+*installed* app would also support it once rebuilt — but `frontend/android/` is gitignored
+(not committed) and no native build has been attempted yet. Android SDK + Java 17 + gradlew
+were confirmed present on the dev machine if that becomes worth doing later.
+
+Explicitly deferred (Phase 2/3, not built): NFC tag scanning (native plugin, phone
+hardware-dependent), locked-screen/background alerting (needs a native foreground service —
+foreground-only for now), GPS breadcrumb trail map, anti-spoofing hardening (mock-location
+detection, rotating QR tokens).
 
 ### 2026-08-25 (cont'd) — Critical: Resident↔User login link was never populated in production; PIN login, password reset, Google linking
 
