@@ -89,6 +89,24 @@ export class AuthController {
       next(error);
     }
   }
+
+  async linkGoogleAccount(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await authService.linkGoogleAccount(req.user!.userId, req.body);
+      sendSuccess(res, result, 'Google account linked');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async unlinkGoogleAccount(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await authService.unlinkGoogleAccount(req.user!.userId);
+      sendSuccess(res, null, 'Google account unlinked');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

@@ -1,12 +1,14 @@
 import { Types } from 'mongoose';
 import { Resident, IResidentDocument } from './resident.model';
 import { Flat } from '../flat/flat.model';
-import { NotFoundError } from '../../common/errors/AppError';
+import { NotFoundError, ConflictError } from '../../common/errors/AppError';
 import { buildPaginatedResult } from '../../common/utils/response';
 import { PaginatedResult } from '../../common/types';
 import { demandPublishService } from '../mcr/demandPublish.service';
 import { moduleRegistryService } from '../moduleRegistry/moduleRegistry.service';
 import { MODULE_CODES } from '../../config/constants';
+import { userService } from '../user/user.service';
+import { User, IUserDocument } from '../user/user.model';
 
 // A newly-occupied flat may have demands sitting held (billingHold) from while it was
 // Vacant/Builder-Unsold — release them now that someone actually lives there. Best-effort: MCR
@@ -209,6 +211,10 @@ export class ResidentService {
     const resident = await Resident.findByIdAndUpdate(id, { isActive: false, status: 'INACTIVE' });
     if (!resident) return;
 
+    if (resident.userId) {
+      await User.findByIdAndUpdate(resident.userId, { isActive: false, refreshToken: null });
+    }
+
     // Mirror of the auto-occupy in create(): only revert an auto-set OWNER_/TENANT_OCCUPIED
     // back to VACANT, and only once no active resident remains — LOCKED/UNDER_RENOVATION stay
     // untouched since those were an explicit admin call, not something this should undo.
@@ -223,6 +229,36 @@ export class ResidentService {
 
   async getCountBySociety(societyId: string): Promise<number> {
     return Resident.countDocuments({ societyId, isActive: true });
+  }
+
+  // Creates a real login (User) for a resident and links it back via Resident.userId —
+  // this link is what Visitor/SAMA host-resolution actually reads to decide who gets
+  // notified for a flat, so a login created any other way (e.g. the generic Add User
+  // form) would silently never receive visitor requests or reminders for this flat.
+  async grantLogin(residentId: string, actorSocietyId: string, password: string): Promise<{ user: IUserDocument; resident: IResidentDocument }> {
+    const resident = await Resident.findById(residentId);
+    if (!resident || resident.societyId.toString() !== actorSocietyId) throw new NotFoundError('Resident');
+    if (resident.userId) throw new ConflictError('This resident already has a login — use Reset Password instead');
+
+    // Synthetic but effectively-unique placeholder — email is a required User field, but
+    // login always happens by mobile number, so residents never see or need this value.
+    const email = `${resident.mobile}.${resident.societyId.toString().slice(-8)}@resident.jenix.app`;
+
+    const user = await userService.create({
+      name: resident.name,
+      email,
+      mobile: resident.mobile,
+      password,
+      roleCode: resident.memberType,
+      societyId: resident.societyId.toString(),
+      flatId: resident.flatId.toString(),
+    });
+
+    resident.userId = user._id!.toString();
+    resident.loginAllowed = true;
+    await resident.save();
+
+    return { user, resident };
   }
 }
 

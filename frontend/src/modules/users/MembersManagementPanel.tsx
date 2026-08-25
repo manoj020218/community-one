@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, UserCog, Mail, Phone, Shield, CheckCircle2, XCircle, Eye, EyeOff, Home, Link2 } from 'lucide-react';
+import { Plus, Search, UserCog, Mail, Phone, Shield, CheckCircle2, XCircle, Eye, EyeOff, Home, Link2, KeyRound } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
@@ -69,6 +69,11 @@ const BLANK_FORM = { name: '', email: '', mobile: '', password: '', roleCode: ''
 // own-visitor-request views alongside their full management access.
 const ADMIN_RESIDENT_ROLES = ['SOCIETY_ADMIN', 'COMMITTEE_MEMBER', 'ACCOUNTANT', 'FACILITY_MANAGER'];
 
+// These roles get a short numeric PIN instead of a full password — see
+// backend/src/common/utils/password.ts's validateCredentialStrength for the matching
+// server-side rule (4-6 digits for these roles, full password strength otherwise).
+const PIN_ROLES = ['OWNER', 'TENANT', 'FAMILY_MEMBER'];
+
 /**
  * Society member management — create/list users with different access rights.
  * Rendered both standalone at /users and as the "Members Mgmt" tab on Settings.
@@ -86,9 +91,15 @@ export function MembersManagementPanel() {
   const [shareCredentials, setShareCredentials] = useState<NewUserCredentials | null>(null);
   const [linkFlatTarget, setLinkFlatTarget] = useState<User | null>(null);
   const [linkFlatId, setLinkFlatId] = useState('');
+  const [resetTarget, setResetTarget] = useState<User | null>(null);
+  const [resetPassword, setResetPasswordValue] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const myRank = ROLE_RANK[currentUser?.roleCode || ''] ?? 0;
-  const creatableRoles = ALL_ROLES.filter((r) => ROLE_RANK[r] > myRank);
+  // OWNER/TENANT/FAMILY_MEMBER logins are created from the Residents page ("Grant Login")
+  // instead, which links Resident.userId back — required for visitor/SAMA notifications to
+  // reach them. Creating them here would leave that link unset (silently no notifications).
+  const creatableRoles = ALL_ROLES.filter((r) => ROLE_RANK[r] > myRank && !PIN_ROLES.includes(r));
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users', societyId],
@@ -138,6 +149,33 @@ export function MembersManagementPanel() {
     setLinkFlatTarget(u);
     const currentFlat = u.flatId as any;
     setLinkFlatId(typeof currentFlat === 'object' && currentFlat ? currentFlat._id : '');
+  };
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: () => api.patch(`/users/${resetTarget?._id}/reset-password`, { newPassword: resetPassword }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success('Password reset');
+      if (resetTarget) {
+        setShareCredentials({
+          name: resetTarget.name,
+          roleLabel: ROLE_LABELS[resetTarget.roleCode] || resetTarget.roleCode,
+          email: resetTarget.email,
+          mobile: resetTarget.mobile,
+          password: resetPassword,
+        });
+      }
+      setResetTarget(null);
+      setResetPasswordValue('');
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.error?.message || 'Failed to reset password');
+    },
+  });
+
+  const openReset = (u: User) => {
+    setResetTarget(u);
+    setResetPasswordValue('');
   };
 
   const filtered = search
@@ -192,7 +230,7 @@ export function MembersManagementPanel() {
       </div>
 
       {isLoading ? (
-        <TableSkeleton rows={6} cols={6} />
+        <TableSkeleton rows={6} cols={7} />
       ) : (
         <div className="card overflow-hidden">
           {filtered.length === 0 ? (
@@ -217,6 +255,7 @@ export function MembersManagementPanel() {
                     <th className="table-header text-left">Status</th>
                     <th className="table-header text-left">Resident Flat</th>
                     <th className="table-header text-left">Last Login</th>
+                    <th className="table-header text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -283,6 +322,15 @@ export function MembersManagementPanel() {
                       <td className="table-cell text-xs text-slate-500">
                         {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                       </td>
+                      <td className="table-cell">
+                        <button
+                          onClick={() => openReset(u)}
+                          className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+                          title="Reset this user's password"
+                        >
+                          <KeyRound className="w-3 h-3" /> Reset
+                        </button>
+                      </td>
                     </tr>
                   );
                   })}
@@ -317,26 +365,6 @@ export function MembersManagementPanel() {
           </div>
 
           <div>
-            <label className="label">Password <span className="text-red-500">*</span></label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={(e) => set('password')(e.target.value)}
-                placeholder="Min 8 characters"
-                className="input pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div>
             <label className="label">Role <span className="text-red-500">*</span></label>
             <select value={form.roleCode} onChange={(e) => set('roleCode')(e.target.value)} className="input">
               <option value="">Select role...</option>
@@ -347,6 +375,31 @@ export function MembersManagementPanel() {
               ))}
             </select>
             <p className="mt-1 text-xs text-slate-400">Only roles below your authority level are shown</p>
+          </div>
+
+          <div>
+            <label className="label">{PIN_ROLES.includes(form.roleCode) ? 'PIN' : 'Password'} <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                inputMode={PIN_ROLES.includes(form.roleCode) ? 'numeric' : undefined}
+                maxLength={PIN_ROLES.includes(form.roleCode) ? 6 : undefined}
+                value={form.password}
+                onChange={(e) => set('password')(e.target.value)}
+                placeholder={PIN_ROLES.includes(form.roleCode) ? '4-6 digit PIN' : 'Min 8 characters'}
+                className="input pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {PIN_ROLES.includes(form.roleCode) && (
+              <p className="mt-1 text-xs text-slate-400">Easy to remember and share — this role logs in with their mobile number + this PIN.</p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -385,6 +438,42 @@ export function MembersManagementPanel() {
               <Link2 className="w-4 h-4" /> {linkFlatMutation.isPending ? 'Saving...' : 'Save'}
             </button>
             <button onClick={() => setLinkFlatTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal isOpen={!!resetTarget} onClose={() => setResetTarget(null)} title={`Reset Password — ${resetTarget?.name || ''}`}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            This immediately replaces {resetTarget?.name}'s current {resetTarget && PIN_ROLES.includes(resetTarget.roleCode) ? 'PIN' : 'password'} and signs them out everywhere.
+          </p>
+          <div>
+            <label className="label">New {resetTarget && PIN_ROLES.includes(resetTarget.roleCode) ? 'PIN' : 'Password'} <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <input
+                type={showResetPassword ? 'text' : 'password'}
+                inputMode={resetTarget && PIN_ROLES.includes(resetTarget.roleCode) ? 'numeric' : undefined}
+                maxLength={resetTarget && PIN_ROLES.includes(resetTarget.roleCode) ? 6 : undefined}
+                value={resetPassword}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+                placeholder={resetTarget && PIN_ROLES.includes(resetTarget.roleCode) ? '4-6 digit PIN' : 'Min 8 characters'}
+                className="input pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowResetPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => resetPasswordMutation.mutate()} disabled={resetPasswordMutation.isPending || !resetPassword} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <KeyRound className="w-4 h-4" /> {resetPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
+            </button>
+            <button onClick={() => setResetTarget(null)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

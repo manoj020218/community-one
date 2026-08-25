@@ -4,18 +4,23 @@ import { User, Lock, Camera } from 'lucide-react';
 import { api } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { VoiceInputField } from '../../components/common/VoiceInputField';
+import { GoogleLinkedAccountCard } from './GoogleLinkedAccountCard';
 import { useAuthStore } from '../../store/authStore';
 import { getInitials } from '../../utils/cn';
 import toast from 'react-hot-toast';
+
+// Mirrors backend/src/common/utils/password.ts's validateCredentialStrength.
+const PIN_ROLES = ['OWNER', 'TENANT', 'FAMILY_MEMBER'];
 
 export function ProfilePage() {
   const { user, updateUser } = useAuthStore();
   const [nameForm, setNameForm] = useState({ name: user?.name || '' });
   const [passForm, setPassForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPass, setShowPass] = useState(false);
+  const isPinAccount = PIN_ROLES.includes(user?.roleCode || '');
 
   const updateMutation = useMutation({
-    mutationFn: (d: any) => api.patch(`/users/${user?._id}`, d),
+    mutationFn: (d: any) => api.patch('/users/me', d),
     onSuccess: (res) => { updateUser(res.data.data); toast.success('Profile updated!'); },
     onError: () => toast.error('Update failed'),
   });
@@ -28,7 +33,10 @@ export function ProfilePage() {
 
   const handlePassSubmit = () => {
     if (passForm.newPassword !== passForm.confirmPassword) { toast.error('Passwords do not match'); return; }
-    if (passForm.newPassword.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (isPinAccount ? !/^\d{4,6}$/.test(passForm.newPassword) : passForm.newPassword.length < 8) {
+      toast.error(isPinAccount ? 'PIN must be 4 to 6 digits' : 'Password must be at least 8 characters');
+      return;
+    }
     passMutation.mutate({ currentPassword: passForm.currentPassword, newPassword: passForm.newPassword });
   };
 
@@ -72,22 +80,32 @@ export function ProfilePage() {
       </div>
 
       <div className="card p-6">
-        <div className="flex items-center gap-2 mb-4"><Lock className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700 text-sm">Change Password</h3></div>
+        <div className="flex items-center gap-2 mb-4"><Lock className="w-4 h-4 text-slate-400" /><h3 className="font-semibold text-slate-700 text-sm">Change {isPinAccount ? 'PIN' : 'Password'}</h3></div>
         <div className="space-y-3">
-          <div><label className="label">Current Password</label>
+          <div><label className="label">Current {isPinAccount ? 'PIN' : 'Password'}</label>
             <input type={showPass ? 'text' : 'password'} value={passForm.currentPassword} onChange={setPass('currentPassword')} className="input" placeholder="••••••••" /></div>
-          <div><label className="label">New Password</label>
-            <input type={showPass ? 'text' : 'password'} value={passForm.newPassword} onChange={setPass('newPassword')} className="input" placeholder="Min. 8 characters" /></div>
-          <div><label className="label">Confirm New Password</label>
-            <input type={showPass ? 'text' : 'password'} value={passForm.confirmPassword} onChange={setPass('confirmPassword')} className="input" placeholder="Re-enter password" /></div>
+          <div><label className="label">New {isPinAccount ? 'PIN' : 'Password'}</label>
+            <input
+              type={showPass ? 'text' : 'password'}
+              inputMode={isPinAccount ? 'numeric' : undefined}
+              maxLength={isPinAccount ? 6 : undefined}
+              value={passForm.newPassword}
+              onChange={setPass('newPassword')}
+              className="input"
+              placeholder={isPinAccount ? '4-6 digit PIN' : 'Min. 8 characters'}
+            /></div>
+          <div><label className="label">Confirm New {isPinAccount ? 'PIN' : 'Password'}</label>
+            <input type={showPass ? 'text' : 'password'} value={passForm.confirmPassword} onChange={setPass('confirmPassword')} className="input" placeholder="Re-enter" /></div>
           <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-            <input type="checkbox" checked={showPass} onChange={(e) => setShowPass(e.target.checked)} className="w-4 h-4" />Show passwords
+            <input type="checkbox" checked={showPass} onChange={(e) => setShowPass(e.target.checked)} className="w-4 h-4" />Show {isPinAccount ? 'PIN' : 'passwords'}
           </label>
           <button onClick={handlePassSubmit} disabled={passMutation.isPending || !passForm.currentPassword || !passForm.newPassword} className="btn-primary text-sm">
-            {passMutation.isPending ? 'Changing...' : 'Change Password'}
+            {passMutation.isPending ? 'Changing...' : `Change ${isPinAccount ? 'PIN' : 'Password'}`}
           </button>
         </div>
       </div>
+
+      <GoogleLinkedAccountCard />
     </div>
   );
 }

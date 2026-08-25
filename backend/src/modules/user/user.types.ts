@@ -22,6 +22,7 @@ export interface IUser {
   permissions: string[];
   societyId?: string;
   flatId?: string;
+  linkedGoogleEmail?: string;
   photoUrl?: string;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -60,6 +61,7 @@ export interface UserPublicDto {
   permissions: string[];
   societyId?: string;
   flatId?: string;
+  linkedGoogleEmail?: string;
   photoUrl?: string;
   isActive: boolean;
   lastLoginAt?: Date;

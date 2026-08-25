@@ -11,5 +11,7 @@ router.post('/onboard-society', authRateLimiter, authController.onboardSociety.b
 router.post('/refresh', authController.refresh.bind(authController));
 router.post('/logout', authenticate, authController.logout.bind(authController));
 router.post('/change-password', authenticate, authController.changePassword.bind(authController));
+router.post('/google/link', authenticate, authController.linkGoogleAccount.bind(authController));
+router.post('/google/unlink', authenticate, authController.unlinkGoogleAccount.bind(authController));
 
 export default router;

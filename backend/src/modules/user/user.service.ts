@@ -1,6 +1,6 @@
 import { User, IUserDocument } from './user.model';
 import { CreateUserDto, UpdateUserDto } from './user.types';
-import { hashPassword } from '../../common/utils/password';
+import { hashPassword, validateCredentialStrength } from '../../common/utils/password';
 import { roleService } from '../role/role.service';
 import { Flat } from '../flat/flat.model';
 import { NotFoundError, ConflictError, ValidationError } from '../../common/errors/AppError';
@@ -9,6 +9,8 @@ export class UserService {
   async create(dto: CreateUserDto): Promise<IUserDocument> {
     const existing = await User.findOne({ email: dto.email.toLowerCase() });
     if (existing) throw new ConflictError('Email already registered');
+
+    validateCredentialStrength(dto.roleCode, dto.password);
 
     const permissions = await roleService.getPermissionsForRole(dto.roleCode);
     const passwordHash = await hashPassword(dto.password);
@@ -64,6 +66,17 @@ export class UserService {
     ).select('-passwordHash -refreshToken')
       .populate({ path: 'flatId', select: 'flatNo towerId', populate: { path: 'towerId', select: 'name code' } });
     return updated!;
+  }
+
+  async resetPassword(id: string, newPassword: string): Promise<IUserDocument> {
+    const user = await User.findById(id);
+    if (!user) throw new NotFoundError('User');
+
+    validateCredentialStrength(user.roleCode, newPassword);
+
+    const passwordHash = await hashPassword(newPassword);
+    await User.findByIdAndUpdate(id, { passwordHash, refreshToken: null });
+    return this.findById(id);
   }
 
   async update(id: string, dto: UpdateUserDto): Promise<IUserDocument> {

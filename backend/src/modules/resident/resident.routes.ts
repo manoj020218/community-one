@@ -15,5 +15,6 @@ router.get('/:id', requirePermission(PERMISSIONS.RESIDENT_READ), requireResource
 router.patch('/:id/kyc', requirePermission(PERMISSIONS.RESIDENT_UPDATE), requireResourceSocietyAccess(Resident), residentController.markKyc.bind(residentController));
 router.patch('/:id', requirePermission(PERMISSIONS.RESIDENT_UPDATE), requireResourceSocietyAccess(Resident), residentController.update.bind(residentController));
 router.patch('/:id/disable', requirePermission(PERMISSIONS.RESIDENT_DISABLE), requireResourceSocietyAccess(Resident), residentController.disable.bind(residentController));
+router.post('/:id/grant-login', requirePermission(PERMISSIONS.RESIDENT_UPDATE), requireResourceSocietyAccess(Resident), residentController.grantLogin.bind(residentController));
 
 export default router;

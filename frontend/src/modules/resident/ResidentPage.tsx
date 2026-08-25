@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Users, Phone, Home, CheckCircle2, ClipboardCheck, MapPin, Building2, Layers3, Pencil, UserX, ArrowUp, ArrowDown, ArrowUpDown, KeyRound, Eye, EyeOff, Smartphone } from 'lucide-react';
 import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -13,9 +13,12 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Resident, Tower, Floor } from '../../types';
 import { useTerminology } from '../../utils/terminology';
+import { ShareCredentialsModal, NewUserCredentials } from '../users/ShareCredentialsModal';
 import toast from 'react-hot-toast';
 
 const MEMBER_TYPES = ['OWNER', 'TENANT', 'FAMILY_MEMBER', 'STAFF', 'VENDOR'];
+// PIN vs full password mirrors backend/src/common/utils/password.ts's validateCredentialStrength.
+const PIN_MEMBER_TYPES = ['OWNER', 'TENANT', 'FAMILY_MEMBER'];
 const TOWER_TYPES = ['TOWER', 'BLOCK', 'VILLA_ROW', 'SHOP_BLOCK', 'OTHER'];
 const FLAT_TYPES = ['1BHK', '2BHK', '3BHK', '4BHK', 'PENTHOUSE', 'VILLA', 'SHOP', 'OFFICE', 'PARKING', 'STAFF_QUARTERS', 'OTHER'];
 const CREATE_NEW_FLAT = '__new_flat__';
@@ -51,6 +54,14 @@ export function ResidentPage() {
   const [editTowerId, setEditTowerId] = useState('');
   const [editFloorId, setEditFloorId] = useState('');
   const [removeTarget, setRemoveTarget] = useState<Resident | null>(null);
+
+  const [grantLoginTarget, setGrantLoginTarget] = useState<Resident | null>(null);
+  const [grantLoginPassword, setGrantLoginPassword] = useState('');
+  const [showGrantLoginPassword, setShowGrantLoginPassword] = useState(false);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<Resident | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [showResetPasswordValue, setShowResetPasswordValue] = useState(false);
+  const [shareCredentials, setShareCredentials] = useState<NewUserCredentials | null>(null);
 
   // Reverse flow: an admin picking "Add Resident" first often hasn't set up towers/floors/flats
   // yet. These let them create a flat (and a tower, if needed) inline instead of bailing out to
@@ -147,6 +158,45 @@ export function ResidentPage() {
       setRemoveTarget(null);
       toast.success('Resident removed');
     },
+  });
+
+  const grantLoginMutation = useMutation({
+    mutationFn: () => api.post(`/residents/${grantLoginTarget?._id}/grant-login`, { password: grantLoginPassword }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['residents'] });
+      toast.success('App login created');
+      if (grantLoginTarget) {
+        setShareCredentials({
+          name: grantLoginTarget.name,
+          roleLabel: grantLoginTarget.memberType,
+          email: res.data.data.user.email,
+          mobile: grantLoginTarget.mobile,
+          password: grantLoginPassword,
+        });
+      }
+      setGrantLoginTarget(null);
+      setGrantLoginPassword('');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to create login'),
+  });
+
+  const resetResidentPasswordMutation = useMutation({
+    mutationFn: () => api.patch(`/users/${resetPasswordTarget?.userId}/reset-password`, { newPassword: resetPasswordValue }),
+    onSuccess: () => {
+      toast.success('Password reset');
+      if (resetPasswordTarget) {
+        setShareCredentials({
+          name: resetPasswordTarget.name,
+          roleLabel: resetPasswordTarget.memberType,
+          email: '',
+          mobile: resetPasswordTarget.mobile,
+          password: resetPasswordValue,
+        });
+      }
+      setResetPasswordTarget(null);
+      setResetPasswordValue('');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to reset password'),
   });
 
   const createTowerMutation = useMutation({
@@ -265,7 +315,7 @@ export function ResidentPage() {
         />
       </div>
 
-      {isLoading ? <TableSkeleton rows={6} cols={5} /> : (
+      {isLoading ? <TableSkeleton rows={6} cols={7} /> : (
         <div className="card overflow-hidden">
           {!data?.items?.length ? (
             <EmptyState icon={Users} title={`No ${terms.person.toLowerCase()}s yet`} description={`Add your first ${terms.person.toLowerCase()} to get started`}
@@ -281,6 +331,7 @@ export function ResidentPage() {
                     {(towers?.length || 0) > 1 && <th className="table-header text-left">{terms.building}</th>}
                     <SortableHeader label="Type" field="memberType" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                     <SortableHeader label="KYC" field="kycStatus" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                    <th className="table-header text-left">App Access</th>
                     <th className="table-header text-left">Actions</th>
                   </tr></thead>
                   <tbody className="divide-y divide-slate-50">
@@ -319,6 +370,25 @@ export function ResidentPage() {
                               className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
                             >
                               <ClipboardCheck className="w-3.5 h-3.5" /> Mark KYC Done
+                            </button>
+                          )}
+                        </td>
+                        <td className="table-cell">
+                          {r.userId ? (
+                            <button
+                              onClick={() => { setResetPasswordTarget(r); setResetPasswordValue(''); }}
+                              className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                              title="Reset their login PIN/password"
+                            >
+                              <KeyRound className="w-3 h-3" /> Reset PIN
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setGrantLoginTarget(r); setGrantLoginPassword(''); }}
+                              className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-primary-600"
+                              title="Create app login for this resident"
+                            >
+                              <Smartphone className="w-3 h-3" /> Grant Login
                             </button>
                           )}
                         </td>
@@ -410,11 +480,8 @@ export function ResidentPage() {
               <input type="checkbox" checked={form.primaryContact} onChange={(e) => set('primaryContact')(e.target.checked)} className="w-4 h-4 text-primary-600" />
               Primary Contact
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={form.loginAllowed} onChange={(e) => set('loginAllowed')(e.target.checked)} className="w-4 h-4 text-primary-600" />
-              Allow Resident App Login by Same Mobile Number
-            </label>
           </div>
+          <p className="text-xs text-slate-400 -mt-2">App login can be granted afterward from the resident list ("Grant Login").</p>
           <div className="flex gap-3 pt-2">
             <button onClick={() => mutation.mutate({ ...form, societyId })} disabled={mutation.isPending || !form.flatId} className="btn-primary flex-1">{mutation.isPending ? 'Adding...' : `Add ${terms.person}`}</button>
             <button onClick={() => { setShowModal(false); setAddTowerId(''); setAddFloorId(''); }} className="btn-secondary">Cancel</button>
@@ -469,10 +536,6 @@ export function ResidentPage() {
               <input type="checkbox" checked={editForm.primaryContact} onChange={(e) => setEditForm((f) => ({ ...f, primaryContact: e.target.checked }))} className="w-4 h-4 text-primary-600" />
               Primary Contact
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-              <input type="checkbox" checked={editForm.loginAllowed} onChange={(e) => setEditForm((f) => ({ ...f, loginAllowed: e.target.checked }))} className="w-4 h-4 text-primary-600" />
-              Allow Resident App Login by Same Mobile Number
-            </label>
           </div>
           <div className="flex gap-3 pt-2">
             <button
@@ -501,6 +564,76 @@ export function ResidentPage() {
         isPending={removeMutation.isPending}
         onConfirm={() => removeTarget && removeMutation.mutate(removeTarget._id)}
         onCancel={() => setRemoveTarget(null)}
+      />
+
+      {/* Grant Login Modal */}
+      <Modal isOpen={!!grantLoginTarget} onClose={() => setGrantLoginTarget(null)} title={`Grant App Login — ${grantLoginTarget?.name || ''}`}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Creates a login for {grantLoginTarget?.name} using their mobile number ({grantLoginTarget?.mobile}) as the login ID.
+          </p>
+          <div>
+            <label className="label">{grantLoginTarget && PIN_MEMBER_TYPES.includes(grantLoginTarget.memberType) ? 'PIN' : 'Password'} <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <input
+                type={showGrantLoginPassword ? 'text' : 'password'}
+                inputMode={grantLoginTarget && PIN_MEMBER_TYPES.includes(grantLoginTarget.memberType) ? 'numeric' : undefined}
+                maxLength={grantLoginTarget && PIN_MEMBER_TYPES.includes(grantLoginTarget.memberType) ? 6 : undefined}
+                value={grantLoginPassword}
+                onChange={(e) => setGrantLoginPassword(e.target.value)}
+                placeholder={grantLoginTarget && PIN_MEMBER_TYPES.includes(grantLoginTarget.memberType) ? '4-6 digit PIN' : 'Min 8 characters'}
+                className="input pr-10"
+              />
+              <button type="button" onClick={() => setShowGrantLoginPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showGrantLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => grantLoginMutation.mutate()} disabled={grantLoginMutation.isPending || !grantLoginPassword} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <Smartphone className="w-4 h-4" /> {grantLoginMutation.isPending ? 'Creating...' : 'Grant Login'}
+            </button>
+            <button onClick={() => setGrantLoginTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal isOpen={!!resetPasswordTarget} onClose={() => setResetPasswordTarget(null)} title={`Reset Password — ${resetPasswordTarget?.name || ''}`}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            This immediately replaces their current {resetPasswordTarget && PIN_MEMBER_TYPES.includes(resetPasswordTarget.memberType) ? 'PIN' : 'password'} and signs them out everywhere.
+          </p>
+          <div>
+            <label className="label">New {resetPasswordTarget && PIN_MEMBER_TYPES.includes(resetPasswordTarget.memberType) ? 'PIN' : 'Password'} <span className="text-red-500">*</span></label>
+            <div className="relative">
+              <input
+                type={showResetPasswordValue ? 'text' : 'password'}
+                inputMode={resetPasswordTarget && PIN_MEMBER_TYPES.includes(resetPasswordTarget.memberType) ? 'numeric' : undefined}
+                maxLength={resetPasswordTarget && PIN_MEMBER_TYPES.includes(resetPasswordTarget.memberType) ? 6 : undefined}
+                value={resetPasswordValue}
+                onChange={(e) => setResetPasswordValue(e.target.value)}
+                placeholder={resetPasswordTarget && PIN_MEMBER_TYPES.includes(resetPasswordTarget.memberType) ? '4-6 digit PIN' : 'Min 8 characters'}
+                className="input pr-10"
+              />
+              <button type="button" onClick={() => setShowResetPasswordValue((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showResetPasswordValue ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => resetResidentPasswordMutation.mutate()} disabled={resetResidentPasswordMutation.isPending || !resetPasswordValue} className="btn-primary flex-1 flex items-center justify-center gap-2">
+              <KeyRound className="w-4 h-4" /> {resetResidentPasswordMutation.isPending ? 'Resetting...' : 'Reset Password'}
+            </button>
+            <button onClick={() => setResetPasswordTarget(null)} className="btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <ShareCredentialsModal
+        credentials={shareCredentials}
+        onClose={() => setShareCredentials(null)}
+        societyName={currentSociety?.name}
       />
 
       {/* Quick Add Flat Modal (reverse flow) */}

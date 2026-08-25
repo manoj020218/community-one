@@ -23,6 +23,7 @@ export interface User {
   societyId?: string;
   societyName?: string;
   flatId?: string;
+  linkedGoogleEmail?: string;
   photoUrl?: string;
   isActive: boolean;
   lastLoginAt?: string;
@@ -73,6 +74,7 @@ export interface Resident {
   _id: string; societyId: string; flatId: any; name: string;
   mobile: string; email?: string; photoUrl?: string;
   memberType: string; loginAllowed: boolean; primaryContact: boolean;
+  userId?: string;
   kycStatus: string;
   kycVerifiedBy?: { _id: string; name: string };
   kycVerifiedAt?: string;

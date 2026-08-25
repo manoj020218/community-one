@@ -1,10 +1,10 @@
 import { OAuth2Client } from 'google-auth-library';
 import { userService } from '../user/user.service';
-import { comparePassword, hashPassword } from '../../common/utils/password';
+import { comparePassword, hashPassword, validateCredentialStrength } from '../../common/utils/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../common/utils/jwt';
 import { AppError, AuthenticationError, ValidationError, ConflictError, NotFoundError } from '../../common/errors/AppError';
 import {
-  LoginDto, LoginResponse, ChangePasswordDto, OnboardSocietyDto, OnboardSocietyResult, GoogleLoginDto,
+  LoginDto, LoginResponse, ChangePasswordDto, OnboardSocietyDto, OnboardSocietyResult, GoogleLoginDto, GoogleLinkDto,
 } from './auth.types';
 import { User, IUserDocument } from '../user/user.model';
 import { Society } from '../society/society.model';
@@ -49,6 +49,7 @@ async function buildLoginResponse(user: IUserDocument): Promise<LoginResponse> {
       societyId: user.societyId?.toString(),
       societyName: society?.name,
       flatId: user.flatId?.toString(),
+      linkedGoogleEmail: user.linkedGoogleEmail,
       photoUrl: user.photoUrl,
     },
   };
@@ -91,12 +92,60 @@ export class AuthService {
       throw new AuthenticationError('Google account email could not be verified');
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !user.isActive) {
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({
+      isActive: true,
+      $or: [{ email: normalizedEmail }, { linkedGoogleEmail: normalizedEmail }],
+    });
+    if (!user) {
       throw new NotFoundError('No account for this Google email. Please contact your society admin.');
     }
 
     return buildLoginResponse(user);
+  }
+
+  // Verifies the same way googleLogin does, but attaches the verified email to the
+  // CALLING user's account instead of logging in — lets a resident whose primary
+  // `email` is a synthetic mobile@society placeholder still use Google sign-in going
+  // forward, without ever changing their primary login identifier.
+  async linkGoogleAccount(userId: string, dto: GoogleLinkDto): Promise<{ linkedGoogleEmail: string }> {
+    if (!googleClient) {
+      throw new AppError('Google sign-in is not configured', 503, 'GOOGLE_LOGIN_UNAVAILABLE');
+    }
+
+    let email: string | undefined;
+    let emailVerified: boolean | undefined;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: dto.idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      email = payload?.email;
+      emailVerified = payload?.email_verified;
+    } catch {
+      throw new AuthenticationError('Invalid Google sign-in token');
+    }
+
+    if (!email || emailVerified === false) {
+      throw new AuthenticationError('Google account email could not be verified');
+    }
+
+    const normalizedEmail = email.toLowerCase();
+    const conflict = await User.findOne({
+      _id: { $ne: userId },
+      $or: [{ email: normalizedEmail }, { linkedGoogleEmail: normalizedEmail }],
+    });
+    if (conflict) {
+      throw new ConflictError('This Google account is already linked to a different login');
+    }
+
+    await User.findByIdAndUpdate(userId, { linkedGoogleEmail: normalizedEmail });
+    return { linkedGoogleEmail: normalizedEmail };
+  }
+
+  async unlinkGoogleAccount(userId: string): Promise<void> {
+    await User.findByIdAndUpdate(userId, { $unset: { linkedGoogleEmail: 1 } });
   }
 
   // Thin proxy: the billing platform owns signup dedup + Client tracking and
@@ -181,6 +230,8 @@ export class AuthService {
 
     const valid = await comparePassword(dto.currentPassword, user.passwordHash);
     if (!valid) throw new ValidationError('Current password is incorrect');
+
+    validateCredentialStrength(user.roleCode, dto.newPassword);
 
     const newHash = await hashPassword(dto.newPassword);
     await User.findByIdAndUpdate(userId, { passwordHash: newHash });

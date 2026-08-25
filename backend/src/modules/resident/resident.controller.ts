@@ -75,6 +75,25 @@ export class ResidentController {
       sendSuccess(res, null, 'Resident disabled');
     } catch (error) { next(error); }
   }
+
+  async grantLogin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await residentService.grantLogin(req.params.id, req.user!.societyId!, req.body.password);
+      await auditService.log({
+        societyId: result.resident.societyId.toString(),
+        actorUserId: req.user!.userId,
+        actorRole: req.user!.roleCode,
+        moduleCode: 'CORE',
+        action: 'CREATE',
+        entityType: 'User',
+        entityId: result.user._id!.toString(),
+        newValue: { grantedForResidentId: result.resident._id!.toString(), roleCode: result.user.roleCode },
+        ipAddress: req.ip,
+      });
+      const { passwordHash, refreshToken, ...safeUser } = (result.user as any).toObject();
+      sendCreated(res, { user: safeUser, resident: result.resident }, 'Login granted');
+    } catch (error) { next(error); }
+  }
 }
 
 export const residentController = new ResidentController();

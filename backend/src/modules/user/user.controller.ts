@@ -70,6 +70,15 @@ export class UserController {
       next(error);
     }
   }
+
+  async resetPassword(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await userService.resetPassword(req.params.id, req.body.newPassword);
+      sendSuccess(res, user, 'Password reset');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const userController = new UserController();

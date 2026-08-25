@@ -20,8 +20,13 @@ export interface LoginResponse {
     societyId?: string;
     societyName?: string;
     flatId?: string;
+    linkedGoogleEmail?: string;
     photoUrl?: string;
   };
+}
+
+export interface GoogleLinkDto {
+  idToken: string;
 }
 
 export interface RefreshTokenDto {

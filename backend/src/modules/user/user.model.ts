@@ -21,6 +21,7 @@ const UserSchema = new Schema(
     permissions: [{ type: String }],
     societyId: { type: Schema.Types.ObjectId, ref: 'Society' },
     flatId: { type: Schema.Types.ObjectId, ref: 'Flat' },
+    linkedGoogleEmail: { type: String, lowercase: true, trim: true },
     photoUrl: { type: String },
     isActive: { type: Boolean, default: true },
     isEmailVerified: { type: Boolean, default: false },
@@ -34,6 +35,7 @@ const UserSchema = new Schema(
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ mobile: 1 });
 UserSchema.index({ societyId: 1 });
+UserSchema.index({ linkedGoogleEmail: 1 }, { unique: true, sparse: true });
 
 UserSchema.methods.toPublic = function () {
   const { passwordHash, refreshToken, ...rest } = this.toObject();

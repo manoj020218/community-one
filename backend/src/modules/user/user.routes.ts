@@ -14,5 +14,6 @@ router.post('/', requirePermission(PERMISSIONS.USER_CREATE), requireSocietyAcces
 router.get('/society/:societyId', requirePermission(PERMISSIONS.USER_READ), requireSocietyAccess, userController.getBySociety.bind(userController));
 router.get('/:id', requirePermission(PERMISSIONS.USER_READ), requireResourceSocietyAccess(User), userController.getById.bind(userController));
 router.patch('/:id/link-flat', requirePermission(PERMISSIONS.USER_UPDATE), requireResourceSocietyAccess(User), userController.linkFlat.bind(userController));
+router.patch('/:id/reset-password', requirePermission(PERMISSIONS.USER_UPDATE), requireResourceSocietyAccess(User), userController.resetPassword.bind(userController));
 
 export default router;
