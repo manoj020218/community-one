@@ -7,6 +7,7 @@ import { withSocietyQuery } from '../visitor/visitorApi';
 import { VisitorFlatTile } from '../visitor/types';
 import { Tower, PaginatedResult } from '../../types';
 import { KIOSK_STRINGS, KioskLang } from './kioskStrings';
+import { VoiceHoldButton } from './VoiceHoldButton';
 
 interface TowerFlatPickerProps {
   societyId: string;
@@ -14,7 +15,10 @@ interface TowerFlatPickerProps {
   onFlatPhotoReady: (flat: VisitorFlatTile, photo: File) => void;
 }
 
-const FLATS_PAGE_SIZE = 30;
+// Guards need to see every flat in a block at once — there's no "load more" UI here, so
+// this must comfortably exceed the largest real tower/block (the biggest societies so far
+// run ~130 flats per block). Matches the backend's own pagination cap (500).
+const FLATS_PAGE_SIZE = 500;
 
 export function TowerFlatPicker({ societyId, lang, onFlatPhotoReady }: TowerFlatPickerProps) {
   const t = KIOSK_STRINGS[lang];
@@ -76,14 +80,17 @@ export function TowerFlatPicker({ societyId, lang, onFlatPhotoReady }: TowerFlat
             </button>
           ))}
         </div>
-        <div className="relative w-full sm:w-56 shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t.searchFlat}
-            className="w-full pl-9 pr-3 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/50 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-white/40"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <div className="relative flex-1 sm:w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t.searchFlat}
+              className="w-full pl-9 pr-3 py-2.5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-white/50 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
+          </div>
+          <VoiceHoldButton compact lang={lang} label={t.holdToSpeak} onTranscript={(text) => setSearch(text.trim())} />
         </div>
       </div>
 

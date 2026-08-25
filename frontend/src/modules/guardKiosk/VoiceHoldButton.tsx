@@ -8,11 +8,12 @@ interface VoiceHoldButtonProps {
   lang: KioskLang;
   onTranscript: (text: string) => void;
   label: string;
+  compact?: boolean;
 }
 
 const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-export function VoiceHoldButton({ lang, onTranscript, label }: VoiceHoldButtonProps) {
+export function VoiceHoldButton({ lang, onTranscript, label, compact }: VoiceHoldButtonProps) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -45,6 +46,28 @@ export function VoiceHoldButton({ lang, onTranscript, label }: VoiceHoldButtonPr
     recognitionRef.current?.stop();
     setIsListening(false);
   };
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onPointerDown={start}
+        onPointerUp={stop}
+        onPointerLeave={stop}
+        onPointerCancel={stop}
+        title={label}
+        className={cn(
+          'relative flex items-center justify-center rounded-full w-10 h-10 shrink-0 select-none touch-none transition-all',
+          'shadow-lg backdrop-blur-xl border',
+          isListening
+            ? 'bg-rose-500/90 border-rose-300 scale-110 animate-pulse'
+            : 'bg-white/20 border-white/30 hover:bg-white/30 active:scale-95'
+        )}
+      >
+        <Mic className={cn('w-4 h-4', isListening ? 'text-white' : 'text-white/90')} />
+      </button>
+    );
+  }
 
   return (
     <button
