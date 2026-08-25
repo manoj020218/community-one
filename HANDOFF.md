@@ -8,11 +8,27 @@
 
 ---
 
----
-
 ## Recent Activity Log
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
+
+### 2026-08-25 (cont'd 3) — Marketing site updated for Guard Patrolling; Video Intercom & Chat registered as Coming Soon
+
+Guard Patrolling (shipped earlier this session) was missing from all marketing copy. Added as
+a **Live** module to `LandingPage.tsx`'s module grid, a new workflow-section callout (cyan,
+matching the SAMA callout's style — a 4th full workflow card would've broken the 3-column
+grid, so a callout banner was the right fit instead), the `<Seo description>` prop, and the
+JSON-LD `SOFTWARE_APPLICATION_SCHEMA` description; same for `HostelLandingPage.tsx`'s feature
+grid (hostel guards patrol too). Bumped the "X modules live" footer count 15→16. Added SEO
+keywords (`guard patrol software`, `GPS guard patrol verification`, etc.) to
+`seoContent.ts`. Also fixed a stale `AboutPage.tsx` sentence still listing Visitor Management
+and MCR as "future modules" despite both being live for a long time.
+
+Also registered **Video Intercom & Chat** (video call from gate to a flat before entry, plus
+in-app chat between residents) as a new `COMING_SOON` module — `MODULE_CODES.VIDEO_INTERCOM`
++ an inline stub in `modules.seed.ts` (same pattern as `BOOKING`/`ANNOUNCEMENT` — no actual
+module built yet, just a registry placeholder) — and added it to both marketing pages'
+feature grids as Coming Soon.
 
 ### 2026-08-25 (cont'd 2) — Guard Patrolling Module (Phase 1), shipped
 
