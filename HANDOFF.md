@@ -12,6 +12,30 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-26 — Uploaded-file links swallowed by the SW (again); raw Mongo IDs in report CSVs; Society.shortId
+
+**Same bug class as the earlier APK-download fix, different path.** The PWA service worker's
+`navigateFallbackDenylist` only excluded `/downloads/` — a click on an MCR expense proof, a
+file in `/files`, or a receipt PDF link (all served from `/uploads/`, per
+`fileAsset.service.ts`'s `url = /uploads/${filename}`) got intercepted and served `index.html`
+instead, which the router bounced to `/`. Broadened the denylist to
+`[/^\/downloads\//, /^\/uploads\//]`. Same caveat as before: anyone who loaded the site before
+this deploy needs one hard refresh to pick up the corrected service worker.
+
+**Report CSV export bug**: `ReportsPage.tsx`'s `flattenForCsv` only recognized populated refs
+shaped `{flatNo}` or `{name}` — a populated `floorId` (`{floorNumber}`) fell through to
+`JSON.stringify()`, dumping the raw `_id` alongside the floor number into the cell. Fixed with
+an explicit `!== undefined` check per field (matters because `floorNumber` can legitimately be
+`0` for Ground Floor — the old `||` chain would have treated that as "missing" too).
+
+**New: `Society.shortId`** — every per-society report (Flat/Resident/Vehicle/Pet/Payment/
+Receipt List) was exposing the raw internal `societyId` ObjectId as a column. Added a 4-char
+alphanumeric short ID (ambiguous characters excluded, collision-checked at generation) and
+populated it in place of the raw id in those reports. Wired into both places a Society gets
+created — `society.service.ts` (admin-created) and `bridge.service.ts` (self-onboarding via
+the billing platform) — plus a `backfillShortIds()` call added to the seed script for
+pre-existing societies (backfilled 8 on this run, safe to re-run for any future gap).
+
 ### 2026-08-25 (cont'd 4) — First native APK rebuild this session (Guard Patrolling permissions live in the installed app)
 
 Rebuilt and redistributed the signed release APK so the *installed* app (not just the mobile-browser
