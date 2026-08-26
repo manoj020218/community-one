@@ -12,6 +12,33 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-26 (cont'd) — My Home's Payments tile showed the admin screen; residents couldn't see their own society/flat; Old Dues quick action
+
+Found via live testing of "My Home" (Dheeraj Jain): the resident dashboard's "Payments" tile
+always pointed at the legacy `/payments` page, which renders by *permission*, not by view
+context — an admin-linked account (full `PAYMENT_CREATE`/`PAYMENT_READ`) landed on the full
+admin payments screen instead of a resident-scoped view, exactly the gap flagged (but not yet
+fixed) when "My Home" was originally built. Fixed by pointing to MCR's `/mcr?tab=mine` when
+MCR is enabled and the account has resident self-service access (same destination a real
+Owner/Tenant already gets) — falls back to `/payments` for societies not yet on MCR.
+
+**Residents had no way to see which society/block/flat they belong to.** Root cause:
+`FLAT_READ` is deliberately admin-only (browsing any flat), so a real Owner/Tenant/Family
+Member account got a 403 on the one lookup that would show their own flat. New
+`GET /flats/me` — scoped strictly to the caller's own `flatId` from the JWT, so no permission
+check needed (can only ever return their own data). Wired into `ResidentDashboard.tsx`'s
+welcome card (now shows society name + block + flat) and `ProfilePage.tsx` (added Society/
+Block/Flat to the info grid) — the society name was already free via `user.societyName` from
+login, only the flat lookup was missing.
+
+**New: "Add Old Dues" quick action on the MCR Demands tab** — reuses the existing Opening
+Balance bulk-dues endpoint (`POST /mcr/opening-balance/bulk-dues`) scoped to a single flat,
+surfaced right on the Demands toolbar instead of requiring the separate wizard. Deliberately
+kept as its own `OPENING_BALANCE` demand rather than merging into a regular bill (considered
+and explicitly rejected — see conversation: would blur "this month" vs "arrears" inside one
+receipt, and needs a real backend change today's draft editor doesn't support) — a flat's
+Total Outstanding already sums both, so the resident still sees one net amount owed.
+
 ### 2026-08-26 — Uploaded-file links swallowed by the SW (again); raw Mongo IDs in report CSVs; Society.shortId
 
 **Same bug class as the earlier APK-download fix, different path.** The PWA service worker's
