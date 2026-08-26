@@ -12,6 +12,44 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-26 (cont'd 2) — nginx never sent Cache-Control on index.html (root cause of "mobile app still shows old"); MCR reminders never actually requested WhatsApp
+
+**Root cause of persistent staleness in the native (Capacitor) app, unrelated to the service
+worker fixes earlier today.** The native app deliberately does NOT register a service worker
+(`pwaRegister.ts` unregisters any existing one on native launch), so the SW denylist fix below
+could never have applied there. Found instead: nginx was serving `index.html` with **no
+Cache-Control header at all** (`curl -sI https://community.iotsoft.in/` confirmed), so the
+Android WebView (and any browser) was free to cache it indefinitely under its own heuristics —
+permanently pinning the app to old hashed JS/CSS filenames no matter how many redeploys
+followed. This affected every client, every platform, since the site went live — not just the
+native app, just most visible there since a WebView's cache is stickier than a browser tab's.
+Fixed at the nginx layer (config only — not in this git repo):
+`/etc/nginx/sites-available/community` on the VPS now has `location /assets/ { add_header
+Cache-Control "public, max-age=31536000, immutable"; }` (content-hashed, safe to cache forever)
+and both `location = /index.html` and the fallback `location /` send `Cache-Control: no-cache,
+no-store, must-revalidate`. Verified via curl post-reload. **This does not retroactively evict
+what's already cached in an already-installed app instance** — if a user's app still looks
+stale after this, they need to force-close it and clear the app's storage cache once (Android
+Settings → Apps → Jenix Community → Storage → Clear Cache, not Clear Data) — after that, every
+future deploy picks up correctly with no user action needed. The earlier "WhatsApp number not
+showing" report from today was very likely the same symptom (the phone number rendering code
+was already correct), not a separate bug.
+
+**MCR "Remind" button / bulk "Send Reminders" never sent WhatsApp (or Email) reminders.**
+`McrDemandsTab.tsx` hardcoded `channels: ['IN_APP']` on both the per-demand reminder mutation
+and the bulk run action — so a manual reminder could never reach WhatsApp regardless of
+whether the linked WhatsApp session was connected. Only the automated background worker
+(`mcrReminderWorker`, already correctly requesting `['IN_APP','EMAIL','WHATSAPP']`) ever sent
+WhatsApp reminders. Fixed by requesting all three channels from both frontend actions, and
+replaced the generic "Reminder sent" toast with one that reflects the real per-channel
+sent/skipped result (e.g. surfaces "WhatsApp: WhatsApp is not connected" instead of silently
+reporting success). Also added disconnect-code/reason logging to `whatsapp.service.ts`'s
+`connection.update` handler — PM2 logs showed the Baileys session flapping (disconnect/
+reconnect roughly every 90–165s) with no reason ever logged, so this was previously
+undiagnosable; next time it flaps the actual Boom code/message will be in the logs. The
+flapping itself is still unresolved — worth a closer look if WhatsApp deliveries keep getting
+skipped even with this fix.
+
 ### 2026-08-26 (cont'd) — My Home's Payments tile showed the admin screen; residents couldn't see their own society/flat; Old Dues quick action
 
 Found via live testing of "My Home" (Dheeraj Jain): the resident dashboard's "Payments" tile
