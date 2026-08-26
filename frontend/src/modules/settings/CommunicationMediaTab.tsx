@@ -21,11 +21,15 @@ export function CommunicationMediaTab() {
     enabled: !!societyId,
   });
 
+  // The Baileys session reconnects on its own after a drop (see whatsapp.service.ts), so a
+  // one-shot fetch can freeze this card on a stale "Disconnected" reading if the page happened
+  // to load mid-drop — poll at the same 60s cadence as the admin dashboard's card so it
+  // self-heals instead of needing a manual refresh.
   const { data: waStatus } = useQuery({
     queryKey: ['whatsapp-status', societyId],
     queryFn: () => extractData<WhatsAppStatus>(api.get('/communication/whatsapp/status', { params: { societyId } })),
     enabled: !!societyId,
-    refetchInterval: (query) => (query.state.data?.status === 'CONNECTING' ? 3000 : false),
+    refetchInterval: (query) => (query.state.data?.status === 'CONNECTING' ? 3000 : 60000),
   });
 
   const connectMutation = useMutation({
