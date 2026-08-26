@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { User, Lock, Camera } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, extractData } from '../../services/api';
 import { PageHeader } from '../../components/common/PageHeader';
 import { VoiceInputField } from '../../components/common/VoiceInputField';
 import { GoogleLinkedAccountCard } from './GoogleLinkedAccountCard';
@@ -18,6 +18,12 @@ export function ProfilePage() {
   const [passForm, setPassForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPass, setShowPass] = useState(false);
   const isPinAccount = PIN_ROLES.includes(user?.roleCode || '');
+
+  const { data: myFlat } = useQuery({
+    queryKey: ['flats-me'],
+    queryFn: () => extractData<any>(api.get('/flats/me')),
+    enabled: !!user?.flatId,
+  });
 
   const updateMutation = useMutation({
     mutationFn: (d: any) => api.patch('/users/me', d),
@@ -67,6 +73,13 @@ export function ProfilePage() {
           <div><p className="text-xs text-slate-500 mb-0.5">Email</p><p className="text-sm font-medium text-slate-700">{user?.email || '—'}</p></div>
           <div><p className="text-xs text-slate-500 mb-0.5">Mobile</p><p className="text-sm font-medium text-slate-700">{user?.mobile || '—'}</p></div>
           <div><p className="text-xs text-slate-500 mb-0.5">Role</p><p className="text-sm font-medium text-slate-700">{user?.roleCode}</p></div>
+          <div><p className="text-xs text-slate-500 mb-0.5">Society</p><p className="text-sm font-medium text-slate-700">{user?.societyName || '—'}</p></div>
+          {myFlat && (
+            <>
+              <div><p className="text-xs text-slate-500 mb-0.5">Block</p><p className="text-sm font-medium text-slate-700">{myFlat.towerId?.name || '—'}</p></div>
+              <div><p className="text-xs text-slate-500 mb-0.5">Flat</p><p className="text-sm font-medium text-slate-700">{myFlat.flatNo}</p></div>
+            </>
+          )}
           <div><p className="text-xs text-slate-500 mb-0.5">Permissions</p><p className="text-sm font-medium text-slate-700">{user?.permissions?.length || 0} permissions</p></div>
         </div>
 

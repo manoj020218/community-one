@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban, Pencil } from 'lucide-react';
+import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban, Pencil, History } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -11,7 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSocietyStore } from '../../store/societyStore';
 import { Tower } from '../../types';
 import { cn, formatDate } from '../../utils/cn';
-import { hasMcrEditDraftAccess } from './mcr.permissions';
+import { hasMcrEditDraftAccess, hasMcrOpeningBalanceAccess } from './mcr.permissions';
 import { BillingPlan, DEMAND_STATUS_BADGE, formatPaise, MaintenanceDemand, McrSettings, MCR_DEMAND_STATUSES } from './mcr.types';
 
 const currentMonthKey = () => new Date().toISOString().slice(0, 7);
@@ -31,6 +31,10 @@ export function McrDemandsTab() {
   const [editAmounts, setEditAmounts] = useState<Record<string, string>>({});
   const [editDueDate, setEditDueDate] = useState('');
   const canEditDraft = hasMcrEditDraftAccess(user?.permissions || []);
+  const canManageOpeningBalance = hasMcrOpeningBalanceAccess(user?.permissions || []);
+  const [showOldDuesModal, setShowOldDuesModal] = useState(false);
+  const [oldDuesFlatId, setOldDuesFlatId] = useState('');
+  const [oldDuesAmount, setOldDuesAmount] = useState('');
   const [showPolicyConfirm, setShowPolicyConfirm] = useState(false);
   const [policyForm, setPolicyForm] = useState({
     vacantFlatPolicy: 'BILL_FULL' as 'BILL_FULL' | 'BILL_REDUCED' | 'EXEMPT',
@@ -43,6 +47,12 @@ export function McrDemandsTab() {
     queryKey: ['towers', societyId],
     queryFn: () => extractData<Tower[]>(api.get(`/towers/society/${societyId}`)),
     enabled: !!societyId,
+  });
+
+  const { data: flats } = useQuery({
+    queryKey: ['flats-list', societyId],
+    queryFn: () => extractData<any>(api.get(`/flats/society/${societyId}?limit=500`)),
+    enabled: !!societyId && showOldDuesModal,
   });
 
   const { data, isLoading } = useQuery({
@@ -158,6 +168,31 @@ export function McrDemandsTab() {
     onSuccess: () => { invalidate(); toast.success('Draft demand updated'); setEditTarget(null); },
   });
 
+  // Reuses the same Opening Balance mechanism as the bulk wizard (Fund Balance settings) —
+  // just scoped to one flat and reachable right from where an admin is already working. Kept
+  // as its own demand (demandType OPENING_BALANCE) rather than merged into a regular bill, so
+  // "this month's charge" vs "carried-forward arrears" stays distinguishable in statements —
+  // a flat's Total Outstanding already sums both, so the resident still sees one net amount.
+  const oldDuesMutation = useMutation({
+    mutationFn: () => api.post('/mcr/opening-balance/bulk-dues', {
+      societyId,
+      asOfDate: new Date().toISOString().slice(0, 10),
+      entries: [{ flatId: oldDuesFlatId, amountPaise: Math.round(Number(oldDuesAmount || 0) * 100) }],
+    }),
+    onSuccess: (res: any) => {
+      invalidate();
+      if (res?.data?.data?.skippedCount) {
+        toast('This flat already has an old dues entry — edit it as a draft instead.', { icon: 'ℹ️' });
+      } else {
+        toast.success('Old dues added and published to this flat');
+      }
+      setShowOldDuesModal(false);
+      setOldDuesFlatId('');
+      setOldDuesAmount('');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.error?.message || 'Failed to add old dues'),
+  });
+
   const editTotalPaise = editTarget ? editTarget.chargeLines.reduce((sum, l) => sum + Math.round(Number(editAmounts[l.chargeHeadId] || 0) * 100), 0) : 0;
 
   const towerNameById = new Map((towers || []).map((t) => [t._id, t.name]));
@@ -181,6 +216,11 @@ export function McrDemandsTab() {
           <button onClick={() => remindersRunMutation.mutate()} disabled={remindersRunMutation.isPending} className="btn-secondary flex items-center gap-2 text-sm">
             <BellRing className="w-4 h-4" /> Send Reminders
           </button>
+          {canManageOpeningBalance && (
+            <button onClick={() => setShowOldDuesModal(true)} className="btn-secondary flex items-center gap-2 text-sm">
+              <History className="w-4 h-4" /> Add Old Dues
+            </button>
+          )}
           <button onClick={openGenerateFlow} className="btn-primary flex items-center gap-2 text-sm">
             <Plus className="w-4 h-4" /> Generate Drafts
           </button>
@@ -376,6 +416,32 @@ export function McrDemandsTab() {
               {cancelMutation.isPending ? 'Cancelling...' : 'Confirm Cancel'}
             </button>
             <button onClick={() => { setCancelTarget(null); setCancelReason(''); }} className="btn-secondary">Back</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showOldDuesModal} onClose={() => setShowOldDuesModal(false)} title="Add Old Dues">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            For a flat's pending balance from before this platform was adopted. This creates a separate, clearly labeled
+            "Opening Balance" demand for that flat — it doesn't change any of this month's regular charges, but the flat's
+            Total Outstanding will include it, so the resident still sees one net amount owed.
+          </p>
+          <div><label className="label">Flat <span className="text-red-500">*</span></label>
+            <select value={oldDuesFlatId} onChange={(e) => setOldDuesFlatId(e.target.value)} className="input">
+              <option value="">Select flat...</option>
+              {flats?.items?.map((f: any) => (
+                <option key={f._id} value={f._id}>{f.towerId?.name ? `${f.towerId.name} - ${f.flatNo}` : f.flatNo}</option>
+              ))}
+            </select>
+          </div>
+          <div><label className="label">Old Dues Amount (₹) <span className="text-red-500">*</span></label>
+            <input type="number" min={1} value={oldDuesAmount} onChange={(e) => setOldDuesAmount(e.target.value)} className="input" placeholder="e.g. 15000" /></div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => oldDuesMutation.mutate()} disabled={oldDuesMutation.isPending || !oldDuesFlatId || !oldDuesAmount} className="btn-primary flex-1">
+              {oldDuesMutation.isPending ? 'Adding...' : 'Add Old Dues'}
+            </button>
+            <button onClick={() => setShowOldDuesModal(false)} className="btn-secondary">Cancel</button>
           </div>
         </div>
       </Modal>

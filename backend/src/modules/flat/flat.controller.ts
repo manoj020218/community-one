@@ -41,6 +41,14 @@ export class FlatController {
     } catch (error) { next(error); }
   }
 
+  async findMine(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user!.flatId) { sendSuccess(res, null); return; }
+      const flat = await flatService.findById(req.user!.flatId);
+      sendSuccess(res, flat);
+    } catch (error) { next(error); }
+  }
+
   async update(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const flat = await flatService.update(req.params.id, req.body);
