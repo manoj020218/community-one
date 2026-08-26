@@ -101,7 +101,7 @@ export class WhatsAppService {
           await this.updateStatus(societyId, 'DISCONNECTED');
           logger.info('WhatsApp logged out', { societyId });
         } else {
-          logger.warn('WhatsApp disconnected, reconnecting', { societyId });
+          logger.warn('WhatsApp disconnected, reconnecting', { societyId, code, reason: lastDisconnect?.error?.message });
           setTimeout(() => this.connect(societyId).catch(() => undefined), 5000);
         }
       }

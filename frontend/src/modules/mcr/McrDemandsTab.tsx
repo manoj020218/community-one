@@ -126,8 +126,19 @@ export function McrDemandsTab() {
   });
 
   const reminderMutation = useMutation({
-    mutationFn: (demandId: string) => api.post(`/mcr/demands/${demandId}/reminders`, { societyId, channels: ['IN_APP'] }),
-    onSuccess: () => toast.success('Reminder sent'),
+    mutationFn: (demandId: string) => api.post(`/mcr/demands/${demandId}/reminders`, { societyId, channels: ['IN_APP', 'EMAIL', 'WHATSAPP'] }),
+    onSuccess: (res: any) => {
+      const results = res?.data?.data?.results || [];
+      const sent = results.filter((r: any) => r.status === 'SENT').map((r: any) => r.channel);
+      const skipped = results.filter((r: any) => r.status === 'SKIPPED');
+      if (!sent.length && skipped.length) {
+        toast.error(`Not delivered — ${skipped.map((r: any) => `${r.channel}: ${r.failureMessage}`).join('; ')}`);
+      } else if (skipped.length) {
+        toast(`Sent via ${sent.join(', ')}. Skipped — ${skipped.map((r: any) => `${r.channel}: ${r.failureMessage}`).join('; ')}`, { icon: '⚠️' });
+      } else {
+        toast.success(sent.length ? `Reminder sent via ${sent.join(', ')}` : 'Reminder sent');
+      }
+    },
   });
 
   const automationMutation = useMutation({
@@ -141,8 +152,11 @@ export function McrDemandsTab() {
   });
 
   const remindersRunMutation = useMutation({
-    mutationFn: () => api.post('/mcr/reminders/run', { societyId, limit: 50, channels: ['IN_APP'] }),
-    onSuccess: () => toast.success('Reminders dispatched'),
+    mutationFn: () => api.post('/mcr/reminders/run', { societyId, limit: 50, channels: ['IN_APP', 'EMAIL', 'WHATSAPP'] }),
+    onSuccess: (res: any) => {
+      const r = res?.data?.data;
+      toast.success(r ? `Reminders dispatched — ${r.processedCount} demand(s), ${r.sentCount} sent, ${r.skippedCount} skipped` : 'Reminders dispatched');
+    },
   });
 
   const cancelMutation = useMutation({
