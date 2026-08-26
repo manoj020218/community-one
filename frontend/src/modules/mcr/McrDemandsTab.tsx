@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban, Pencil, History } from 'lucide-react';
+import { Plus, FileText, Send, Zap, AlarmClock, BellRing, Ban, Pencil, History, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api, extractData } from '../../services/api';
 import { Modal } from '../../components/common/Modal';
@@ -23,6 +23,7 @@ export function McrDemandsTab() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
   const [towerFilter, setTowerFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ billingPlanId: '', billingPeriodKey: currentMonthKey(), billingPeriodLabel: '', towerId: '' });
   const [cancelTarget, setCancelTarget] = useState<MaintenanceDemand | null>(null);
@@ -56,8 +57,8 @@ export function McrDemandsTab() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['mcr-demands', societyId, statusFilter, towerFilter],
-    queryFn: () => extractData<MaintenanceDemand[]>(api.get('/mcr/demands', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}), ...(towerFilter ? { towerId: towerFilter } : {}) } })),
+    queryKey: ['mcr-demands', societyId, statusFilter, towerFilter, search],
+    queryFn: () => extractData<MaintenanceDemand[]>(api.get('/mcr/demands', { params: { societyId, ...(statusFilter ? { status: statusFilter } : {}), ...(towerFilter ? { towerId: towerFilter } : {}), ...(search ? { search } : {}) } })),
     enabled: !!societyId,
   });
 
@@ -216,10 +217,16 @@ export function McrDemandsTab() {
       <TowerTabBar towers={towers || []} selected={towerFilter} onSelect={setTowerFilter} allLabel="All Blocks" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
-          <option value="">All statuses</option>
-          {MCR_DEMAND_STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-        </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input placeholder="Search flat, resident, mobile..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pl-10 w-64" />
+          </div>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-auto">
+            <option value="">All statuses</option>
+            {MCR_DEMAND_STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          </select>
+        </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => automationMutation.mutate()} disabled={automationMutation.isPending} className="btn-secondary flex items-center gap-2 text-sm">
             <Zap className="w-4 h-4" /> Run Automation

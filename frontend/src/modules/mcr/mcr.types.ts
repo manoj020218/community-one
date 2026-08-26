@@ -111,6 +111,7 @@ export interface MaintenanceDemand {
   // demand-creation time, so it stays accurate even if the flat is later renamed/moved) is
   // the actual source for display.
   flatSnapshot?: { flatNo?: string; towerId?: string; floorId?: string; areaSqFt?: number; occupancyStatus?: string };
+  residentSnapshot?: { name?: string; mobile?: string; email?: string };
   demandType: 'REGULAR' | 'LATE_FEE' | 'OPENING_BALANCE';
   billingPeriodKey: string;
   billingPeriodLabel: string;

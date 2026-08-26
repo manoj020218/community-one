@@ -22,7 +22,8 @@ export class DemandController {
       const items = await demandDraftService.listBySociety(
         context.societyId,
         req.query.status as string | undefined,
-        req.query.towerId as string | undefined
+        req.query.towerId as string | undefined,
+        req.query.search as string | undefined
       );
       sendSuccess(res, items, 'MCR demands retrieved');
     } catch (error) {

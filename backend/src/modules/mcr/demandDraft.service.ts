@@ -34,12 +34,22 @@ function resolveBillingPolicy(occupancyStatus: string, settings: IMcrSettingsDoc
 }
 
 export class DemandDraftService {
-  async listBySociety(societyId: string, status?: string, towerId?: string): Promise<IMaintenanceDemandDocument[]> {
+  async listBySociety(societyId: string, status?: string, towerId?: string, search?: string): Promise<IMaintenanceDemandDocument[]> {
     const query: Record<string, unknown> = { societyId };
     if (status) query.status = status;
     // towerId lives on the flat, not the demand — flatSnapshot.towerId was captured at draft
     // time specifically so filters like this don't need a join back to Flat.
     if (towerId) query['flatSnapshot.towerId'] = new Types.ObjectId(towerId);
+    // flatNo and resident name/mobile are both denormalized snapshots on the demand itself
+    // (same reason as towerId above), so this search needs no join back to Flat/Resident.
+    if (search) {
+      query.$or = [
+        { demandNumber: { $regex: search, $options: 'i' } },
+        { 'flatSnapshot.flatNo': { $regex: search, $options: 'i' } },
+        { 'residentSnapshot.name': { $regex: search, $options: 'i' } },
+        { 'residentSnapshot.mobile': { $regex: search, $options: 'i' } },
+      ];
+    }
     return MaintenanceDemand.find(query).sort({ createdAt: -1 });
   }
 
