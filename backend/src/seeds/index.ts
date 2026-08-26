@@ -7,6 +7,7 @@ import { Role } from '../modules/role/role.model';
 import { User } from '../modules/user/user.model';
 import { ModuleRegistry } from '../modules/moduleRegistry/moduleRegistry.model';
 import { ReportDefinition } from '../modules/report/report.model';
+import { societyService } from '../modules/society/society.service';
 import { hashPassword } from '../common/utils/password';
 import { ROLE_PERMISSIONS } from './permissions.seed';
 import { MODULES_SEED } from './modules.seed';
@@ -62,6 +63,10 @@ async function seed(): Promise<void> {
     await ReportDefinition.findOneAndUpdate({ code: report.code }, report, { upsert: true, new: true });
   }
   console.log('Reports seeded');
+
+  // Backfill Society.shortId for societies created before the field existed
+  const backfilledCount = await societyService.backfillShortIds();
+  if (backfilledCount) console.log(`Backfilled shortId for ${backfilledCount} societ${backfilledCount === 1 ? 'y' : 'ies'}`);
 
   // Seed Super Admin
   const existing = await User.findOne({ email: env.SUPER_ADMIN_EMAIL });
