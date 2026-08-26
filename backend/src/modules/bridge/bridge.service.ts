@@ -1,5 +1,6 @@
 import { User } from '../user/user.model';
 import { Society } from '../society/society.model';
+import { generateUniqueShortId } from '../society/society.service';
 import { roleService } from '../role/role.service';
 import { hashPassword } from '../../common/utils/password';
 import { ConflictError } from '../../common/errors/AppError';
@@ -54,6 +55,7 @@ export class BridgeService {
     }
 
     const code = await generateUniqueSocietyCode(nameTrimmed);
+    const shortId = await generateUniqueShortId();
     const password = generatePassword();
     const passwordHash = await hashPassword(password);
     const permissions = await roleService.getPermissionsForRole('SOCIETY_ADMIN');

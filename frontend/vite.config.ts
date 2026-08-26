@@ -11,8 +11,9 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       workbox: {
         // Without this, the SPA navigate-fallback swallows a plain link click to a
-        // static file under /downloads/ (e.g. the APK) and serves index.html instead.
-        navigateFallbackDenylist: [/^\/downloads\//],
+        // static file (e.g. the APK under /downloads/, or an uploaded proof/receipt file
+        // under /uploads/) and serves index.html instead of the actual file.
+        navigateFallbackDenylist: [/^\/downloads\//, /^\/uploads\//],
       },
       manifest: {
         name: 'Jenix Society One',

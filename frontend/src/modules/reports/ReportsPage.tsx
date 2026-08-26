@@ -12,17 +12,29 @@ import toast from 'react-hot-toast';
 
 const FORMAT_ICONS: Record<string, string> = { JSON: 'badge-blue', CSV: 'badge-green', EXCEL: 'badge-green', PDF: 'badge-red', PRINT: 'badge-gray' };
 
-// Flattens each row for a spreadsheet cell: a populated ref ({_id, flatNo} or {_id, name})
-// becomes just its readable value, arrays join with "; ", everything else is left alone.
+// Flattens each row for a spreadsheet cell: a populated ref ({_id, flatNo}, {_id, name} or
+// {_id, floorNumber}) becomes just its readable value, arrays join with "; ", everything
+// else is left alone.
+function readablePopulatedValue(v: Record<string, any>): string {
+  // floorNumber can legitimately be 0 (Ground Floor) or negative (basements) — check
+  // presence explicitly rather than falling through a truthy `||` chain, which would
+  // treat 0 as "missing" and fall all the way to JSON.stringify.
+  if (v.flatNo !== undefined) return v.flatNo;
+  if (v.name !== undefined) return v.name;
+  if (v.floorNumber !== undefined) return v.floorNumber;
+  if (v.shortId !== undefined) return v.shortId;
+  return JSON.stringify(v);
+}
+
 function flattenForCsv(row: Record<string, any>) {
   const flat: Record<string, any> = {};
   Object.entries(row).forEach(([key, value]) => {
     if (['_id', '__v', 'createdBy', 'updatedBy'].includes(key)) return;
     if (value === null || value === undefined) { flat[key] = ''; return; }
     if (Array.isArray(value)) {
-      flat[key] = value.map((v) => (v && typeof v === 'object' ? v.name || v.flatNo || JSON.stringify(v) : v)).join('; ');
+      flat[key] = value.map((v) => (v && typeof v === 'object' ? readablePopulatedValue(v) : v)).join('; ');
     } else if (typeof value === 'object') {
-      flat[key] = value.flatNo || value.name || JSON.stringify(value);
+      flat[key] = readablePopulatedValue(value);
     } else {
       flat[key] = value;
     }

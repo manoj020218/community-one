@@ -7,6 +7,11 @@ const SocietySchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    // Short 4-char display ID — distinct from `code` (a long name-derived onboarding slug).
+    // Meant for compact display in reports/exports instead of the internal _id. Optional at
+    // the schema level only because societies created before this field existed don't have
+    // one yet until backfilled — always set for anything created after.
+    shortId: { type: String, uppercase: true, trim: true },
     logoUrl: { type: String },
     address: { type: String, required: true },
     city: { type: String, required: true },
@@ -49,6 +54,7 @@ const SocietySchema = new Schema(
 );
 
 SocietySchema.index({ code: 1 }, { unique: true });
+SocietySchema.index({ shortId: 1 }, { unique: true, sparse: true });
 SocietySchema.index({ status: 1 });
 SocietySchema.index({ city: 1, pincode: 1 });
 

@@ -33,6 +33,7 @@ export interface Society {
   _id: string;
   name: string;
   code: string;
+  shortId?: string;
   logoUrl?: string;
   address: string;
   city: string;

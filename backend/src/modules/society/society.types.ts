@@ -6,6 +6,7 @@ export type SocietyVertical = 'COMMUNITY' | 'HOSTEL';
 export interface ISociety {
   name: string;
   code: string;
+  shortId?: string;
   logoUrl?: string;
   address: string;
   city: string;

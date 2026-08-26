@@ -27,19 +27,19 @@ export class ReportService {
         // never leaks other societies — it can only ever return their own.
         return isSuper ? Society.find({ isActive: true }).sort({ name: 1 }) : Society.find({ _id: societyId, isActive: true });
       case 'TOWER_LIST':
-        return Tower.find({ societyId, isActive: true }).sort({ name: 1 });
+        return Tower.find({ societyId, isActive: true }).populate('societyId', 'shortId').sort({ name: 1 });
       case 'FLAT_LIST':
-        return Flat.find({ societyId, isActive: true }).populate('towerId', 'name').populate('floorId', 'floorNumber').sort({ flatNo: 1 });
+        return Flat.find({ societyId, isActive: true }).populate('societyId', 'shortId').populate('towerId', 'name').populate('floorId', 'floorNumber').sort({ flatNo: 1 });
       case 'RESIDENT_LIST':
-        return Resident.find({ societyId, isActive: true }).populate('flatId', 'flatNo').sort({ name: 1 });
+        return Resident.find({ societyId, isActive: true }).populate('societyId', 'shortId').populate('flatId', 'flatNo').sort({ name: 1 });
       case 'VEHICLE_LIST':
-        return Vehicle.find({ societyId, isActive: true }).populate('flatId', 'flatNo').sort({ vehicleNo: 1 });
+        return Vehicle.find({ societyId, isActive: true }).populate('societyId', 'shortId').populate('flatId', 'flatNo').sort({ vehicleNo: 1 });
       case 'PET_LIST':
-        return Pet.find({ societyId, isActive: true }).populate('flatId', 'flatNo').sort({ petName: 1 });
+        return Pet.find({ societyId, isActive: true }).populate('societyId', 'shortId').populate('flatId', 'flatNo').sort({ petName: 1 });
       case 'PAYMENT_LIST':
-        return PaymentRecord.find({ societyId }).populate('flatId', 'flatNo').sort({ paymentDate: -1 }).limit(500);
+        return PaymentRecord.find({ societyId }).populate('societyId', 'shortId').populate('flatId', 'flatNo').sort({ paymentDate: -1 }).limit(500);
       case 'RECEIPT_LIST':
-        return Receipt.find({ societyId }).populate('flatId', 'flatNo').sort({ receiptDate: -1 }).limit(500);
+        return Receipt.find({ societyId }).populate('societyId', 'shortId').populate('flatId', 'flatNo').sort({ receiptDate: -1 }).limit(500);
       default:
         return [];
     }

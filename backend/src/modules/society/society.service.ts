@@ -10,19 +10,52 @@ function generateCode(name: string): string {
   return `${SOCIETY_CODE_PREFIX}-${clean}`;
 }
 
+// Excludes visually-ambiguous characters (0/O, 1/I/L) since this is meant to be read off a
+// screen and typed/said aloud, unlike `code` above which is a full onboarding slug.
+const SHORT_ID_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+function randomShortId(): string {
+  let id = '';
+  for (let i = 0; i < 4; i++) id += SHORT_ID_CHARS[Math.floor(Math.random() * SHORT_ID_CHARS.length)];
+  return id;
+}
+
+export async function generateUniqueShortId(): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = randomShortId();
+    if (!(await Society.findOne({ shortId: candidate }))) return candidate;
+  }
+  throw new Error('Could not generate a unique society short ID after 10 attempts');
+}
+
 export class SocietyService {
   async create(dto: CreateSocietyDto, createdBy: string): Promise<ISocietyDocument> {
     const code = generateCode(dto.name);
     const existing = await Society.findOne({ code });
     if (existing) throw new ConflictError(`Society code ${code} already exists`);
+    const shortId = await generateUniqueShortId();
 
     return Society.create({
       ...dto,
       code,
+      shortId,
       createdBy,
       enabledModules: [MODULE_CODES.CORE],
       country: dto.country || 'India',
     });
+  }
+
+  // One-time backfill for societies created before `shortId` existed — safe to re-run,
+  // only touches documents that don't have one yet.
+  async backfillShortIds(): Promise<number> {
+    const missing = await Society.find({ shortId: { $exists: false } });
+    let updated = 0;
+    for (const society of missing) {
+      society.shortId = await generateUniqueShortId();
+      await society.save();
+      updated += 1;
+    }
+    return updated;
   }
 
   async findAll(page: number, limit: number, search?: string, scopedSocietyId?: string): Promise<PaginatedResult<ISocietyDocument>> {
