@@ -20,6 +20,7 @@ interface SocietySession {
   sock: WASocket;
   status: 'CONNECTING' | 'CONNECTED';
   qr?: string;
+  phoneNumber?: string;
 }
 
 export interface InboundImagePayload {
@@ -91,6 +92,7 @@ export class WhatsAppService {
         session.status = 'CONNECTED';
         session.qr = undefined;
         const phoneNumber = sock.user?.id?.split(':')[0];
+        session.phoneNumber = phoneNumber;
         await this.updateStatus(societyId, 'CONNECTED', phoneNumber);
         logger.info('WhatsApp connected', { societyId, phoneNumber });
       } else if (connection === 'close') {
@@ -145,7 +147,7 @@ export class WhatsAppService {
 
   async getStatus(societyId: string): Promise<{ status: string; qr?: string; phoneNumber?: string }> {
     const live = this.sessions.get(societyId);
-    if (live) return { status: live.status, qr: live.qr };
+    if (live) return { status: live.status, qr: live.qr, phoneNumber: live.phoneNumber };
     const settings = await CommunicationSettings.findOne({ societyId });
     return { status: settings?.whatsapp.status || 'DISCONNECTED', phoneNumber: settings?.whatsapp.phoneNumber };
   }
