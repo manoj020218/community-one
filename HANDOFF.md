@@ -12,6 +12,34 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-08-27 — MCR demand search box; the REAL WhatsApp-number-not-showing bug (getStatus dropped phoneNumber for any live session)
+
+**MCR Demands tab: added a search box** (flat number / resident name / mobile), matching the
+pattern already used on Payments/Receipts tabs. No join needed — `flatSnapshot.flatNo` and
+`residentSnapshot.name/mobile` are already denormalized onto each demand at draft-creation
+time, so `demandDraft.service.ts#listBySociety` just regexes those fields directly. Wired
+through `demand.controller.ts` → `GET /mcr/demands?search=...`.
+
+**Found the actual root cause of "WhatsApp connected not showing real mobile number"** — my
+2026-08-26 conclusion that this was just the stale-cache bug was wrong; the user confirmed it
+still didn't show even after a full cache clear, which pointed back at live backend data. The
+real bug: `whatsapp.service.ts#getStatus()` only ever returned `phoneNumber` from its
+DB-fallback branch (`if (live) return { status: live.status, qr: live.qr }` — no
+`phoneNumber` field at all). Since a live in-memory Baileys session exists basically 100% of
+the time once a society has connected, the DB-only branch almost never actually runs in
+practice — meaning the dashboard/settings WhatsApp cards showed "Connected" but the phone
+number line (gated on `waStatus.phoneNumber` being truthy) essentially never rendered, for
+every society, the entire time this feature has existed. Fixed by tracking `phoneNumber` on
+the live session object itself (set alongside `status` in the `connection: open` handler) and
+returning it from `getStatus()` regardless of which branch answers. Confirmed live via direct
+DB check (`communicationsettings.whatsapp` — correctly `CONNECTED` / `917240226566` throughout,
+confirming the DB layer was always fine and this was purely a getStatus() read-path bug) and
+via PM2 logs showing a clean reconnect immediately after this fix's deploy.
+
+Also (still standing, not undone): `CommunicationMediaTab.tsx`'s WhatsApp card now polls every
+60s instead of fetching once — a real secondary issue where loading that page mid-reconnect
+would otherwise freeze the card on a stale reading.
+
 ### 2026-08-26 (cont'd 2) — nginx never sent Cache-Control on index.html (root cause of "mobile app still shows old"); MCR reminders never actually requested WhatsApp
 
 **Root cause of persistent staleness in the native (Capacitor) app, unrelated to the service
