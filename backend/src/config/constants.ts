@@ -30,6 +30,7 @@ export const PERMISSIONS = {
   RESIDENT_READ: 'resident.read',
   RESIDENT_UPDATE: 'resident.update',
   RESIDENT_DISABLE: 'resident.disable',
+  RESIDENT_JOIN_REVIEW: 'resident.join.review',
   LEASE_CREATE: 'lease.create',
   LEASE_READ: 'lease.read',
   LEASE_UPDATE: 'lease.update',

@@ -164,11 +164,17 @@ export function LoginPage() {
             </div>
           )}
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-1.5">
             <p className="text-sm text-slate-500">
               New to Jenix?{' '}
               <Link to={isHostel ? '/onboard?type=hostel' : '/onboard'} className="text-primary-600 font-semibold hover:underline">
                 Register your {terms.org.toLowerCase()} →
+              </Link>
+            </p>
+            <p className="text-sm text-slate-500">
+              Already a member of a {terms.org.toLowerCase()} on Jenix?{' '}
+              <Link to="/join" className="text-primary-600 font-semibold hover:underline">
+                Join with your society code →
               </Link>
             </p>
           </div>

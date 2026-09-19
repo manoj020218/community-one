@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from './store/authStore';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './modules/auth/LoginPage';
+import { JoinSocietyPage } from './modules/auth/JoinSocietyPage';
 import { SuperAdminDashboard } from './modules/dashboard/SuperAdminDashboard';
 import { SocietyAdminDashboard } from './modules/dashboard/SocietyAdminDashboard';
 import { ResidentDashboard } from './modules/dashboard/ResidentDashboard';
@@ -17,6 +18,7 @@ import { TowerPage } from './modules/tower/TowerPage';
 import { FloorPage } from './modules/floor/FloorPage';
 import { FlatPage } from './modules/flat/FlatPage';
 import { ResidentPage } from './modules/resident/ResidentPage';
+import { JoinRequestsPage } from './modules/resident/JoinRequestsPage';
 import { VehiclePage } from './modules/vehicle/VehiclePage';
 import { PetPage } from './modules/pet/PetPage';
 import { RolesPage } from './modules/roles/RolesPage';
@@ -82,6 +84,7 @@ export default function App() {
     <Routes>
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/join" element={<JoinSocietyPage />} />
 
       {/* Guard Kiosk — full-screen, no Sidebar/TopBar shell */}
       <Route path="/guard-kiosk" element={<ProtectedRoute><RequireSociety><GuardKioskPage /></RequireSociety></ProtectedRoute>} />
@@ -109,6 +112,7 @@ export default function App() {
         <Route path="/floors" element={<RequireSociety><FloorPage /></RequireSociety>} />
         <Route path="/flats" element={<RequireSociety><FlatPage /></RequireSociety>} />
         <Route path="/residents" element={<RequireSociety><ResidentPage /></RequireSociety>} />
+        <Route path="/join-requests" element={<RequireSociety><JoinRequestsPage /></RequireSociety>} />
         <Route path="/vehicles" element={<RequireSociety><VehiclePage /></RequireSociety>} />
         <Route path="/pets" element={<RequireSociety><PetPage /></RequireSociety>} />
         <Route path="/roles" element={<RolesPage />} />

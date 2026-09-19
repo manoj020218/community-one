@@ -1,4 +1,4 @@
-import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound, Link2, Megaphone, Footprints } from 'lucide-react';
+import { Home, Building2, Layers3, LayoutGrid, Users, Car, Cat, Shield, UserCog, Puzzle, Bell, ClipboardList, FolderOpen, BarChart3, Cpu, UserCheck, Banknote, Settings, FileText, KeyRound, Link2, Megaphone, Footprints, UserPlus } from 'lucide-react';
 import { MCR_ROUTE_PERMISSIONS } from '../../modules/mcr/mcr.permissions';
 import { SAMA_ROUTE_PERMISSIONS } from '../../modules/sama/sama.permissions';
 import { LEASE_ROUTE_PERMISSIONS } from '../../modules/lease/lease.permissions';
@@ -59,6 +59,7 @@ const RAW_NAV_GROUPS: NavGroup[] = [
       { to: '/floors', icon: LayoutGrid, label: 'Floors', roles: [] },
       { to: '/flats', icon: LayoutGrid, label: 'Flats', roles: [] },
       { to: '/residents', icon: Users, label: 'Residents', roles: [] },
+      { to: '/join-requests', icon: UserPlus, label: 'Join Requests', roles: [], permissions: ['resident.join.review'] },
       { to: '/vehicles', icon: Car, label: 'Vehicles', roles: [] },
       { to: '/pets', icon: Cat, label: 'Pets', roles: [] },
     ],

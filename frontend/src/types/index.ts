@@ -84,6 +84,16 @@ export interface Resident {
   status: string;
 }
 
+export interface JoinRequest {
+  _id: string; societyId: string; name: string; mobile: string; email?: string;
+  claimedFlatNo?: string;
+  matchedResidentId?: { _id: string; name: string; flatId?: { flatNo: string } } | string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reviewedBy?: string; reviewedAt?: string; rejectionReason?: string;
+  resultingResidentId?: string; resultingUserId?: string;
+  createdAt: string;
+}
+
 export interface Bed {
   _id: string; societyId: string; flatId: any; bedNumber: string;
   status: 'VACANT' | 'OCCUPIED' | 'MAINTENANCE' | 'RESERVED';
