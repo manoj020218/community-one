@@ -12,6 +12,41 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-09-19 — Play Store release audit; join-by-code self-service onboarding with admin approval
+
+**Play Store release audit** (`6. PLAY STORE RELEASE/PLAY_STORE_RELEASE_PLAN.md`). Found the
+signed release APK at `frontend/android/app/build/outputs/apk/release/app-release.apk`, but
+Play Console requires an `.aab` for new submissions — none has been built yet (`cd
+frontend/android && ./gradlew bundleRelease`). Audited signing, permissions, icon/splash,
+privacy/terms pages (all fine) against what's still missing: store listing assets, Data Safety
+form, content rating questionnaire, closed testing track (if this is a new developer account),
+and two things that need manual verification — the Firebase SHA-1 cert hash actually matches
+the release keystore (couldn't run `keytool` myself, sandboxed as credential materialization),
+and `/privacy`/`/terms` are reachable as direct URLs (not just client-side nav) since the app
+is a WebView pointed at the live site rather than bundled assets. Biggest risk flagged: the
+release keystore exists in exactly one place on this machine (`D:\IOT Device\Society\google\`)
+with no backup — back it up (or confirm Play App Signing enrollment) before anything else.
+
+**Join-by-code self-service request + admin approval** (new `backend/src/modules/joinRequest`
+module + `frontend/src/modules/auth/JoinSocietyPage.tsx` + `frontend/src/modules/resident/
+JoinRequestsPage.tsx`, spec in `JOIN_REQUEST_APPROVAL_PLAN.md`). Until now every resident login
+was provisioned by an admin (`residentService.grantLogin`) with no self-service path in —
+that's what stopped a member from ever landing on the "create society" screen by mistake, but
+also meant a resident who hadn't been added yet had no way in except asking the admin
+directly. This adds a second front door without touching the first: a member enters their
+society's existing `Society.code` at `/join`, the app confirms the society name back to them
+(never a browsable list of societies), submits name/mobile/email/claimed-flat, and it lands in
+a `JoinRequest` row that notifies `SOCIETY_ADMIN` users. If the mobile matches an existing
+Resident with no login yet, the admin's review screen (`/join-requests`, gated behind new
+permission `resident.join.review`) offers a one-click "Approve & Grant Login"; otherwise the
+admin picks a flat during approval and it creates the Resident too — both paths delegate
+straight to the existing `residentService.create`/`grantLogin`, no new account-creation logic.
+Nothing is ever auto-approved, even on an exact mobile match — there's no OTP in this app to
+prove phone ownership, so the admin stays the trust boundary exactly like Grant Login already
+requires. **Needs `pnpm run seed` re-run on the VPS** so existing `SOCIETY_ADMIN` accounts
+pick up the new permission (it's a snapshot copied at user-creation time). Verified: backend
+`tsc --noEmit` + full Jest suite (30 suites/92 tests) green, frontend `tsc --noEmit` clean.
+
 ### 2026-08-27 — MCR demand search box; the REAL WhatsApp-number-not-showing bug (getStatus dropped phoneNumber for any live session)
 
 **MCR Demands tab: added a search box** (flat number / resident name / mobile), matching the
