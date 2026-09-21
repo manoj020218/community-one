@@ -12,6 +12,60 @@
 
 *(Newest entry first — append new entries here rather than editing old ones.)*
 
+### 2026-09-21 — AAB build, app rebrand to "Jenix OneOps", Play Console store listing filled in
+
+**Built and signed the release AAB** (`frontend/android/app/build/outputs/bundle/release/app-release.aab`),
+resolving what the 09-19 audit flagged as missing. Play Console required `targetSdk`/`compileSdk`
+36 (live requirement, higher than the previously-assumed 35) — bumped in
+`frontend/android/variables.gradle` — and `versionCode` 1→2 in `frontend/android/app/build.gradle`
+since 1 was already consumed by the earlier APK. Verified signature via `jarsigner -verify`.
+**Backed up the release keystore** to `D:\IOT Device\Society\google\jenix-community-keystore-backup.zip`
+(keystore + password file + README) — user copied it to a second location and the unzipped staging
+folder was deleted afterward; the keystore itself still lives only at
+`D:\IOT Device\Society\google\jenix-community-release.keystore`, still with no cloud/off-machine
+backup beyond that one zip.
+
+**Renamed the app to "Jenix OneOps"** for the Play Store listing (was "Jenix Community One"),
+chosen so the same app can eventually cover Hostel/Hotel/Hospital/Campus verticals without a
+confusing name — no code change, listing-only. `Society.vertical` (`COMMUNITY`/`HOSTEL`) and
+`terminologyFor()` already exist in the backend but only Community and Hostel are actually
+implemented; Hotel/Hospital/Campus are name-only aspirations right now, not built.
+
+**Uploaded the app to Play Console via browser automation** (first-ever upload for this app) and
+walked through Data Safety, Content Rating, Target Audience, and Sign-in Details end to end.
+**Data-loss lesson learned the hard way:** mid-way through the Data Safety wizard, clicking a
+link triggered a "Leave and discard changes?" dialog; choosing "Leave and discard" wiped the
+*entire* wizard (steps 2–4) despite earlier per-section "Saved" toasts implying persistence —
+had to redo it all in one uninterrupted pass to the final Preview→Save. **Do not navigate away
+mid-wizard in Play Console; only its own Save button at the end actually persists.** Also hit an
+unresponsive "Mobile payments and digital wallets" checkbox under Financial Features (4 different
+click strategies failed) — left unanswered since Console's own checklist still marked that
+section "Completed"; not definitively resolved, flagged for the user to double check.
+
+**Support/contact email corrected to `iotsoft.in@gmail.com`** everywhere in the Play Console
+listing — `support@iotsoft.in` (used in the app's own Privacy Policy page) has no real mailbox.
+Saved to memory (`reference_playstore_support_email.md`) so this doesn't get mistyped or reused
+wrong on a future app. **Still open:** `frontend/src/modules/marketing/PrivacyPage.tsx` itself
+still tells end users to email the non-functional `support@iotsoft.in` — not yet fixed in code.
+
+**Prepared all Store Listing graphics locally** (Play Console's screenshot/icon/feature-graphic
+uploaders have no automatable file input — opaque native-dialog buttons only — so these were
+handed off for manual upload rather than attempted via browser automation):
+- `app-icon-512.png` — reused existing `frontend/public/pwa-512x512.png` (already exactly 512×512)
+- `feature-graphic.png` (1024×500) — generated via PowerShell/System.Drawing: purple gradient
+  background, rounded-corner "J" app icon with drop shadow, "Jenix OneOps" title +
+  "Society & Hostel Management" tagline
+- `1-dashboard.png`, `2-login.png`, `3-residents.png`, `4-modules.png` (1080×1920) — live-app
+  screenshots via a review-only account (never touched real admin credentials or real society
+  data), letterboxed onto a branded canvas since `resize_window` doesn't actually change the
+  rendered viewport in this environment (desktop-width captures only) — real-phone screenshots
+  would still be a worthwhile future upgrade over these.
+
+All 6 files are in the session scratchpad; **user still needs to manually drag them into Play
+Console's Store Listing → Graphics section** to close out the last checklist item, then send the
+release for review. Closed testing still needs ≥12 testers opted in for 14 continuous days before
+production access unlocks — unchanged from the 09-19 audit.
+
 ### 2026-09-19 — Play Store release audit; join-by-code self-service onboarding with admin approval
 
 **Play Store release audit** (`6. PLAY STORE RELEASE/PLAY_STORE_RELEASE_PLAN.md`). Found the
